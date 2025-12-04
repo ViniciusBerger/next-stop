@@ -15,7 +15,7 @@ export default function Header() {
 
 
                 {/* Green curve
-                <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-[140%] h-32 bg-emerald-400 rounded-full" /> */}
+                <div className="absolute  -bottom-16 left-1/2 -translate-x-1/2 w-[140%] h-32 bg-emerald-400 rounded-full" /> */}
             
         </div>
     )
