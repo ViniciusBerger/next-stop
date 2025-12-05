@@ -1,10 +1,26 @@
 "use client";
 
+import { firebaseSignOut } from "../service/authService";
+import { useRouter } from "next/navigation";
+
 export default function Dashboard() {
+
+    const router = useRouter();
+
+    const handleSignOut = async ()=> {
+        console.log("signout button")
+        await firebaseSignOut();
+
+        router.push("/")
+
+
+    }
+
+
   return (
     <div className="min-h-screen w-screen bg-white text-gray-900">
       {/* Top gradient bar */}
-      <div className="w-full h-56 bg-gradient-to-b from-indigo-600 via-blue-500 to-emerald-400 flex items-center justify-center">
+      <div className="w-full h-56 bg-gradient-to-b from-indigo-500 to-blue-700 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-4xl font-extrabold tracking-wide text-white drop-shadow-md">
             next<span className="text-emerald-300">-stop</span>
@@ -12,6 +28,11 @@ export default function Dashboard() {
           <p className="mt-2 text-sm text-indigo-100">
             Plan the perfect date, one stop at a time.
           </p>
+        </div>
+        <div>
+            <button className="mt-3 w-full text-xs font-semibold text-white rounded-full py-2 bg-gradient-to-r from-indigo-500 via-blue-500 to-emerald-400 ml-10"
+            onClick={()=>handleSignOut()}
+            >Sign out</button>
         </div>
       </div>
 

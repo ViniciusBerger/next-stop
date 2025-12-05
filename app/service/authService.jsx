@@ -1,5 +1,7 @@
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { signOut } from "firebase/auth";
 import { auth } from "./firebase";
+import { redirect } from "next/navigation";
 
 
 // handle login
@@ -15,4 +17,10 @@ export async function loginWithEmail(email,password) {
 
     // return user
     return userCredential.user
+}
+
+// sign out
+export async function firebaseSignOut(){
+    await signOut(auth);
+
 }
