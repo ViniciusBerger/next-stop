@@ -35,10 +35,8 @@ export default function LoginScreen() {
 
       <Header />
 
-      {/* FORM WRAPPER */}
       <div className="w-full max-w-md mx-auto px-6 pt-16 pb-12 text-black">
 
-        {/* Error Message */}
         {error && (
           <div className="mb-4 text-sm text-red-600 bg-red-100 border border-red-200 rounded-md p-3">
             {error}

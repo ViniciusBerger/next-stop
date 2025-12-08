@@ -16,14 +16,35 @@ import {
 const EVENTS = "events";
 
 export async function createEvent(eventData) {
-  const docRef = await addDoc(collection(db, EVENTS), eventData);
+  const user = auth.currentUser;
+  
+  if (!user) {
+    throw new Error("User must be logged in to create an event.");
+  }
+
+const finalData = {
+  title: eventData.title || "",
+  description: eventData.description || "",
+  date: eventData.date || "",
+  time: eventData.time || "",
+  location: eventData.location || "",
+  privacy: eventData.privacy || "public",
+  created_on: eventData.created_on || new Date(),
+  userId: user.uid,
+  creatorEmail: user.email || ""
+};
+
+console.log("4. Sending data to Firestore...", finalData); 
+
+  const docRef = await addDoc(collection(db, EVENTS), finalData);
   return docRef.id;
 }
-
-export async function getAllEvents() {
+  
+  export async function getAllEvents() {
   const snap = await getDocs(collection(db, EVENTS));
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
+
 
 export async function getEventById(id) {
   const ref = doc(db, EVENTS, id);
