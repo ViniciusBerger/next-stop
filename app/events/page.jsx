@@ -67,15 +67,13 @@ export default function EventsPage() {
               {/* EVENT LIST */}
               {events.map((evt) => (
                 <Link key={evt.id} href={`/events/${evt.id}`}>
-                  <div className={`border rounded-2xl p-5 sm:p-6 transition cursor-pointer shadow-sm group 
-                    ${evt.id === 'mock-1' ? 'border-emerald-200 bg-emerald-50/30' : 'border-indigo-50 hover:bg-indigo-50/50'}`}>
+                  <div className="border rounded-2xl p-5 sm:p-6 transition cursor-pointer shadow-sm group border-emerald-200 bg-emerald-50/30 mb-2">
                     
                     <div className="flex items-center justify-between">
                       <h3 className="text-base sm:text-lg font-semibold group-hover:text-indigo-600 transition">
                         {evt.title}
                       </h3>
-                      <span className={`text-xs sm:text-sm font-semibold px-3 py-1 rounded-full 
-                        ${evt.id === 'mock-1' ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-50 text-indigo-500'}`}>
+                      <span className="text-xs sm:text-sm font-semibold px-3 py-1 rounded-fullbg-emerald-100 text-emerald-600">
                         {evt.date}
                       </span>
                     </div>
