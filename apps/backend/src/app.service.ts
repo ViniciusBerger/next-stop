@@ -11,7 +11,7 @@ export class AppService {
 
   getHealth(): any {
     return {
-      message: "I am healthy and working properly! PS: Just authenticated users cab access this route.",
+      message: "I am healthy and working properly! PS: Just authenticated users can access this route.",
       status: 200
     };
   }
