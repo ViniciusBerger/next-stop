@@ -1,6 +1,6 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
-import { FirebaekGuard } from './auth/firebase.guard';
+import { FirebaseGuard } from './auth/firebase.guard';
 
 @Controller()
 export class AppController {
@@ -11,10 +11,22 @@ export class AppController {
     return this.appService.getHello();
   }
 
-  @Get("/health")
-  @UseGuards(FirebaekGuard)
+  @Get('/health')
+  @UseGuards(FirebaseGuard)
   getHealth(): string {
     return this.appService.getHealth();
   }
 
+  @Get('/places')
+  getPlaces(
+    @Query('location') location?: string,
+    @Query('type') type?: string,
+    @Query('budget') budget?: string,
+  ) {
+    return this.appService.getFilteredPlaces({
+      location,
+      type,
+      budget,
+    });
+  }
 }
