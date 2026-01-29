@@ -1,6 +1,7 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
-import { FirebaekGuard } from './auth/firebase.guard';
+import { AuthGuard } from './auth/guards/auth.guard';
+import { Roles } from './roles.decorator';
 
 @Controller()
 export class AppController {
@@ -12,7 +13,8 @@ export class AppController {
   }
 
   @Get("/health")
-  @UseGuards(FirebaekGuard)
+  @UseGuards(AuthGuard)
+  @Roles('admin')
   getHealth(): string {
     return this.appService.getHealth();
   }
