@@ -1,17 +1,27 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GlobalExceptionFilter } from './errors/global.error.filter';
+import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   imports: [
 
-    // configuration module to inject environment variables, make sure to install @nestjs/config
+    // configuration module to inject environment variables
     ConfigModule.forRoot({
       isGlobal: true, 
-      envFilePath: '.env', // Looks into ./backend/.env
+      envFilePath: '.env', // ./backend/.env
     }),
+
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGO_DB_STRING_CONNECTION'), // Pulls from .env
+      }),
+    }),
+
   ],
 
 
@@ -22,6 +32,7 @@ import { GlobalExceptionFilter } from './errors/global.error.filter';
   providers: [
     AppService, 
     {
+      // Global exception filter to handle errors across app
       provide: `APP_FILTER`,
       useClass: GlobalExceptionFilter
     }

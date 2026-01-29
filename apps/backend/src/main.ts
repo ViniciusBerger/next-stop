@@ -1,14 +1,20 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import admin from 'firebase-admin';
-import ServiceAccountKey from '../serviceAccountKey.json';
+import { ConfigService } from '@nestjs/config';
 
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
 
+  // initialize firebase admin SDK
   admin.initializeApp({
-    credential: admin.credential.cert(ServiceAccountKey as admin.ServiceAccount)
+    credential: admin.credential.cert({
+      projectId: configService.get<string>('FIREBASE_PROJECT_ID'),
+      clientEmail: configService.get<string>('FIREBASE_CLIENT_ID'),
+      privateKey: configService.get<string>('FIREBASE_PRIVATE_KEY'),
+    })
   })
 
   app.enableCors({
