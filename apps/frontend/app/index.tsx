@@ -1,5 +1,12 @@
 import { Redirect } from "expo-router";
 
 export default function Index() {
-  return <Redirect href="/login" />;
+  const isAuthenticated = false;
+
+  return isAuthenticated ? (
+    <Redirect href="/(tabs)/home" />
+  ) : (
+    <Redirect href="/login" />
+  );
 }
+
