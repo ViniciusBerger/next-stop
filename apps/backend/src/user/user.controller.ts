@@ -1,6 +1,6 @@
 import { BadRequestException, Controller, Get, NotFoundException, Post, Query } from "@nestjs/common";
 import { UserService } from "./user.service";
-import { GetUserDTO } from "./DTOs/getUser.DTO";
+import { GetUserDTO } from "./DTOs/get.user.DTO";
 
 @Controller()
 export class UserController {
@@ -13,6 +13,8 @@ export class UserController {
     // }
 
     // get user by firebaseUid
+
+    
     @Get('/user')
     async getUser(@Query() getUserDTO: GetUserDTO) {
 

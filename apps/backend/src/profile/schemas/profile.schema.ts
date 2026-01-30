@@ -5,10 +5,10 @@ import { Document } from 'mongoose';
 
 
 @Schema()
-export class ProfileSchema extends Document {
+export class Profile extends Document {
     @Prop({ required: true})
     userId: string;
 }
 
 
-export const profileSchema = SchemaFactory.createForClass(ProfileSchema);
+export const profileSchema = SchemaFactory.createForClass(Profile);
