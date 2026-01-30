@@ -2,14 +2,16 @@ import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { styles } from "../src/styles/login.styles";
 import { useState } from "react";
 import HeaderBackground from "../src/svgs/HeaderBackground";
+import { useRouter } from "expo-router";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [hasError, setHasError] = useState(false);
+  const router = useRouter();
 
   function handleLogin() {
-    setHasError(true);
+    router.replace("/home");
   }
 
   return (
