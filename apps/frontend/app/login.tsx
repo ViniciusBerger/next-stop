@@ -2,6 +2,7 @@ import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { styles } from "../src/styles/login.styles";
 import { useState } from "react";
 import HeaderBackground from "../src/svgs/HeaderBackground";
+import { router } from "expo-router";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -46,7 +47,7 @@ export default function Login() {
         </TouchableOpacity>
 
         <Text style={styles.link}>Forgot Password</Text>
-        <Text style={styles.link}>Register</Text>
+        <Text style={styles.link} onPress={() => router.push("/register")}>Register</Text>
       </View>
     </View>
   );
