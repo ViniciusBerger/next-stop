@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GlobalExceptionFilter } from './errors/global.error.filter';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ProfileModule } from './profile/profile.module';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { MongooseModule } from '@nestjs/mongoose';
         uri: configService.get<string>('MONGO_DB_STRING_CONNECTION'), // Pulls from .env
       }),
     }),
-
+    ProfileModule,
   ],
 
 
