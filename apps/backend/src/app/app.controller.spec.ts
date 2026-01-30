@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuthGuard } from './auth/guards/auth.guard';
+import { AuthGuard } from '../auth/guards/auth.guard';
 import { verify } from 'crypto';
 import { verifyToken } from '@clerk/backend';
 
