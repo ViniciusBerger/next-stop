@@ -9,3 +9,6 @@ export class ProfileSchema extends Document {
     @Prop({ required: true})
     userId: string;
 }
+
+
+export const profileSchema = SchemaFactory.createForClass(ProfileSchema);
