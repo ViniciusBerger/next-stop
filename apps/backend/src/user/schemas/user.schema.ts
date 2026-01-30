@@ -4,13 +4,17 @@ import { AddressSchema } from 'src/common/schemas/address.schema';
 import { ProfileSchema } from 'src/profile/schemas/profile.schema';
 import { BadgeSchema } from './badges.schema';
 
-@Schema()
-export class UserSchema extends Document {
+@Schema({ collection: 'User' })
+export class User extends Document {
+    
     @Prop({type: String, required: true, unique: true})
     firebaseUid: string;
     
     @Prop({type: String, required:true})
     role: string;
+
+    @Prop({type: String, required:true})
+    username: string;
     
     @Prop({type: String, required:true, unique: true, lowercase: true, trim: true,match: [/^\S+@\S+\.\S+$/, 'Please use a valid email address'],})
     email: string;
@@ -47,4 +51,4 @@ export class UserSchema extends Document {
 }
 
 
-export const userSchema = SchemaFactory.createForClass(UserSchema);
+export const userSchema = SchemaFactory.createForClass(User);

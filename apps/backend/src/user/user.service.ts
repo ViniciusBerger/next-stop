@@ -1,18 +1,23 @@
 import { Injectable } from "@nestjs/common";
-import { UserSchema } from "./schemas/user.schema";
+import { User } from "./schemas/user.schema";
 import mongoose, { Model } from "mongoose";
 import { InjectModel } from "@nestjs/mongoose";
+import { GetUserDTO } from "./DTOs/getUser.DTO";
+import { CreateUserDTO } from "./DTOs/createUserDTO";
+
 
 @Injectable()
 export class UserService {
-    private userModel: Model<UserSchema>;
+    private userModel: Model<User>;
 
-    constructor(@InjectModel(UserSchema.name) userModelReceived: Model<UserSchema>) {
+    // inject model for user
+    constructor(@InjectModel(User.name) userModelReceived: Model<User>) {
         this.userModel = userModelReceived;
     }
-
-    // ADD VALIDATION 
-    addUser(user: UserSchema): boolean {
+ 
+    
+    // add user to database
+    addUser(user: CreateUserDTO): boolean {
         const newUser = new this.userModel(user);
         newUser.save();
 
@@ -20,9 +25,16 @@ export class UserService {
     }
 
     // return userSchema or null 
-    getUser(userId: string): Promise<UserSchema | null> {
+    getUser(getUserDTO: GetUserDTO): Promise<User | null> {
+        const { firebaseUid, username} = getUserDTO;
+        const mongoQuery: any = {};
 
-        const userReceived = async () => await this.userModel.findById(userId).exec();
+        // dictionary for mongo query
+        if(firebaseUid) mongoQuery.firebaseUid = firebaseUid;
+        if(username) mongoQuery.username = username;
+
+
+        const userReceived = async () => await this.userModel.findOne(mongoQuery).exec();
 
         return userReceived();
     }

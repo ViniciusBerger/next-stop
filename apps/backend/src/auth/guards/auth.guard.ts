@@ -22,7 +22,7 @@ export class AuthGuard implements CanActivate {
         // invalid token
         console.error('--- Auth Error ---');
         console.error('Message:', error.message);
-        console.error('Reason:', error.code); // Clerk specific error reasons
+        console.error('Reason:', error.code); // specific error reasons
         console.error('------------------------');
         throw new UnauthorizedException()
     }
