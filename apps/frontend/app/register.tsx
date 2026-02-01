@@ -13,6 +13,7 @@ import {
 import HeaderBackground from "@/src/svgs/HeaderBackground";
 import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
+import { BackButton } from "@/components/backButton";
 // import { registerWithEmail, sendEmailVerification } from "../service/authService";
 // import { checkIfUsernameExists } from "@/src/service/userService";
 
@@ -118,10 +119,9 @@ export default function RegisterScreen() {
         <View style={styles.headerWrapper}>
           <HeaderBackground />
           <View style={styles.headerContent}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <Text style={styles.backText}>{"<"}</Text>
-            </TouchableOpacity>
+            <BackButton color="white" />            
             <Text style={styles.headerTitle}>Register</Text>
+            <View style={{ width: 38 }} /> {/*Alignment purposes*/}
           </View>
         </View>
 
@@ -220,6 +220,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
     marginRight: 40,
+    marginTop: 10
   },
   inner: { paddingHorizontal: 30, paddingBottom: 40 },
   label: { fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#000' },
