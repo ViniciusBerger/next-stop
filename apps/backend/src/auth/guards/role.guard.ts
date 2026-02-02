@@ -23,7 +23,11 @@ export class RoleGuard implements CanActivate {
 
 
         // fetch database to look for roles
-        const mongooseUser = await mongoose.model('User').findById(user.uid)
+        const mongooseUser = await mongoose.model('User').findById(user.firebaseId).exec();
+
+        if (!mongooseUser) {
+            throw new UnauthorizedException('User not found');
+        }
         const hasRole = requiredRoles.some((role) => mongooseUser.role?.includes(role));
 
         

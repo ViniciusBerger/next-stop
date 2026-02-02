@@ -2,29 +2,31 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { GlobalExceptionFilter } from './errors/global.error.filter';
+import { GlobalExceptionFilter } from '../errors/global.error.filter';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ProfileModule } from './profile/profile.module';
+import { UserModule } from 'src/user/user.module';
 
 @Module({
   imports: [
-
     // configuration module to inject environment variables
     ConfigModule.forRoot({
       isGlobal: true, 
       envFilePath: '.env', // ./backend/.env
     }),
 
+    // mongoose module to connect to MongoDB
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGO_DB_STRING_CONNECTION'), // Pulls from .env
+        uri: configService.get<string>('MONGO_DB_STRING_CONNECTION'),
       }),
     }),
-    ProfileModule,
-  ],
 
+    
+    UserModule,
+
+  ],
 
   controllers: [AppController],
   

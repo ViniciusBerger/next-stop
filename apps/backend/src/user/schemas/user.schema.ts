@@ -1,18 +1,51 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
-import { Profile, ProfileSchema } from 'src/profile/schemas/profile.schema';
+import { Document, Types } from 'mongoose';
+import { AddressSchema } from 'src/common/schemas/address.schema';
+import { Profile } from 'src/profile/schemas/profile.schema';
+import { Badge } from './badges.schema';
 
-@Schema()
-export class UserSchema extends Document {
-    @Prop({ required: true, unique: true})
+@Schema({ collection: 'User' })
+export class User extends Document {
+    
+    @Prop({type: String, required: true, unique: true})
     firebaseUid: string;
-    @Prop({ required:true})
+    
+    @Prop({type: String, required:true})
     role: string;
-    @Prop({required:true, unique: true, lowercase: true, trim: true,match: [/^\S+@\S+\.\S+$/, 'Please use a valid email address'],})
+
+    @Prop({type: String, required:true})
+    username: string;
+    
+    @Prop({type: String, required:true, unique: true, lowercase: true, trim: true,match: [/^\S+@\S+\.\S+$/, 'Please use a valid email address'],})
     email: string;
-    @Prop({type: ProfileSchema, required: true})
+    
+    @Prop({type: Profile, required: true})
     profile: Profile;
+
+    @Prop({type: String, default: '' })
+    bio: string;
+
+    @Prop({type: String, default: '' }) // url to the profile picture
+    profilePicture: string;
+
+    @Prop({type: Badge, default: [] })
+    badges: Badge[];
+
+    @Prop({type: Types.ObjectId, ref: 'user', default: []})
+    friends: Types.ObjectId[];
+
+    @Prop({type: Boolean, deafault: false})
+    isBanned: boolean
+
+    @Prop({type: Date, default: Date.now})
+    createdAt: Date;
+
+    @Prop({type: Date, default: Date.now})
+    updatedAt: Date;
+
+    @Prop({type: Date, default: Date.now})
+    lastLogin: Date;
 }
 
 
-export const userSchema = SchemaFactory.createForClass(UserSchema);
+export const userSchema = SchemaFactory.createForClass(User);
