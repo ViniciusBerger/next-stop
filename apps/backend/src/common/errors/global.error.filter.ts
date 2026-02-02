@@ -1,6 +1,15 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
 
+/**
+ * Global Exception Filter to handle all uncaught exceptions
+ * @author Vinicius Berger
+ * 
+ * @description
+ * This filter catches all uncaught exceptions in the application and formats the response
+ * to include status code, timestamp, request path, and error message.
+ * 
+ */
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -15,7 +24,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             status: status,
             timestamp: new Date().toISOString(),
             path: request.url,
-            message: (exception as any).message || 'Internal server error'
+            message: ((exception as any).message )|| 'Internal server error'
         })
     }
 

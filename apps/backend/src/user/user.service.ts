@@ -17,11 +17,10 @@ export class UserService {
     }
  
     // add user to database
-    addUser(user: CreateUserDTO): boolean {
+    async addUser(user: CreateUserDTO){
+        
         const newUser = new this.userModel(user);
-        newUser.save();
-
-        return true;
+        return await newUser.save(); // Wait for the DB to confirm 
     }
 
     getUser(getUserDTO: GetUserDTO): Promise<User | null> {
@@ -40,7 +39,7 @@ export class UserService {
 
     editUser(editUserDTO: EditUserDTO) {
         //editUserDTO destructuring
-        const { username, bio, profilePicture} = editUserDTO;
+        const { _id, username, bio, profilePicture} = editUserDTO;
         const mongoQuery: any = {};
 
         // dictionary for mongo query
@@ -49,7 +48,7 @@ export class UserService {
         if (profilePicture) mongoQuery.profilePicture = profilePicture;
 
         //find and update user
-        const updatedUser = async () => await this.userModel.findOneAndUpdate(mongoQuery).exec();
+        const updatedUser = async () => await this.userModel.findOneAndUpdate({_id: _id}, {$set: mongoQuery}, ).exec();
         return updatedUser();
     }
 

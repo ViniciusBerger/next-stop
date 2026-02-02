@@ -2,6 +2,11 @@ import { IsString, IsEmail, IsNotEmpty, MinLength, MaxLength, Min, IsStrongPassw
 
 
 export class EditUserDTO {
+
+    @IsString()
+    @IsNotEmpty()
+    _id: string;
+
     @IsString()
     @IsNotEmpty()
     @MinLength(3)

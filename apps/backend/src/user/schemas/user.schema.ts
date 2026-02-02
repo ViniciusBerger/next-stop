@@ -16,10 +16,10 @@ export class User extends Document {
     @Prop({type: String, required:true})
     username: string;
     
-    @Prop({type: String, required:true, unique: true, lowercase: true, trim: true,match: [/^\S+@\S+\.\S+$/, 'Please use a valid email address'],})
+    @Prop({type: String,})
     email: string;
     
-    @Prop({type: Profile, required: true})
+    @Prop({type: Profile}) // needs to be done
     profile: Profile;
 
     @Prop({type: String, default: '' })
@@ -28,10 +28,10 @@ export class User extends Document {
     @Prop({type: String, default: '' }) // url to the profile picture
     profilePicture: string;
 
-    @Prop({type: Badge, default: [] })
+    @Prop({type: [Badge], default: [] })
     badges: Badge[];
 
-    @Prop({type: Types.ObjectId, ref: 'user', default: []})
+    @Prop({type: Types.ObjectId, ref: 'User', default: []})
     friends: Types.ObjectId[];
 
     @Prop({type: Boolean, deafault: false})
