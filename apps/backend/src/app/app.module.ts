@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GlobalExceptionFilter } from '../common/errors/global.error.filter';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UserModule } from 'src/user/user.module';
+import { PlaceModule } from 'src/places/place.module';
 
 @Module({
   imports: [
@@ -24,7 +25,8 @@ import { UserModule } from 'src/user/user.module';
     }),
 
     
-    UserModule,
+    UserModule, 
+    PlaceModule,
 
   ],
 
