@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { AddressSchema } from 'src/common/schemas/address.schema';
-import { Profile } from 'src/profile/schemas/profile.schema';
+import { Profile, profileSchema } from 'src/profile/schemas/profile.schema';
 import { Badge } from './badges.schema';
 
 @Schema({ collection: 'User' })
@@ -19,7 +19,7 @@ export class User extends Document {
     @Prop({type: String,})
     email: string;
     
-    @Prop({type: Profile}) // needs to be done
+    @Prop({type: profileSchema, default: () => ({}) })
     profile: Profile;
 
     @Prop({type: String, default: '' })
