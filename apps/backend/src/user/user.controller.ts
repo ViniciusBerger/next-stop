@@ -1,16 +1,15 @@
-import { BadRequestException, Body, Controller, Get, NotFoundException, Patch, Post, Query } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query } from "@nestjs/common";
 import { UserService } from "./user.service";
 import { GetUserDTO } from "./DTOs/get.user.DTO";
 import { UserResponseDTO } from "./DTOs/user.response.DTO";
 import { CreateUserDTO } from "./DTOs/create.user.DTO";
 import { EditUserDTO } from "./DTOs/edit.user.DTO";
-import { not } from "rxjs/internal/util/not";
 
-@Controller()
+@Controller("users")
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-    @Post('/user') 
+    @Post('/') 
     async addUser(@Body() createUserDTO: CreateUserDTO )  {
       const userAdded = await this.userService.addUser(createUserDTO)
 
@@ -40,6 +39,15 @@ export class UserController {
       return {message: new UserResponseDTO(updateUser)
       };
       
+    }
+
+    @Delete(':id')
+    async deleteUser(@Param('id') _id: string) {
+      const deletedUser = await this.userService.deleteUser(_id);
+
+      if (!deletedUser) return new NotFoundException(`User not found`);
+
+      return {message: new UserResponseDTO(deletedUser)}
     }
 
 
