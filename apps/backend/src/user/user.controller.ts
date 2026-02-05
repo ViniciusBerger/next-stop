@@ -9,9 +9,9 @@ import { EditUserDTO } from "./DTOs/edit.user.DTO";
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-    @Post('/') 
+    @Post('/user') 
     async addUser(@Body() createUserDTO: CreateUserDTO )  {
-      const userAdded = await this.userService.addUser(createUserDTO)
+      const userAdded = await this.userService.createUser(createUserDTO)
 
       return new UserResponseDTO(userAdded)
     }
@@ -19,9 +19,6 @@ export class UserController {
     
     @Get('/user')
     async getUser(@Query() getUserDTO: GetUserDTO) {
-        
-      const hasValues = Object.values(getUserDTO).some(value => value !== undefined && value !== '');
-      if (!hasValues) throw new BadRequestException('Please provide a valid name or firebaseUid');
         
       const user = await this.userService.getUser(getUserDTO);
       if (!user) throw new NotFoundException(`User not found`);
@@ -32,9 +29,7 @@ export class UserController {
 
     @Patch('/user')
     async editUser(@Body() editUserDTO: EditUserDTO) {
-      const updateUser = await this.userService.editUser(editUserDTO);
-
-      if (!updateUser) return new NotFoundException(`User not found`);
+      const updateUser = await this.userService.updateUser(editUserDTO);
 
       return {message: new UserResponseDTO(updateUser)
       };

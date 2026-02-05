@@ -1,10 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { User } from "./schemas/user.schema";
-import mongoose, { Model } from "mongoose";
 import { InjectModel } from "@nestjs/mongoose";
-import { GetUserDTO } from "./DTOs/get.user.DTO";
 import { CreateUserDTO } from "./DTOs/create.user.DTO";
-import { EditUserDTO } from "./DTOs/edit.user.DTO";
+import { Model } from "mongoose";
 
 
 
@@ -27,25 +25,24 @@ export class UserRepository {
     }
 
 
-    getUser(query: any): Promise<User | null> {
+    async findOne(query: any): Promise<User | null> {
         // consult database
-        const userReceived = async () => await this.userModel.findOne(query).exec();
-        return userReceived();
+        const userReceived = await this.userModel.findOne(query).exec();
+        return userReceived;
     }
 
 
-    editUser(_id: string ,query: any): Promise<User | null> {
+    async updateUser(firebaseUid: string ,query: any): Promise<User | null> {
         //find and update user
-        const updatedUser = async () => await this.userModel.findOneAndUpdate({_id: _id}, {$set: query}, {new: true} ).exec();
+        const updatedUser = await this.userModel.findOneAndUpdate({firebaseUid: firebaseUid}, {$set: query}, {new: true}).exec();
         
-        return updatedUser();
+        return updatedUser;
     }
 
 
-    deleteUser(_id: string) {
-        const deletedUser = async ()=> await this.userModel.findOneAndDelete({ _id:_id}).exec();
-
-        return deletedUser();
+    async deleteUser(firebaseUid: string) {
+        const deletedUser = await this.userModel.findOneAndDelete({ firebaseUid:firebaseUid}).exec();
+        return deletedUser;
     }
 
     

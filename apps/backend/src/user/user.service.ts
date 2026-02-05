@@ -1,11 +1,11 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { User } from "./schemas/user.schema";
-import mongoose, { Model } from "mongoose";
-import FilterQuery from "mongoose";
 import { InjectModel } from "@nestjs/mongoose";
 import { GetUserDTO } from "./DTOs/get.user.DTO";
 import { CreateUserDTO } from "./DTOs/create.user.DTO";
 import { EditUserDTO } from "./DTOs/edit.user.DTO";
+import { UserRepository } from "./user.repository";
+import { DeleteUserDTO } from "./DTOs/delete.user.DTO";
 
 
 
@@ -14,15 +14,15 @@ export class UserService {
     private userRepository: any;
 
     // inject User repository 
-    constructor(@InjectModel(User.name) userRepositoryReceived: User) {
+    constructor(private readonly userRepositoryReceived: UserRepository) {
         this.userRepository = userRepositoryReceived;
     }
  
     
-    async addUser(user: CreateUserDTO){
+    async createUser(user: CreateUserDTO){
         // add user to database
-        const newUser = await this.userRepository.create(user);
-        return newUser();
+        const newUser = await this.userRepository.createUser(user);
+        return newUser;
     }
 
 
@@ -31,21 +31,22 @@ export class UserService {
         const { firebaseUid, username} = getUserDTO;
         const mongoQuery: any = {};
 
-
         // dictionary for mongo query
         if(firebaseUid) mongoQuery.firebaseUid = firebaseUid;
         if(username) mongoQuery.username = username;
 
 
+        if (Object.keys(mongoQuery).length === 0) throw new BadRequestException('Please provide the valid user params');
+
         // consult database
-        const userReceived = await this.userRepository.findOne(mongoQuery).exec();
-        return userReceived();
+        const userReceived = await this.userRepository.findOne(mongoQuery);
+        return userReceived;
     }
 
 
-    async editUser(editUserDTO: EditUserDTO) {
+    async updateUser(editUserDTO: EditUserDTO) {
         //editUserDTO destructuring
-        const { _id, username, bio, profilePicture} = editUserDTO;
+        const { firebaseUid, username, bio, profilePicture} = editUserDTO;
         const mongoQuery: any = {};
 
 
@@ -56,14 +57,13 @@ export class UserService {
 
 
         //find and update user
-        const updatedUser = await this.userRepository.editUser(_id, mongoQuery)
-        return updatedUser();
+        const updatedUser = await this.userRepository.updateUser(firebaseUid, mongoQuery)
+        return updatedUser;
     }
 
-    
-    async deleteUser(_id: string) {
-        const deletedUser = await this.userRepository.findOneAndDelete({_id: _id}).exec();
-        return deletedUser();
+    async deleteUser(deleteUserDTO: DeleteUserDTO) {
+        const deletedUser = await this.userRepository.deleteUser(deleteUserDTO);
+        return deletedUser;
     }
 
     
