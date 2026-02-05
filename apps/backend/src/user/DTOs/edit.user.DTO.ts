@@ -1,17 +1,17 @@
-import { IsString, IsEmail, IsNotEmpty, MinLength, MaxLength, Min, IsStrongPassword, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, MinLength, MaxLength, IsOptional } from 'class-validator';
 
 
 export class EditUserDTO {
 
     @IsString()
     @IsNotEmpty()
-    _id: string;
+    firebaseUid: string;
 
     @IsString()
-    @IsNotEmpty()
+    @IsOptional()
     @MinLength(3)
     @MaxLength(255)
-    username: string;
+    username?: string;
     
     @IsOptional()
     @IsString()
