@@ -1,11 +1,10 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { User } from "./schemas/user.schema";
-import { InjectModel } from "@nestjs/mongoose";
-import { GetUserDTO } from "./DTOs/get.user.DTO";
-import { CreateUserDTO } from "./DTOs/create.user.DTO";
-import { EditUserDTO } from "./DTOs/edit.user.DTO";
-import { UserRepository } from "./user.repository";
-import { DeleteUserDTO } from "./DTOs/delete.user.DTO";
+import { User } from "../schemas/user.schema";
+import { GetUserDTO } from "../DTOs/get.user.DTO";
+import { CreateUserDTO } from "../DTOs/create.user.DTO";
+import { EditUserDTO } from "../DTOs/edit.user.DTO";
+import { UserRepository } from "../user.repository";
+import { DeleteUserDTO } from "../DTOs/delete.user.DTO";
 
 
 
