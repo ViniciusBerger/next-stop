@@ -1,6 +1,6 @@
 import { Exclude, Expose } from "class-transformer";
 import { Types } from "mongoose";
-import { Profile } from "src/profile/schemas/profile.schema";
+import { Profile } from "../../profile/schemas/profile.schema";
 import { Badge } from "../schemas/badges.schema";
 import { User } from "../schemas/user.schema";
 
@@ -9,9 +9,9 @@ export class UserResponseDTO {
     @Exclude()
     _id:any;
     @Exclude()
-    firebaseUid: string;
+    firebaseUid?: string;
     @Exclude()
-    role: string;
+    role?: string;
     @Expose()
     username: string; 
     @Expose()
@@ -29,11 +29,11 @@ export class UserResponseDTO {
     @Expose()
     isBanned: boolean
     @Exclude()
-    createdAt: Date;
+    createdAt?: Date;
     @Exclude()
-    updatedAt: Date;
+    updatedAt?: Date;
     @Exclude()
-    lastLogin: Date;
+    lastLogin?: Date;
 
 
     constructor(user: User) {

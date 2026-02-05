@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { UserRepository } from "./user.repository";
+import { UserRepository } from "../user.repository";
 import { UserService } from "./user.service";
 import { BadRequestException, NotFoundException } from "@nestjs/common";
 
@@ -11,7 +11,7 @@ import { BadRequestException, NotFoundException } from "@nestjs/common";
  * 
  * these tests follow the triple A of testing: Arrange, act and assert [AAA]
  * 
- * To run the tests, use the command: npm test -- apps/backend/src/user/user.service.spec.ts
+ * To run the tests, use the command: npm test -- apps/backend/src/user/service/user.service.spec.ts
  * 
  */
 
@@ -20,13 +20,16 @@ describe('UserService', ()=> {
     let userRepository: UserRepository
 
     beforeEach(async () => {
+      
+        // create testing environment before each it
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
         {
           provide: UserRepository,
+          // methods testing will have access to
           useValue: {
-            findOne: jest.fn(), // This is a mock function
+            findOne: jest.fn(), 
             createUser: jest.fn(),
             deleteUser: jest.fn(),
             updateUser: jest.fn()
@@ -35,7 +38,7 @@ describe('UserService', ()=> {
       ],
     }).compile();
 
-    // Assign to the variables defined above
+    // Instantiate service and repository
     userService = module.get<UserService>(UserService);
     userRepository = module.get<UserRepository>(UserRepository);
   });
@@ -64,7 +67,7 @@ describe('UserService', ()=> {
   })
 
 
-  it('createUser -> should return 400 bad request exception if no params provided', async()=> {
+  it('createUser -> should throw bad request exception if no params provided', async()=> {
     jest.spyOn(userRepository, 'createUser').mockImplementation().mockRejectedValue(new BadRequestException())
     await expect(userService.createUser({} as any)).rejects.toThrow(BadRequestException);
     })
@@ -110,14 +113,14 @@ describe('UserService', ()=> {
   })
 
 
-  it('updateUser -> should return 400 bad request exception if no params provided',async()=> {
+  it('updateUser -> should throw bad request exception if no params provided',async()=> {
     jest.spyOn(userRepository, "updateUser").mockRejectedValue(new BadRequestException())
     
     await expect(userService.updateUser("" as any)).rejects.toThrow(BadRequestException)
   })
 
 
-  it('updateUser -> should return 500 type error if no params provided',async()=> {
+  it('updateUser -> should throw type error if no params provided',async()=> {
     jest.spyOn(userRepository, "updateUser").mockRejectedValue(new TypeError())
     
     await expect(userService.updateUser(undefined as any)).rejects.toThrow(TypeError)
