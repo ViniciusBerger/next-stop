@@ -17,7 +17,7 @@ export default function Login() {
   return (
     <View style={styles.container}>
       <View>
-          <HeaderBackground width={400} height={300}/>
+          <HeaderBackground width={415} height={300}/>
           <Text style={styles.headerText}>Welcome!</Text>
       </View>
 
@@ -43,7 +43,7 @@ export default function Login() {
           <Text style={styles.errorText}>Invalid Credentials</Text>
         )}
 
-        <TouchableOpacity style={[styles.button, styles.buttonBorder]} onPress={handleLogin}>
+        <TouchableOpacity style={[styles.button]} onPress={handleLogin}>
           <Text style={styles.buttonText}>Sign In</Text>
         </TouchableOpacity>
 

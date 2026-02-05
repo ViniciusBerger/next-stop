@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: 'bold',
   },
   secondaryButton: {
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: '#5962ff',
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: 'bold',
     marginLeft: 8,
   },

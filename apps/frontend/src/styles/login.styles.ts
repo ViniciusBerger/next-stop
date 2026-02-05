@@ -10,9 +10,10 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     top: '45%',
     alignSelf: 'flex-start',
-    color: '#000',
+    color: '#ffffff',
     fontSize: 50,
     marginStart: 30,
+    fontWeight: '700',
   },
 
   title: {
@@ -64,11 +65,6 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#000000",
-  },
-
-  buttonBorder: {
-    borderWidth: 2,
-    borderColor: "#2EE6A8",
   },
 
   link: {

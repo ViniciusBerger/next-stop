@@ -28,6 +28,7 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     marginTop: 20,
     zIndex: 10,
+    width: 44,
   },
   
 });

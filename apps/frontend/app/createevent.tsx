@@ -69,7 +69,7 @@ export default function CreateEventScreen() {
 
         {/* 1. Privacy Toggle */}
         <View style={styles.inputGroup}>
-          <Text style={styles.labelDark}>Privacy</Text>
+          <Text style={styles.label}>Privacy</Text>
           <View style={styles.privacyContainer}>
             <TouchableOpacity 
               style={[styles.privacyOption, isPublic && styles.activeOption]} 
@@ -97,7 +97,7 @@ export default function CreateEventScreen() {
 
         {/* 2. Date & Time Section */}
         <View style={styles.inputGroup}>
-          <Text style={styles.labelDark}>When</Text>
+          <Text style={styles.label}>When</Text>
           <TouchableOpacity 
             style={styles.datePickerBar} 
             onPress={() => setShowPicker(true)}
@@ -223,7 +223,8 @@ const styles = StyleSheet.create({
     fontSize: 16, 
     fontWeight: '600', 
     marginBottom: 10, 
-    marginLeft: 5
+    marginLeft: 5,
+    marginTop: 5
 },
   input: {
     backgroundColor: '#FFF',
