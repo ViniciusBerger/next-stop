@@ -85,11 +85,15 @@ describe('UserService', ()=> {
   })
 
 
-  it('getUser -> should return 404 if user not found', async()=> {
-    const mockUserId = {firebaseUid: "", username:"random user"};
+  it('getUser -> should return NULL if user not found', async()=> {
+    const mockUser = {firebaseUid: "", username:"random user"};
 
-    jest.spyOn(userRepository, 'findOne').mockRejectedValue(new NotFoundException());
-    await expect(userService.getUser(mockUserId as any)).rejects.toThrow(NotFoundException);
+    jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
+    const user = await userService.getUser(mockUser)
+    
+    expect(user).toBeNull;
+    expect(userRepository.findOne).toHaveBeenCalledWith({username: "random user"})
+    expect(userRepository.findOne).toHaveBeenCalledTimes(1)
   })
 
 
@@ -107,9 +111,16 @@ describe('UserService', ()=> {
 
 
   it('updateUser -> should return 400 bad request exception if no params provided',async()=> {
-    jest.spyOn(userService, "updateUser").mockRejectedValue(new BadRequestException())
+    jest.spyOn(userRepository, "updateUser").mockRejectedValue(new BadRequestException())
     
-    await expect(userService.updateUser(null as any)).rejects.toThrow(BadRequestException)
+    await expect(userService.updateUser("" as any)).rejects.toThrow(BadRequestException)
+  })
+
+
+  it('updateUser -> should return 500 type error if no params provided',async()=> {
+    jest.spyOn(userRepository, "updateUser").mockRejectedValue(new TypeError())
+    
+    await expect(userService.updateUser(undefined as any)).rejects.toThrow(TypeError)
   })
 
 
@@ -123,13 +134,13 @@ describe('UserService', ()=> {
         profilePicture: 'https://example.com/images/mock.jpg',
     };
     
-    jest.spyOn(userService, 'deleteUser').mockResolvedValue(mockUser as any);
+    jest.spyOn(userRepository, 'deleteUser').mockResolvedValue(mockUser as any);
     const result = await userService.deleteUser(mockUser.firebaseUid as any);
 
 
     expect(result.firebaseUid).toEqual(mockUser.firebaseUid);
-    expect(userService.deleteUser).toHaveBeenCalledWith(mockUser.firebaseUid);
-    expect(userService.deleteUser).toHaveBeenCalledTimes(1);
+    expect(userRepository.deleteUser).toHaveBeenCalledWith(mockUser.firebaseUid);
+    expect(userRepository.deleteUser).toHaveBeenCalledTimes(1);
   });
 
 
