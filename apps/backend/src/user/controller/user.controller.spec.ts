@@ -21,6 +21,7 @@ describe('userController', ()=> {
     let userService:UserService;
 
     beforeEach(async ()=> {
+        jest.clearAllMocks()
         // create testing environment before each it
         const module: TestingModule = await Test.createTestingModule({
             controllers: [UserController],

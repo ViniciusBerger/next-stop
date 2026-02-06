@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { UserRepository } from "../user.repository";
 import { UserService } from "./user.service";
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import { BadRequestException } from "@nestjs/common";
 
 /**
  * UserService unit tests
@@ -18,29 +18,31 @@ import { BadRequestException, NotFoundException } from "@nestjs/common";
 describe('UserService', ()=> {
     let userService: UserService;
     let userRepository: UserRepository
-
-    beforeEach(async () => {
-      
-        // create testing environment before each it
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        UserService,
-        {
-          provide: UserRepository,
-          // methods testing will have access to
-          useValue: {
+    const mockUserRepository = {
             findOne: jest.fn(), 
             createUser: jest.fn(),
             deleteUser: jest.fn(),
             updateUser: jest.fn()
-          },
-        },
-      ],
-    }).compile();
+  };
 
-    // Instantiate service and repository
-    userService = module.get<UserService>(UserService);
-    userRepository = module.get<UserRepository>(UserRepository);
+    beforeEach(async () => {
+      
+      jest.clearAllMocks()
+        // create testing environment before each it
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          UserService,
+          {
+            provide: UserRepository,
+            // methods testing will have access to
+            useValue: mockUserRepository,
+          },
+        ],
+      }).compile();
+
+      // Instantiate service and repository
+      userService = module.get<UserService>(UserService);
+      userRepository = module.get<UserRepository>(UserRepository);
   });
     
 
@@ -55,7 +57,7 @@ describe('UserService', ()=> {
         firebaseUid: 'user_test0000000000000001',
         username: 'mockUser',
         email: 'mockUser@example.com',
-        role: 'member',};
+        role: 'member'};
 
 
     jest.spyOn(userRepository, 'createUser').mockResolvedValue(mockUser as any); 

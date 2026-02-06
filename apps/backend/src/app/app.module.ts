@@ -4,8 +4,11 @@ import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GlobalExceptionFilter } from '../common/errors/global.error.filter';
 import { MongooseModule } from '@nestjs/mongoose';
-import { UserModule } from 'src/user/user.module';
-import { PlaceModule } from 'src/places/place.module';
+import { UserModule } from '../user/user.module';
+import { PlaceModule } from '../places/place.module';
+import { AuthModule } from 'src/auth/authentication/auth.module';
+import { MongooseConnectionModule } from 'src/common/mongoose';
+import { FirebaseModule } from 'src/common/firebase/firebase.admin';
 
 @Module({
   imports: [
@@ -16,22 +19,14 @@ import { PlaceModule } from 'src/places/place.module';
     }),
 
     // mongoose module to connect to MongoDB
-    MongooseModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGO_DB_STRING_CONNECTION'),
-      }),
-    }),
-
-    
+    MongooseConnectionModule.init(),
     UserModule, 
     PlaceModule,
+    FirebaseModule,
+    AuthModule
 
   ],
-
   controllers: [AppController],
-  
 
   //providers are services that the module provides
   providers: [

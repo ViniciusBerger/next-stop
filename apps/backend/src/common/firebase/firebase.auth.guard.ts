@@ -2,7 +2,7 @@ import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from
 import admin  from 'firebase-admin'
 
 @Injectable()
-export class AuthGuard implements CanActivate {
+export class FirebaseAuthGuard implements CanActivate {
   
   // canActivate method to verify if user can proceed
   async canActivate(context: ExecutionContext): Promise<boolean> {

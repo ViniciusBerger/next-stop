@@ -37,11 +37,11 @@ export class UserController {
       
     }
 
-    @Delete(':id')
-    async deleteUser(@Param('id') deleteUserDTO: DeleteUserDTO) {
+    @Delete(':firebaseUid')
+    async deleteUser(@Param('firebaseUid') deleteUserDTO: DeleteUserDTO) {
       const deletedUser = await this.userService.deleteUser(deleteUserDTO);
 
-      if (!deletedUser) return new NotFoundException(`User not found`);
+      if (!deletedUser) throw new NotFoundException(`User not found`);
 
       return {message: new UserResponseDTO(deletedUser)}
     }

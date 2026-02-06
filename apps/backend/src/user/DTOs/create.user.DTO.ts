@@ -1,14 +1,16 @@
-import { IsString, IsEmail, IsNotEmpty, MinLength, MaxLength } from 'class-validator';
+import { IsString, IsEmail, IsNotEmpty, MinLength, MaxLength, IsOptional, Length, IsEnum } from 'class-validator';
+import { UserRole } from '../user.role.enum';
 
 
 export class CreateUserDTO {
     @IsString()
-    @IsNotEmpty()
-    @MinLength(24)
-    @MaxLength(36)
+    @IsOptional()
+    @IsString()
+    @Length(28, 28) 
     firebaseUid: string;
     
     @IsString()
+    @IsEnum(UserRole)
     @IsNotEmpty()
     @MinLength(4)
     role: string;
@@ -24,9 +26,4 @@ export class CreateUserDTO {
     @MaxLength(255)
     email: string;
     
-    @IsString()
-    bio?: string;
-    
-    @IsString()
-    profilePicture?: string;
 }

@@ -1,21 +1,21 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
-import { AuthGuard } from '../auth/guards/auth.guard';
-import { Roles } from '../common/roles.decorator';
+import { FirebaseAuthGuard } from '../common/firebase/firebase.auth.guard';
+import { Roles } from '../auth/authorization/roles.decorator';
 
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  @UseGuards(AuthGuard)
+  @UseGuards(FirebaseAuthGuard)
   getHello(): any {
     return this.appService.getHello();
   }
 
 
   @Get("/health")
-  @UseGuards(AuthGuard)
+  @UseGuards(FirebaseAuthGuard)
   @Roles('admin')
   getHealth(): string {
     return this.appService.getHealth();
