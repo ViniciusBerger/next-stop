@@ -12,7 +12,12 @@ interface ScreenLayoutProps {
 export function ScreenLayout({ children, showBack = true }: ScreenLayoutProps) {
   return (
     <View style={{ flex: 1, backgroundColor: '#F8F9FA' }}>
-      {/*Background stays back */}
+      {/*Content Layer */}
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+              {/*Background stays back */}
       <View style={[loginStyles.headerBackground, { position: 'absolute' }]} />
 
       {/*Back Button on top*/}
@@ -20,11 +25,6 @@ export function ScreenLayout({ children, showBack = true }: ScreenLayoutProps) {
         {showBack && <BackButton color="white" />}
       </View>
 
-      {/*Content Layer */}
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
         {children}
       </ScrollView>
       
