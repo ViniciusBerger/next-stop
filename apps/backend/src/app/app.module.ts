@@ -9,7 +9,8 @@ import { PlaceModule } from '../places/place.module';
 import { AuthModule } from 'src/auth/authentication/auth.module';
 import { MongooseConnectionModule } from 'src/common/mongoose';
 import { FirebaseModule } from 'src/common/firebase/firebase.admin';
-import { OutingModule } from 'src/outings/outing.module';
+import { ReviewModule } from 'src/reviews/review.module';
+import { EventModule } from 'src/events/event.module';
 
 @Module({
   imports: [
@@ -25,7 +26,8 @@ import { OutingModule } from 'src/outings/outing.module';
     PlaceModule,
     FirebaseModule,
     AuthModule,
-    OutingModule,
+    ReviewModule,
+    EventModule,
   ],
   controllers: [AppController],
 

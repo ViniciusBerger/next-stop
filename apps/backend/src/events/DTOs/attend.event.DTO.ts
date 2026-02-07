@@ -1,9 +1,9 @@
 import { IsString, IsNotEmpty } from 'class-validator';
 
-export class LikeOutingDTO {
+export class AttendEventDTO {
   @IsString()
   @IsNotEmpty()
-  outingId: string; // Outing MongoDB _id
+  eventId: string; // Event MongoDB _id
 
   @IsString()
   @IsNotEmpty()
