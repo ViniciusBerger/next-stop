@@ -12,7 +12,9 @@ export default function Home() {
   
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView>
+      <ScrollView contentContainerStyle={{ paddingBottom: 100 }} 
+        showsVerticalScrollIndicator={false}
+        >
         <View style={styles.headerBackground} />
         <HomeHeader onMenuPress={() => setIsMenuOpen(true)} />
 

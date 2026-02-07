@@ -17,7 +17,7 @@ export function ScreenLayout({ children, showBack = true }: ScreenLayoutProps) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-              {/*Background stays back */}
+      {/*Background stays back */}
       <View style={[loginStyles.headerBackground, { position: 'absolute' }]} />
 
       {/*Back Button on top*/}

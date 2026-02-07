@@ -3,11 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Platform } fr
 import { ScreenLayout } from "@/components/screenLayout";
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 
 export default function LocationDetailsScreen() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const navigation = useNavigation<any>(); // Replace 'any' with your typed navigation prop
+  const router = useRouter();
   // This would come from Firestore user visit history
   const [hasVisited, setHasVisited] = useState(true);
 
@@ -110,7 +112,7 @@ const handleCreateEvent = () => {
         {hasVisited && (
           <TouchableOpacity 
             style={styles.reviewPromptCard}
-            onPress={() => Alert.alert("Review", "Navigate to Review Creation Screen")}
+            onPress={() => router.push('/createreview')}
           >
             <View style={styles.reviewPromptContent}>
               <Ionicons name="chatbubble-ellipses-outline" size={24} color="#5962ff" />
@@ -163,7 +165,7 @@ const handleCreateEvent = () => {
             <Text style={styles.primaryButtonText}>Create an Event</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.secondaryButton}>
+          <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push('/locationreviews')}>
             <Text style={styles.secondaryButtonText}>See in-app Reviews</Text>
           </TouchableOpacity>
         </View>

@@ -43,7 +43,7 @@ export default function ForgotPasswordScreen() {
           <HeaderBackground />
 
           <View style={styles.headerContent}>
-            <BackButton color="white" />
+            <BackButton color="white" path="/login"/>
             <Text style={styles.headerTitle}>Forgot Password</Text>
             <View style={{ width: 38 }} />
           </View>
@@ -82,7 +82,7 @@ export default function ForgotPasswordScreen() {
 
             <TouchableOpacity
               style={styles.registerButton}
-              onPress={() => router.push("/register")}
+              onPress={() => router.replace("/register")}
             >
               <Text style={styles.registerButtonText}>Register</Text>
             </TouchableOpacity>
@@ -118,13 +118,14 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: "bold",
     color: "#ffffff",
     flex: 1,
     textAlign: "center",
-    marginRight: 40,
+    marginRight: 10,
     marginTop: 10,
+    
   },
 
   inner: {
@@ -138,9 +139,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 25,
     color: "#000",
+    marginTop: 10,
   },
 
   input: {
+    height: 50,
     borderWidth: 1,
     borderColor: "#7E9AFF",
     backgroundColor: "#DEE4FF",
@@ -160,19 +163,20 @@ const styles = StyleSheet.create({
   },
 
   button: {
-    backgroundColor: "#7E9AFF",
+    backgroundColor: "#926af5",
     padding: 18,
-    borderRadius: 25,
+    borderRadius: 100,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#37E9BB",
     marginTop: 10,
+    height: 70,
+    justifyContent: "center",
+    alignContent: "center",
   },
 
   buttonText: {
-    color: "#000",
+    color: "#ffffff",
     fontWeight: "bold",
-    fontSize: 18,
+    fontSize: 20,
   },
 
   registerWrapper: {
@@ -181,23 +185,24 @@ const styles = StyleSheet.create({
   },
 
   registerText: {
-    color: "#FFFFFF",
+    color: "#ffffff",
     fontSize: 16,
     marginBottom: 12,
   },
 
   registerButton: {
-    backgroundColor: "#9A8CFF",
+    backgroundColor: "#7d77f0",
     paddingVertical: 14,
     paddingHorizontal: 50,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: "#37E9BB",
+    borderRadius: 100,
+    height: 60,
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   registerButtonText: {
-    color: "#000",
+    color: "#ffffff",
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 18,
   },
 });

@@ -119,7 +119,7 @@ export default function RegisterScreen() {
         <View style={styles.headerWrapper}>
           <HeaderBackground />
           <View style={styles.headerContent}>
-            <BackButton color="white" />            
+            <BackButton color="white" path="/login"/>            
             <Text style={styles.headerTitle}>Register</Text>
             <View style={{ width: 38 }} /> {/*Alignment purposes*/}
           </View>
@@ -167,17 +167,17 @@ export default function RegisterScreen() {
             secureTextEntry
           />
 
-          {/* Terms & Conditions Row */}
+          {/* Terms & Conditions Row
           <View style={styles.checkboxContainer}>
             <TouchableOpacity 
               style={[styles.checkbox, agree && styles.checkboxActive]} 
               onPress={() => setAgree(!agree)}
             >
-              {/* Render the icon only if agree is true */}
+              Render the icon only if agree is true
               {agree && <Ionicons name="checkmark" size={18} color="white" />}
             </TouchableOpacity>
             <Text style={styles.checkboxLabel}>Agree with Terms & Conditions</Text>
-          </View>
+          </View> */}
 
           <TouchableOpacity 
             style={styles.button} 
@@ -214,12 +214,12 @@ const styles = StyleSheet.create({
   backButton: { marginRight: 20 },
   backText: { fontSize: 24, fontWeight: 'bold', color: '#FFFFFF' },
   headerTitle: { 
-    fontSize: 28, 
+    fontSize: 40, 
     fontWeight: 'bold', 
     color: '#FFFFFF',
     flex: 1,
     textAlign: 'center',
-    marginRight: 40,
+    marginRight: 20,
     marginTop: 10
   },
   inner: { paddingHorizontal: 30, paddingBottom: 40 },
@@ -254,14 +254,13 @@ const styles = StyleSheet.create({
   checkboxActive: { backgroundColor: '#7E9AFF', borderColor: '#7E9AFF' },
   checkboxLabel: { fontSize: 14, color: '#000' },
   button: { 
-    backgroundColor: '#7E9AFF', 
+    backgroundColor: '#7d77f0', 
     padding: 18, 
-    borderRadius: 25, 
+    borderRadius: 100, 
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#37E9BB'
+    height: 60,
   },
-  buttonText: { color: '#000', fontWeight: 'bold', fontSize: 18 },
+  buttonText: { color: '#ffffff', fontWeight: 'bold', fontSize: 18 },
   errorText: { color: '#dc2626', textAlign: 'center', marginBottom: 5, marginTop: 5, fontSize: 20, fontWeight: '600' },
   passwordHint: {
   fontSize: 14,
