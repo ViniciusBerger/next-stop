@@ -47,8 +47,8 @@ export default function Login() {
           <Text style={styles.buttonText}>Sign In</Text>
         </TouchableOpacity>
 
-        <Text style={styles.link} onPress={() => router.push("/forgot-password")}>Forgot Password</Text>
-        <Text style={styles.link} onPress={() => router.push("/register")}>Register</Text>
+        <Text style={styles.link} onPress={() => router.replace("/forgot-password")}>Forgot Password</Text>
+        <Text style={styles.link} onPress={() => router.replace("/register")}>Register</Text>
       </View>
     </View>
   );

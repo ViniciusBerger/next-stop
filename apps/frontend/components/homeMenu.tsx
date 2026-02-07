@@ -17,7 +17,7 @@ const MENU_OPTIONS: MenuItem[] = [
   { label: "My Events", path: "/myevents" as Href },
   { label: "Favorites", path: "/favorites" as Href },
   { label: "Wishlist", path: "/wishlist" as Href },
-  { label: "My Reviews", path: "/reviews" as Href },
+  { label: "My Reviews", path: "/myreviews" as Href },
   { label: "Badges", path: "/badges" as Href },
   { label: "Friends", path: "/friends" as Href },
   { label: "History", path: "/history" as Href },

@@ -1,11 +1,12 @@
 import { View, TouchableOpacity, Image } from "react-native";
 import { styles } from "../src/styles/login.styles";
 import { icons } from "../src/icons";
+import { router } from "expo-router";
 
 export function BottomTabBar() {
   return (
     <View style={styles.bottomTabBar}>
-      <TouchableOpacity style={styles.tabButton}>
+      <TouchableOpacity style={styles.tabButton} onPress={() => router.push("/home")}>
         <Image source={icons.house} style={styles.tabIcon} />
       </TouchableOpacity>
 

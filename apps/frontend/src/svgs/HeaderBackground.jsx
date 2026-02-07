@@ -1,6 +1,6 @@
 import Svg, { Circle, Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 
-const HeaderBackground = ({ width = 415, height = 345 }) => {
+const HeaderBackground = ({ width = 412, height = 345 }) => {
   return (
     <Svg
       width={width}

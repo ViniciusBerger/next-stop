@@ -29,13 +29,13 @@ export const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 14,
+    fontSize: 20,
     marginBottom: 6,
     color: "#000000",
   },
 
   input: {
-    height: 44,
+    height: 50,
     backgroundColor: "#E8EEFF",
     borderWidth: 1,
     borderColor: "#6B73FF",
@@ -46,15 +46,15 @@ export const styles = StyleSheet.create({
 
   errorText: {
     color: "#FF0000",
-    fontSize: 12,
+    fontSize: 16,
     marginTop: -10,
     marginBottom: 10,
   },
 
   button: {
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: "#6B73FF",
+    height: 60,
+    borderRadius: 100,
+    backgroundColor: "#7d77f0",
     justifyContent: "center",
     alignItems: "center",
     marginTop: 10,
@@ -62,15 +62,15 @@ export const styles = StyleSheet.create({
   },
 
   buttonText: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "600",
-    color: "#000000",
+    color: "#ffffff",
   },
 
   link: {
-    fontSize: 14,
+    fontSize: 20,
     color: "#000000",
-    marginTop: 12,
+    marginTop: 20,
   },
 
   card: {
@@ -79,17 +79,16 @@ export const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 24,
     borderRadius: 16,
-    borderWidth: 2,
-    borderColor: "#2EE6A8",
     backgroundColor: "#FFFFFF",
-    margin: 24,
+    marginHorizontal: 30,
+    marginVertical: 40,
   },
 
   text: {
-    fontSize: 27,
+    fontSize: 30,
     fontWeight: "600",
     color: "#000000",
-    marginLeft: 16,
+    marginLeft: 20,
   },
 
   post: {
@@ -206,13 +205,14 @@ export const styles = StyleSheet.create({
     marginTop: 32,
     fontSize: 32,
     fontWeight: "700",
-    color: "#000000",
+    color: "#ffffff",
   },
 
   headerSubtitle: {
     marginTop: 30,
+    fontWeight: "600",
     fontSize: 18,
-    color: "#000000",
+    color: "#ffffff",
     alignSelf: "center",
   },
 });
