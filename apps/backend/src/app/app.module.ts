@@ -11,6 +11,7 @@ import { MongooseConnectionModule } from 'src/common/mongoose';
 import { FirebaseModule } from 'src/common/firebase/firebase.admin';
 import { ReviewModule } from 'src/reviews/review.module';
 import { EventModule } from 'src/events/event.module';
+import { ReportModule } from 'src/reports/report.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { EventModule } from 'src/events/event.module';
     AuthModule,
     ReviewModule,
     EventModule,
+    ReportModule
   ],
   controllers: [AppController],
 
