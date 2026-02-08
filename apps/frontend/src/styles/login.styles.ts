@@ -150,7 +150,7 @@ export const styles = StyleSheet.create({
   },
 
   homeHeader: {
-    paddingTop: 40,
+    paddingTop: 60,
     paddingHorizontal: 24,
     height: 225,
   },
@@ -171,6 +171,7 @@ export const styles = StyleSheet.create({
     backgroundColor: "#9E9E9E",
     justifyContent: "center",
     alignItems: "center",
+    marginTop: 20,
   },
 
   avatar: {
@@ -209,10 +210,36 @@ export const styles = StyleSheet.create({
   },
 
   headerSubtitle: {
-    marginTop: 30,
     fontWeight: "600",
     fontSize: 18,
     color: "#ffffff",
     alignSelf: "center",
+    paddingTop: 8,
   },
+  scrollContent: {
+    flexGrow: 1, // Ensures the content can fill the screen to allow scrolling
+    paddingBottom: 40,
+  },
+  headerContainer: {
+    height: 300, // Matches where you want the text relative to the SVG
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  linkContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+    gap: 15, // Space between Forgot Password and Register
+  },
+  scrollContainer: {
+  // This is the magic property for ScrollViews
+  flexGrow: 1, 
+  paddingBottom: 40
+  },
+  headerWrapper: {
+  // We give this a height so the ScrollView knows there is a large 
+  // block of content at the top, even though the SVG is absolute.
+  height: 380, 
+  justifyContent: 'center',
+  alignItems: 'center',
+},
 });

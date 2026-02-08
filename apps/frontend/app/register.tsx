@@ -167,17 +167,17 @@ export default function RegisterScreen() {
             secureTextEntry
           />
 
-          {/* Terms & Conditions Row
+          {/* Terms & Conditions Row */}
           <View style={styles.checkboxContainer}>
             <TouchableOpacity 
               style={[styles.checkbox, agree && styles.checkboxActive]} 
               onPress={() => setAgree(!agree)}
             >
-              Render the icon only if agree is true
+              {/* Render the icon only if agree is true */}
               {agree && <Ionicons name="checkmark" size={18} color="white" />}
             </TouchableOpacity>
             <Text style={styles.checkboxLabel}>Agree with Terms & Conditions</Text>
-          </View> */}
+          </View>
 
           <TouchableOpacity 
             style={styles.button} 

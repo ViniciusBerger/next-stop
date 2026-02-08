@@ -1,12 +1,17 @@
 import Svg, { Circle, Path, Defs, LinearGradient, Stop } from 'react-native-svg';
+import { Dimensions } from 'react-native';
 
-const HeaderBackground = ({ width = 412, height = 345 }) => {
+const { width: screenWidth } = Dimensions.get('window');
+const ASPECT_RATIO = 345 / 412;
+
+const HeaderBackground = ({ width = "100%", height = screenWidth * ASPECT_RATIO }) => {
   return (
     <Svg
       width={width}
       height={height}
       viewBox="0 0 412 345"
       fill="none"
+      preserveAspectRatio="none" // This ensures it covers the width without distortion
     >
       <Circle
         cx="195.5"
