@@ -9,7 +9,11 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
-  "workspaces":[
+  "workspaces": [
     "apps/*"
-  ]
+  ],
+  "dependencies": {
+    "expo": "^54.0.33",
+    "expo-location": "^19.0.8"
+  }
 }
