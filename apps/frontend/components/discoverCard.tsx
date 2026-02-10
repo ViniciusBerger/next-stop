@@ -1,32 +1,20 @@
-import { TouchableOpacity, View, Text, ActivityIndicator, Alert } from "react-native";
-import { useGeolocation } from "../hooks/useGeolocation";
+// apps/frontend/components/ui/discoverCard.tsx
+import { 
+  TouchableOpacity, 
+  View, 
+  Text, 
+  ActivityIndicator, 
+  Alert,
+  StyleSheet 
+} from "react-native";
+import { useGeolocation, LocationData } from "../../hooks/useGeolocation";
 import { useEffect, useState } from "react";
+import { Ionicons } from '@expo/vector-icons';
 
-// INLINE STYLES (since your import path is wrong)
-const styles = {
-  card: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 12,
-  },
-  text: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-  }
-};
-
-// SIMPLE DISCOVER ICON (since your icon import is wrong)
-const DiscoverIcon = () => (
-  <View style={{ width: 24, height: 24, backgroundColor: '#007AFF', borderRadius: 6 }} />
-);
+interface DiscoverCardProps {
+  onPress: () => void;
+  showManualLocationModal?: () => void;
+}
 
 interface Place {
   id: string;
@@ -34,12 +22,23 @@ interface Place {
   latitude: number;
   longitude: number;
   distance?: number;
+  type?: string;
+  rating?: number;
 }
 
-export function DiscoverCard({ onPress }: { onPress: () => void }) {
-  const { location, loading, error, refreshLocation } = useGeolocation();
+export function DiscoverCard({ onPress, showManualLocationModal }: DiscoverCardProps) {
+  const { 
+    location, 
+    loading, 
+    error, 
+    refreshLocation, 
+    isManual,
+    clearManualLocation 
+  } = useGeolocation();
+  
   const [nearbyCount, setNearbyCount] = useState<number>(0);
   const [isFetchingPlaces, setIsFetchingPlaces] = useState<boolean>(false);
+  const [userCity, setUserCity] = useState<string>('');
 
   // Calculate distance between coordinates
   const calculateDistance = (
@@ -59,38 +58,27 @@ export function DiscoverCard({ onPress }: { onPress: () => void }) {
     return R * c;
   };
 
+  // Update user city when location changes
+  useEffect(() => {
+    if (location?.city) {
+      setUserCity(location.city);
+    } else if (location?.address) {
+      setUserCity(location.address);
+    }
+  }, [location]);
+
   // Fetch nearby places based on user's location
   useEffect(() => {
     const fetchNearbyPlaces = async () => {
-      if (!location || loading) return;
+      if (!location) return;
       
       setIsFetchingPlaces(true);
       
       try {
-        // TODO: REPLACE WITH YOUR ACTUAL API CALL
-        // For now, using test data near the user's location
-        const testPlaces: Place[] = [
-          { 
-            id: '1', 
-            name: 'Nearby Place 1', 
-            latitude: location.latitude + 0.01, 
-            longitude: location.longitude + 0.01 
-          },
-          { 
-            id: '2', 
-            name: 'Nearby Place 2', 
-            latitude: location.latitude - 0.01, 
-            longitude: location.longitude - 0.01 
-          },
-          { 
-            id: '3', 
-            name: 'Nearby Place 3', 
-            latitude: location.latitude + 0.015, 
-            longitude: location.longitude - 0.005 
-          },
-        ];
-
-        // Filter places within 10km radius
+        // Generate realistic test data based on location
+        const testPlaces: Place[] = generateTestPlaces(location);
+        
+        // Filter places within 15km radius
         const nearbyPlaces = testPlaces.filter(place => {
           const distance = calculateDistance(
             location.latitude,
@@ -98,12 +86,14 @@ export function DiscoverCard({ onPress }: { onPress: () => void }) {
             place.latitude,
             place.longitude
           );
-          return distance <= 10; // 10km radius
+          place.distance = distance;
+          return distance <= 15; // 15km radius
         });
 
         setNearbyCount(nearbyPlaces.length);
         
         // Log for debugging
+        console.log('📍 Location Mode:', isManual ? 'Manual' : 'GPS');
         console.log('📍 User Location:', location);
         console.log('📍 Nearby Places Found:', nearbyPlaces.length);
         
@@ -116,25 +106,81 @@ export function DiscoverCard({ onPress }: { onPress: () => void }) {
     };
 
     fetchNearbyPlaces();
-  }, [location, loading]);
+  }, [location, isManual]);
 
   // Handle retry when location error occurs
-  const handleRetry = () => {
-    refreshLocation();
+  const handleRetry = async () => {
+    if (error?.code === 1 || error?.code === 3) {
+      // Permission or location error - suggest manual input
+      Alert.alert(
+        "Location Unavailable",
+        "We couldn't access your location. Would you like to enter a city manually?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel"
+          },
+          {
+            text: "Enter City",
+            onPress: () => {
+              if (showManualLocationModal) {
+                showManualLocationModal();
+              }
+            }
+          }
+        ]
+      );
+    } else {
+      await refreshLocation();
+    }
   };
 
-  // Show error state
+  // Handle manual location change
+  const handleLocationChange = () => {
+    Alert.alert(
+      "Change Location",
+      isManual 
+        ? "Switch back to GPS location or enter a different city?" 
+        : "Use GPS location or enter a city manually?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        ...(isManual ? [{
+          text: "Use GPS",
+          onPress: clearManualLocation
+        }] : []),
+        {
+          text: "Enter City",
+          onPress: () => {
+            if (showManualLocationModal) {
+              showManualLocationModal();
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  // Show error state with manual location option
   if (error) {
     return (
       <TouchableOpacity onPress={handleRetry} activeOpacity={0.8}>
-        <View style={[styles.card, { opacity: 0.7 }]}>
-          <DiscoverIcon />
-          <View>
-            <Text style={styles.text}>Location Error</Text>
-            <Text style={{ fontSize: 12, color: '#ff6b6b', marginTop: 4 }}>
-              Tap to retry
+        <View style={[styles.card, { borderColor: '#ff6b6b', borderWidth: 1 }]}>
+          <View style={[styles.iconContainer, { backgroundColor: '#ffebee' }]}>
+            <Ionicons name="location-off" size={20} color="#ff6b6b" />
+          </View>
+          <View style={styles.textContainer}>
+            <Text style={styles.title}>Location Error</Text>
+            <Text style={styles.subtitle}>
+              {error.message || 'Unable to access location'}
+            </Text>
+            <Text style={styles.retryText}>
+              Tap to enter location manually
             </Text>
           </View>
+          <Ionicons name="chevron-forward" size={20} color="#666" />
         </View>
       </TouchableOpacity>
     );
@@ -143,7 +189,6 @@ export function DiscoverCard({ onPress }: { onPress: () => void }) {
   return (
     <TouchableOpacity 
       onPress={() => {
-        // Pass location to the next screen if needed
         if (location) {
           console.log('📍 Passing location to Discover screen:', location);
         }
@@ -153,40 +198,193 @@ export function DiscoverCard({ onPress }: { onPress: () => void }) {
       disabled={loading || isFetchingPlaces}
     >
       <View style={styles.card}>
-        {loading || isFetchingPlaces ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <ActivityIndicator size="small" color="#000" />
-            <Text style={styles.text}>
-              {loading ? 'Getting location...' : 'Loading places...'}
+        <View style={styles.iconContainer}>
+          {loading ? (
+            <ActivityIndicator size="small" color="#007AFF" />
+          ) : (
+            <Ionicons 
+              name={isManual ? "pin" : "location"} 
+              size={20} 
+              color="#007AFF" 
+            />
+          )}
+        </View>
+        
+        <View style={styles.textContainer}>
+          {loading || isFetchingPlaces ? (
+            <>
+              <Text style={styles.title}>
+                {loading ? 'Getting location...' : 'Finding places...'}
+              </Text>
+              <Text style={styles.subtitle}>
+                Discovering nearby spots
+              </Text>
+            </>
+          ) : location ? (
+            <>
+              <View style={styles.locationRow}>
+                <Text style={styles.title} numberOfLines={1}>
+                  Discover {userCity ? `in ${userCity}` : ''}
+                </Text>
+                {isManual && (
+                  <View style={styles.manualBadge}>
+                    <Text style={styles.manualBadgeText}>Manual</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.subtitle}>
+                {nearbyCount > 0 
+                  ? `${nearbyCount} places nearby`
+                  : 'Exploring the area'
+                }
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.title}>Discover Nearby</Text>
+              <Text style={styles.subtitle}>
+                Enable location to find places
+              </Text>
+            </>
+          )}
+        </View>
+        
+        {location && !loading && (
+          <TouchableOpacity 
+            onPress={handleLocationChange}
+            style={styles.changeButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={styles.changeButtonText}>
+              {isManual ? 'Change' : 'Switch'}
             </Text>
-          </View>
-        ) : (
-          <>
-            <DiscoverIcon />
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={styles.text}>Discover</Text>
-              {location && nearbyCount > 0 && (
-                <View style={{
-                  backgroundColor: '#007AFF',
-                  borderRadius: 12,
-                  paddingHorizontal: 8,
-                  paddingVertical: 2,
-                  minWidth: 24,
-                  alignItems: 'center',
-                }}>
-                  <Text style={{
-                    color: 'white',
-                    fontSize: 12,
-                    fontWeight: '600',
-                  }}>
-                    {nearbyCount}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </>
+          </TouchableOpacity>
         )}
+        
+        {nearbyCount > 0 && !loading && !isFetchingPlaces && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{nearbyCount}</Text>
+          </View>
+        )}
+        
+        <Ionicons name="chevron-forward" size={20} color="#666" />
       </View>
     </TouchableOpacity>
   );
 }
+
+// Helper function to generate test places
+function generateTestPlaces(userLocation: LocationData): Place[] {
+  const placeTypes = [
+    'Coffee Shop', 'Restaurant', 'Park', 'Museum', 'Shopping Mall',
+    'Hotel', 'Gym', 'Supermarket', 'Cinema', 'Library'
+  ];
+  
+  const places: Place[] = [];
+  
+  // Generate 8-12 random places
+  const placeCount = Math.floor(Math.random() * 5) + 8;
+  
+  for (let i = 0; i < placeCount; i++) {
+    // Generate random offset (up to 0.03 degrees ≈ 3.3km)
+    const latOffset = (Math.random() - 0.5) * 0.06;
+    const lonOffset = (Math.random() - 0.5) * 0.06;
+    
+    places.push({
+      id: `place_${i}`,
+      name: `${placeTypes[i % placeTypes.length]} ${i + 1}`,
+      latitude: userLocation.latitude + latOffset,
+      longitude: userLocation.longitude + lonOffset,
+      type: placeTypes[i % placeTypes.length],
+      rating: Math.floor(Math.random() * 5) + 1
+    });
+  }
+  
+  return places;
+}
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e3f2fd',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textContainer: {
+    flex: 1,
+    gap: 2,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  manualBadge: {
+    backgroundColor: '#fff3cd',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#ffc107',
+  },
+  manualBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#856404',
+  },
+  retryText: {
+    fontSize: 12,
+    color: '#007AFF',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  badge: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minWidth: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  changeButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  changeButtonText: {
+    fontSize: 12,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+});
