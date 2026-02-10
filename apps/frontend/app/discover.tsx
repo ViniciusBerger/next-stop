@@ -1,5 +1,5 @@
 // apps/frontend/app/(tabs)/discover.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,26 +7,62 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
+  Alert,
+  Linking
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import useGeolocation, { LocationData } from '../../hooks/useGeolocation';
+import useGeolocation from '../../hooks/useGeolocation';
 import DiscoverCard from '../../components/ui/discoverCard';
 import LocationInputModal from '../../components/ui/LocationInputModal';
+import PermissionModal from '../../components/ui/PermissionModal';
+import LocationBanner from '../../components/ui/LocationBanner';
 
 export default function DiscoverScreen() {
   const {
     location,
     loading,
     error,
+    permissionStatus,
+    requestPermission,
     refreshLocation,
     setManualLocation,
     isManual,
-    clearManualLocation
+    clearManualLocation,
+    checkPermissionStatus
   } = useGeolocation();
   
   const [refreshing, setRefreshing] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [hasRequestedPermission, setHasRequestedPermission] = useState(false);
+
+  // Check permission status on mount
+  useEffect(() => {
+    const checkPermission = async () => {
+      await checkPermissionStatus();
+    };
+    checkPermission();
+  }, []);
+
+  // Show permission modal if needed
+  useEffect(() => {
+    const showPermissionIfNeeded = async () => {
+      if (
+        permissionStatus === 'undetermined' &&
+        !hasRequestedPermission &&
+        !loading &&
+        !location
+      ) {
+        // Small delay to let UI settle
+        setTimeout(() => {
+          setShowPermissionModal(true);
+        }, 1000);
+      }
+    };
+    
+    showPermissionIfNeeded();
+  }, [permissionStatus, hasRequestedPermission, loading, location]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -34,41 +70,144 @@ export default function DiscoverScreen() {
     setRefreshing(false);
   };
 
-  const handleLocationSet = (newLocation: LocationData) => {
+  const handleLocationSet = (newLocation: any) => {
     console.log('Location set:', newLocation);
-    // Refresh discover content based on new location
   };
 
-  const handleRetry = async () => {
-    if (error?.code === 1 || error?.code === 3) {
-      // Permission or location error - show manual input
-      setShowLocationModal(true);
-    } else {
-      await refreshLocation();
+  const handleRequestPermission = async () => {
+    setHasRequestedPermission(true);
+    const granted = await requestPermission();
+    
+    if (granted) {
+      Alert.alert(
+        'Success',
+        'Location permission granted!',
+        [{ text: 'OK' }]
+      );
     }
   };
 
-  const renderLocationHeader = () => {
+  const handleOpenSettings = () => {
+    Linking.openSettings();
+  };
+
+  const renderPermissionState = () => {
+    // Show banner for denied/blocked states
+    if (permissionStatus === 'denied' || permissionStatus === 'blocked' || error) {
+      return (
+        <LocationBanner
+          permissionStatus={permissionStatus}
+          error={error}
+          onRequestPermission={handleRequestPermission}
+          onUseManualLocation={() => setShowLocationModal(true)}
+          onRetry={refreshLocation}
+        />
+      );
+    }
+
+    // Show loading state
     if (loading && !location) {
       return (
-        <View style={styles.locationCard}>
-          <ActivityIndicator size="small" color="#007AFF" />
-          <Text style={styles.locationText}>Getting your location...</Text>
+        <View style={styles.loadingCard}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>
+            Getting your location...
+          </Text>
+          <Text style={styles.loadingSubtext}>
+            Ensuring the best experience
+          </Text>
         </View>
       );
     }
 
-    if (error && !location) {
+    // Show manual location indicator
+    if (isManual) {
       return (
-        <View style={styles.errorCard}>
-          <Ionicons name="location-off" size={24} color="#FF3B30" />
-          <View style={styles.errorContent}>
-            <Text style={styles.errorTitle}>Location Access Needed</Text>
-            <Text style={styles.errorMessage}>
-              {error.message || 'Unable to access your location'}
+        <View style={styles.manualLocationCard}>
+          <View style={styles.manualLocationHeader}>
+            <Ionicons name="pin" size={20} color="#FF9500" />
+            <Text style={styles.manualLocationTitle}>Manual Location</Text>
+            <TouchableOpacity 
+              style={styles.changeButton}
+              onPress={() => setShowLocationModal(true)}
+            >
+              <Text style={styles.changeButtonText}>Change</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.manualLocationText}>
+            Showing results for: {location?.city || location?.address || 'Unknown'}
+          </Text>
+          <TouchableOpacity 
+            style={styles.useGpsButton}
+            onPress={clearManualLocation}
+          >
+            <Ionicons name="locate" size={16} color="#007AFF" />
+            <Text style={styles.useGpsText}>Use GPS Instead</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    // Show location card when granted
+    if (location && permissionStatus === 'granted') {
+      return (
+        <View style={styles.locationCard}>
+          <View style={styles.locationHeader}>
+            <Ionicons name="location" size={20} color="#007AFF" />
+            <Text style={styles.locationTitle}>Current Location</Text>
+            <TouchableOpacity 
+              style={styles.locationAction}
+              onPress={() => setShowLocationModal(true)}
+            >
+              <Text style={styles.locationActionText}>Change</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.locationText}>
+            {location.city || 'Your Location'}
+            {location.country && `, ${location.country}`}
+          </Text>
+          <View style={styles.locationDetails}>
+            <Text style={styles.coordinates}>
+              {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
             </Text>
-            <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-              <Text style={styles.retryButtonText}>Enter Location Manually</Text>
+            {location.accuracy && (
+              <Text style={styles.accuracy}>
+                Accuracy: ±{(location.accuracy).toFixed(0)}m
+              </Text>
+            )}
+          </View>
+        </View>
+      );
+    }
+
+    return null;
+  };
+
+  const renderContent = () => {
+    if (permissionStatus === 'denied' && !isManual) {
+      return (
+        <View style={styles.noPermissionContainer}>
+          <Ionicons name="location-off" size={64} color="#ccc" />
+          <Text style={styles.noPermissionTitle}>
+            Location Access Needed
+          </Text>
+          <Text style={styles.noPermissionText}>
+            Enable location access to discover nearby places
+          </Text>
+          <View style={styles.noPermissionButtons}>
+            <TouchableOpacity 
+              style={styles.permissionButton}
+              onPress={handleRequestPermission}
+            >
+              <Text style={styles.permissionButtonText}>Allow Location</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.permissionButton, styles.manualButton]}
+              onPress={() => setShowLocationModal(true)}
+            >
+              <Text style={[styles.permissionButtonText, styles.manualButtonText]}>
+                Enter City Manually
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -77,70 +216,29 @@ export default function DiscoverScreen() {
 
     if (location) {
       return (
-        <View style={styles.locationCard}>
-          <View style={styles.locatorHeader}>
-            <View style={styles.locationInfo}>
-              <Ionicons 
-                name={isManual ? "pin" : "location"} 
-                size={20} 
-                color="#007AFF" 
-              />
-              <View style={styles.locationTextContainer}>
-                <Text style={styles.locationCity}>
-                  {location.city || 'Unknown City'}
-                  {isManual && (
-                    <Text style={styles.manualBadge}> (Manual)</Text>
-                  )}
-                </Text>
-                {location.country && (
-                  <Text style={styles.locationCountry}>{location.country}</Text>
-                )}
-              </View>
-            </View>
-            
-            <View style={styles.locationActions}>
-              {isManual ? (
-                <TouchableOpacity 
-                  style={styles.actionButton}
-                  onPress={clearManualLocation}
-                >
-                  <Ionicons name="refresh" size={18} color="#007AFF" />
-                  <Text style={styles.actionButtonText}>Use GPS</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity 
-                  style={styles.actionButton}
-                  onPress={() => setShowLocationModal(true)}
-                >
-                  <Ionicons name="create-outline" size={18} color="#007AFF" />
-                  <Text style={styles.actionButtonText}>Change</Text>
-                </TouchableOpacity>
-              )}
-              
-              <TouchableOpacity 
-                style={styles.refreshButton}
-                onPress={onRefresh}
-                disabled={refreshing}
-              >
-                {refreshing ? (
-                  <ActivityIndicator size="small" color="#007AFF" />
-                ) : (
-                  <Ionicons name="refresh" size={18} color="#007AFF" />
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-          
-          <View style={styles.coordinates}>
-            <Text style={styles.coordinatesText}>
-              {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
-            </Text>
-          </View>
+        <View style={styles.content}>
+          {/* Your DiscoverCard or other content */}
+          <Text style={styles.sectionTitle}>Discover Nearby</Text>
+          {/* Add your place listings here */}
         </View>
       );
     }
 
-    return null;
+    return (
+      <View style={styles.emptyContainer}>
+        <Ionicons name="compass" size={64} color="#ccc" />
+        <Text style={styles.emptyTitle}>No Location Available</Text>
+        <Text style={styles.emptyText}>
+          Enable location services or enter a city to discover places
+        </Text>
+        <TouchableOpacity 
+          style={styles.exploreButton}
+          onPress={() => setShowLocationModal(true)}
+        >
+          <Text style={styles.exploreButtonText}>Enter Location</Text>
+        </TouchableOpacity>
+      </View>
+    );
   };
 
   return (
@@ -152,43 +250,35 @@ export default function DiscoverScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor="#007AFF"
+            enabled={permissionStatus === 'granted'}
           />
         }
       >
         <View style={styles.header}>
           <Text style={styles.title}>Discover</Text>
-          <Text style={styles.subtitle}>Explore places near you</Text>
+          <Text style={styles.subtitle}>Explore places around you</Text>
         </View>
 
-        {renderLocationHeader()}
-
-        {location ? (
-          <View style={styles.content}>
-            <DiscoverCard location={location} />
-            {/* Add more discover content here */}
-          </View>
-        ) : (
-          <View style={styles.noLocationContainer}>
-            <Ionicons name="compass" size={64} color="#ccc" />
-            <Text style={styles.noLocationText}>
-              Enable location or enter a city to discover places
-            </Text>
-            <TouchableOpacity 
-              style={styles.exploreButton}
-              onPress={() => setShowLocationModal(true)}
-            >
-              <Text style={styles.exploreButtonText}>Enter Location</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        {renderPermissionState()}
+        {renderContent()}
       </ScrollView>
 
+      {/* Location Input Modal */}
       <LocationInputModal
         visible={showLocationModal}
         onClose={() => setShowLocationModal(false)}
         onLocationSet={handleLocationSet}
         currentLocation={location}
         setManualLocation={setManualLocation}
+      />
+
+      {/* Permission Modal */}
+      <PermissionModal
+        visible={showPermissionModal}
+        onClose={() => setShowPermissionModal(false)}
+        onGrantPermission={handleRequestPermission}
+        permissionType="location"
+        isBlocked={permissionStatus === 'blocked'}
       />
     </View>
   );
@@ -197,24 +287,99 @@ export default function DiscoverScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa'
+    backgroundColor: '#f8f9fa',
   },
   scrollView: {
-    flex: 1
+    flex: 1,
   },
   header: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 12
+    paddingBottom: 12,
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
   },
   subtitle: {
     fontSize: 16,
     color: '#666',
-    marginTop: 4
+    marginTop: 4,
+  },
+  loadingCard: {
+    marginHorizontal: 16,
+    marginVertical: 12,
+    padding: 32,
+    borderRadius: 12,
+    backgroundColor: 'white',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 16,
+    color: '#000',
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  manualLocationCard: {
+    marginHorizontal: 16,
+    marginVertical: 12,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#FFF3CD',
+    borderWidth: 1,
+    borderColor: '#FFEAAE',
+  },
+  manualLocationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  manualLocationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#856404',
+    marginLeft: 8,
+    flex: 1,
+  },
+  changeButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  changeButtonText: {
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  manualLocationText: {
+    fontSize: 14,
+    color: '#856404',
+    marginBottom: 12,
+  },
+  useGpsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#E3F2FD',
+    borderRadius: 6,
+  },
+  useGpsText: {
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 6,
   },
   locationCard: {
     marginHorizontal: 16,
@@ -226,139 +391,132 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3
+    elevation: 3,
   },
-  locatorHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  locationInfo: {
+  locationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1
+    marginBottom: 8,
   },
-  locationTextContainer: {
-    marginLeft: 12
-  },
-  locationCity: {
-    fontSize: 18,
-    fontWeight: '600'
-  },
-  manualBadge: {
-    fontSize: 12,
-    color: '#FF9500',
-    fontWeight: '500'
-  },
-  locationCountry: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2
-  },
-  locationText: {
-    marginLeft: 12,
+  locationTitle: {
     fontSize: 16,
-    color: '#666'
+    fontWeight: '600',
+    marginLeft: 8,
+    flex: 1,
   },
-  locationActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12
+  locationAction: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#f0f8ff',
-    borderRadius: 8,
-    gap: 4
-  },
-  actionButtonText: {
+  locationActionText: {
     color: '#007AFF',
     fontSize: 14,
-    fontWeight: '500'
+    fontWeight: '500',
   },
-  refreshButton: {
-    padding: 6,
-    backgroundColor: '#f0f8ff',
-    borderRadius: 8
+  locationText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 8,
+  },
+  locationDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   coordinates: {
-    marginTop: 12,
-    padding: 8,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 6
-  },
-  coordinatesText: {
     fontFamily: 'monospace',
     fontSize: 12,
     color: '#666',
-    textAlign: 'center'
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
   },
-  errorCard: {
-    marginHorizontal: 16,
-    marginVertical: 12,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#FFF0F0',
-    borderWidth: 1,
-    borderColor: '#FFD1D1',
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  errorContent: {
-    flex: 1,
-    marginLeft: 12
-  },
-  errorTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FF3B30'
-  },
-  errorMessage: {
-    fontSize: 14,
+  accuracy: {
+    fontSize: 12,
     color: '#666',
-    marginVertical: 4
   },
-  retryButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginTop: 8,
-    alignSelf: 'flex-start'
-  },
-  retryButtonText: {
-    color: 'white',
-    fontWeight: '600'
-  },
-  content: {
-    padding: 16
-  },
-  noLocationContainer: {
-    flex: 1,
+  noPermissionContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 40,
-    marginTop: 40
+    marginTop: 40,
   },
-  noLocationText: {
+  noPermissionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  noPermissionText: {
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 24,
+  },
+  noPermissionButtons: {
+    width: '100%',
+    gap: 12,
+  },
+  permissionButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  permissionButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  manualButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  manualButtonText: {
+    color: '#007AFF',
+  },
+  content: {
+    padding: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+    marginTop: 40,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000',
     marginTop: 16,
-    marginBottom: 24
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 24,
   },
   exploreButton: {
     backgroundColor: '#007AFF',
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 10
+    paddingVertical: 16,
+    borderRadius: 10,
   },
   exploreButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600'
-  }
+    fontWeight: '600',
+  },
 });

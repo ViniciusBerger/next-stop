@@ -5,9 +5,10 @@ import {
   Text, 
   ActivityIndicator, 
   Alert,
-  StyleSheet 
+  StyleSheet,
+  Linking
 } from "react-native";
-import { useGeolocation, LocationData } from "../../hooks/useGeolocation";
+import { useGeolocation, LocationData, PermissionStatus } from "../../hooks/useGeolocation";
 import { useEffect, useState } from "react";
 import { Ionicons } from '@expo/vector-icons';
 
@@ -33,12 +34,16 @@ export function DiscoverCard({ onPress, showManualLocationModal }: DiscoverCardP
     error, 
     refreshLocation, 
     isManual,
-    clearManualLocation 
+    clearManualLocation,
+    permissionStatus,
+    requestPermission,
+    checkPermissionStatus
   } = useGeolocation();
   
   const [nearbyCount, setNearbyCount] = useState<number>(0);
   const [isFetchingPlaces, setIsFetchingPlaces] = useState<boolean>(false);
   const [userCity, setUserCity] = useState<string>('');
+  const [showPermissionAlert, setShowPermissionAlert] = useState<boolean>(false);
 
   // Calculate distance between coordinates
   const calculateDistance = (
@@ -67,10 +72,25 @@ export function DiscoverCard({ onPress, showManualLocationModal }: DiscoverCardP
     }
   }, [location]);
 
+  // Check permission status on component mount
+  useEffect(() => {
+    const initPermissionCheck = async () => {
+      await checkPermissionStatus();
+    };
+    initPermissionCheck();
+  }, []);
+
+  // Show permission alert if needed
+  useEffect(() => {
+    if (permissionStatus === 'denied' && !loading && !showPermissionAlert) {
+      setShowPermissionAlert(true);
+    }
+  }, [permissionStatus, loading]);
+
   // Fetch nearby places based on user's location
   useEffect(() => {
     const fetchNearbyPlaces = async () => {
-      if (!location) return;
+      if (!location || permissionStatus !== 'granted') return;
       
       setIsFetchingPlaces(true);
       
@@ -93,6 +113,7 @@ export function DiscoverCard({ onPress, showManualLocationModal }: DiscoverCardP
         setNearbyCount(nearbyPlaces.length);
         
         // Log for debugging
+        console.log('📍 Permission Status:', permissionStatus);
         console.log('📍 Location Mode:', isManual ? 'Manual' : 'GPS');
         console.log('📍 User Location:', location);
         console.log('📍 Nearby Places Found:', nearbyPlaces.length);
@@ -106,19 +127,112 @@ export function DiscoverCard({ onPress, showManualLocationModal }: DiscoverCardP
     };
 
     fetchNearbyPlaces();
-  }, [location, isManual]);
+  }, [location, isManual, permissionStatus]);
+
+  // Handle permission request
+  const handleRequestPermission = async (): Promise<boolean> => {
+    console.log('📱 Requesting location permission...');
+    const granted = await requestPermission();
+    
+    if (granted) {
+      console.log('✅ Permission granted, fetching location...');
+      await refreshLocation();
+      return true;
+    } else {
+      console.log('❌ Permission denied');
+      
+      // Show permission denied alert with manual option
+      if (permissionStatus === 'denied' || permissionStatus === 'blocked') {
+        Alert.alert(
+          "Location Access Needed",
+          permissionStatus === 'blocked' 
+            ? "Location permission is permanently denied. Please enable it in Settings to use location features."
+            : "Location permission was denied. You can enter a city manually or enable location access in Settings.",
+          [
+            {
+              text: "Cancel",
+              style: "cancel"
+            },
+            ...(permissionStatus === 'blocked' ? [{
+              text: "Open Settings",
+              onPress: () => Linking.openSettings()
+            }] : [{
+              text: "Try Again",
+              onPress: async () => {
+                const grantedAgain = await requestPermission();
+                if (grantedAgain) {
+                  await refreshLocation();
+                }
+              }
+            }]),
+            {
+              text: "Enter City",
+              onPress: () => {
+                if (showManualLocationModal) {
+                  showManualLocationModal();
+                }
+              }
+            }
+          ]
+        );
+      }
+      return false;
+    }
+  };
 
   // Handle retry when location error occurs
   const handleRetry = async () => {
-    if (error?.code === 1 || error?.code === 3) {
-      // Permission or location error - suggest manual input
+    if (error?.code === 1 || permissionStatus === 'denied' || permissionStatus === 'blocked') {
+      // Permission-related error
+      await handlePermissionError();
+    } else if (error?.code === 3 || error?.code === 6) {
+      // Location timeout or unavailable
       Alert.alert(
         "Location Unavailable",
-        "We couldn't access your location. Would you like to enter a city manually?",
+        "We couldn't access your location. Would you like to try again or enter a city manually?",
         [
           {
             text: "Cancel",
             style: "cancel"
+          },
+          {
+            text: "Try Again",
+            onPress: async () => {
+              await refreshLocation();
+            }
+          },
+          {
+            text: "Enter City",
+            onPress: () => {
+              if (showManualLocationModal) {
+                showManualLocationModal();
+              }
+            }
+          }
+        ]
+      );
+    } else if (showManualLocationModal) {
+      // Offer manual location as fallback
+      showManualLocationModal();
+    } else {
+      await refreshLocation();
+    }
+  };
+
+  // Handle permission-related errors
+  const handlePermissionError = async () => {
+    if (permissionStatus === 'blocked') {
+      Alert.alert(
+        "Location Permission Required",
+        "Location access is permanently denied. Please enable it in Settings to use location features.",
+        [
+          {
+            text: "Cancel",
+            style: "cancel"
+          },
+          {
+            text: "Open Settings",
+            onPress: () => Linking.openSettings()
           },
           {
             text: "Enter City",
@@ -131,7 +245,30 @@ export function DiscoverCard({ onPress, showManualLocationModal }: DiscoverCardP
         ]
       );
     } else {
-      await refreshLocation();
+      const granted = await handleRequestPermission();
+      if (!granted && showManualLocationModal) {
+        // After permission denial, offer manual input
+        setTimeout(() => {
+          Alert.alert(
+            "Location Access Denied",
+            "You can still discover places by entering a city manually.",
+            [
+              {
+                text: "Cancel",
+                style: "cancel"
+              },
+              {
+                text: "Enter City",
+                onPress: () => {
+                  if (showManualLocationModal) {
+                    showManualLocationModal();
+                  }
+                }
+              }
+            ]
+          );
+        }, 500);
+      }
     }
   };
 
@@ -163,114 +300,189 @@ export function DiscoverCard({ onPress, showManualLocationModal }: DiscoverCardP
     );
   };
 
-  // Show error state with manual location option
-  if (error) {
+  // Get appropriate icon and color based on permission/location state
+  const getLocationIcon = () => {
+    if (loading) return { name: 'location', color: '#666' };
+    if (error) return { name: 'location-off', color: '#FF3B30' };
+    if (isManual) return { name: 'pin', color: '#FF9500' };
+    if (permissionStatus === 'granted') return { name: 'location', color: '#007AFF' };
+    if (permissionStatus === 'denied') return { name: 'location-off', color: '#FF3B30' };
+    return { name: 'location-outline', color: '#666' };
+  };
+
+  // Get appropriate subtitle based on state
+  const getSubtitle = () => {
+    if (loading) return 'Getting your location...';
+    if (isFetchingPlaces) return 'Finding nearby places...';
+    if (error) return error.message || 'Location error';
+    if (location) {
+      if (nearbyCount > 0) return `${nearbyCount} places nearby`;
+      return 'Exploring the area';
+    }
+    if (permissionStatus === 'denied') return 'Location access denied';
+    if (permissionStatus === 'blocked') return 'Enable location in Settings';
+    return 'Enable location to find places';
+  };
+
+  // Get appropriate title based on state
+  const getTitle = () => {
+    if (loading) return 'Discover';
+    if (error && error.code === 1) return 'Permission Needed';
+    if (error && error.code === 5) return 'Location Blocked';
+    if (error) return 'Location Error';
+    if (location && userCity) return `Discover in ${userCity}`;
+    if (permissionStatus === 'denied') return 'Location Access';
+    return 'Discover Nearby';
+  };
+
+  // Show permission banner when permission is denied
+  const renderPermissionBanner = () => {
+    if (permissionStatus !== 'denied' && permissionStatus !== 'blocked') return null;
+    
     return (
-      <TouchableOpacity onPress={handleRetry} activeOpacity={0.8}>
-        <View style={[styles.card, { borderColor: '#ff6b6b', borderWidth: 1 }]}>
-          <View style={[styles.iconContainer, { backgroundColor: '#ffebee' }]}>
-            <Ionicons name="location-off" size={20} color="#ff6b6b" />
-          </View>
-          <View style={styles.textContainer}>
-            <Text style={styles.title}>Location Error</Text>
-            <Text style={styles.subtitle}>
-              {error.message || 'Unable to access location'}
-            </Text>
-            <Text style={styles.retryText}>
-              Tap to enter location manually
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#666" />
-        </View>
-      </TouchableOpacity>
+      <View style={[
+        styles.permissionBanner,
+        permissionStatus === 'blocked' ? styles.blockedBanner : styles.deniedBanner
+      ]}>
+        <Ionicons 
+          name={permissionStatus === 'blocked' ? 'settings' : 'warning'} 
+          size={16} 
+          color={permissionStatus === 'blocked' ? '#FF9500' : '#FF3B30'} 
+        />
+        <Text style={styles.permissionBannerText}>
+          {permissionStatus === 'blocked' 
+            ? 'Location is blocked. Enable in Settings.' 
+            : 'Location access denied. Tap to enable.'}
+        </Text>
+      </View>
     );
-  }
+  };
+
+  // Handle card press with permission check
+  const handleCardPress = async () => {
+    // If no permission yet, request it first
+    if (permissionStatus === 'undetermined') {
+      const granted = await handleRequestPermission();
+      if (!granted) return;
+    }
+    
+    // If permission denied, show options
+    if (permissionStatus === 'denied' || permissionStatus === 'blocked') {
+      await handlePermissionError();
+      return;
+    }
+    
+    // If location error, handle it
+    if (error) {
+      await handleRetry();
+      return;
+    }
+    
+    // Otherwise, proceed to discover screen
+    if (location) {
+      console.log('📍 Passing location to Discover screen:', location);
+    }
+    onPress();
+  };
+
+  const icon = getLocationIcon();
 
   return (
-    <TouchableOpacity 
-      onPress={() => {
-        if (location) {
-          console.log('📍 Passing location to Discover screen:', location);
-        }
-        onPress();
-      }} 
-      activeOpacity={0.8} 
-      disabled={loading || isFetchingPlaces}
-    >
-      <View style={styles.card}>
-        <View style={styles.iconContainer}>
-          {loading ? (
-            <ActivityIndicator size="small" color="#007AFF" />
-          ) : (
-            <Ionicons 
-              name={isManual ? "pin" : "location"} 
-              size={20} 
-              color="#007AFF" 
-            />
-          )}
-        </View>
-        
-        <View style={styles.textContainer}>
-          {loading || isFetchingPlaces ? (
-            <>
-              <Text style={styles.title}>
-                {loading ? 'Getting location...' : 'Finding places...'}
+    <>
+      {renderPermissionBanner()}
+      
+      <TouchableOpacity 
+        onPress={handleCardPress} 
+        activeOpacity={0.8} 
+        disabled={loading || isFetchingPlaces}
+        style={styles.cardContainer}
+      >
+        <View style={[
+          styles.card,
+          (error || permissionStatus === 'denied' || permissionStatus === 'blocked') && styles.errorCard,
+          loading && styles.loadingCard
+        ]}>
+          <View style={[
+            styles.iconContainer,
+            { backgroundColor: getIconBackgroundColor(icon.color) }
+          ]}>
+            {loading ? (
+              <ActivityIndicator size="small" color={icon.color} />
+            ) : (
+              <Ionicons name={icon.name as any} size={20} color={icon.color} />
+            )}
+          </View>
+          
+          <View style={styles.textContainer}>
+            <View style={styles.titleRow}>
+              <Text style={styles.title} numberOfLines={1}>
+                {getTitle()}
               </Text>
-              <Text style={styles.subtitle}>
-                Discovering nearby spots
-              </Text>
-            </>
-          ) : location ? (
-            <>
-              <View style={styles.locationRow}>
-                <Text style={styles.title} numberOfLines={1}>
-                  Discover {userCity ? `in ${userCity}` : ''}
-                </Text>
-                {isManual && (
-                  <View style={styles.manualBadge}>
-                    <Text style={styles.manualBadgeText}>Manual</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={styles.subtitle}>
-                {nearbyCount > 0 
-                  ? `${nearbyCount} places nearby`
-                  : 'Exploring the area'
-                }
-              </Text>
-            </>
-          ) : (
-            <>
-              <Text style={styles.title}>Discover Nearby</Text>
-              <Text style={styles.subtitle}>
-                Enable location to find places
-              </Text>
-            </>
-          )}
-        </View>
-        
-        {location && !loading && (
-          <TouchableOpacity 
-            onPress={handleLocationChange}
-            style={styles.changeButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={styles.changeButtonText}>
-              {isManual ? 'Change' : 'Switch'}
+              {isManual && (
+                <View style={styles.manualBadge}>
+                  <Text style={styles.manualBadgeText}>Manual</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.subtitle}>
+              {getSubtitle()}
             </Text>
-          </TouchableOpacity>
-        )}
+          </View>
+          
+          {!loading && !isFetchingPlaces && (
+            <>
+              {location && permissionStatus === 'granted' && (
+                <TouchableOpacity 
+                  onPress={handleLocationChange}
+                  style={styles.changeButton}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={styles.changeButtonText}>
+                    {isManual ? 'Change' : 'Switch'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              
+              {nearbyCount > 0 && location && permissionStatus === 'granted' && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{nearbyCount}</Text>
+                </View>
+              )}
+            </>
+          )}
+          
+          <Ionicons 
+            name="chevron-forward" 
+            size={20} 
+            color={
+              error || permissionStatus === 'denied' || permissionStatus === 'blocked' 
+                ? '#FF3B30' 
+                : '#666'
+            } 
+          />
+        </View>
         
-        {nearbyCount > 0 && !loading && !isFetchingPlaces && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{nearbyCount}</Text>
+        {/* Action hint for denied/blocked permission */}
+        {(permissionStatus === 'denied' || permissionStatus === 'blocked') && (
+          <View style={styles.actionHint}>
+            <Text style={styles.actionHintText}>
+              Tap to enable location or enter city
+            </Text>
           </View>
         )}
-        
-        <Ionicons name="chevron-forward" size={20} color="#666" />
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </>
   );
+}
+
+// Helper function to generate icon background color
+function getIconBackgroundColor(iconColor: string): string {
+  switch (iconColor) {
+    case '#007AFF': return '#E3F2FD';
+    case '#FF3B30': return '#FFE5E5';
+    case '#FF9500': return '#FFF3CD';
+    default: return '#F0F0F0';
+  }
 }
 
 // Helper function to generate test places
@@ -304,6 +516,9 @@ function generateTestPlaces(userLocation: LocationData): Place[] {
 }
 
 const styles = StyleSheet.create({
+  cardContainer: {
+    marginBottom: 12,
+  },
   card: {
     backgroundColor: '#fff',
     padding: 16,
@@ -316,19 +531,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 12,
+  },
+  errorCard: {
+    borderColor: '#FF3B30',
+    borderWidth: 1,
+  },
+  loadingCard: {
+    opacity: 0.8,
   },
   iconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#e3f2fd',
     alignItems: 'center',
     justifyContent: 'center',
   },
   textContainer: {
     flex: 1,
     gap: 2,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   title: {
     fontSize: 16,
@@ -338,11 +563,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#666',
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   manualBadge: {
     backgroundColor: '#fff3cd',
@@ -356,12 +576,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     color: '#856404',
-  },
-  retryText: {
-    fontSize: 12,
-    color: '#007AFF',
-    marginTop: 4,
-    fontWeight: '500',
   },
   badge: {
     backgroundColor: '#007AFF',
@@ -386,5 +600,39 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#007AFF',
     fontWeight: '500',
+  },
+  permissionBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 8,
+    gap: 8,
+  },
+  deniedBanner: {
+    backgroundColor: '#FFE5E5',
+    borderWidth: 1,
+    borderColor: '#FFD1D1',
+  },
+  blockedBanner: {
+    backgroundColor: '#FFF3CD',
+    borderWidth: 1,
+    borderColor: '#FFEAAE',
+  },
+  permissionBannerText: {
+    fontSize: 12,
+    color: '#666',
+    flex: 1,
+  },
+  actionHint: {
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  actionHintText: {
+    fontSize: 11,
+    color: '#007AFF',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
