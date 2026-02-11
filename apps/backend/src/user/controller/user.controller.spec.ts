@@ -34,6 +34,16 @@ describe('userController', () => {
             createUser: jest.fn(),
             updateUser: jest.fn(),
             deleteUser: jest.fn(),
+            addToFavorites: jest.fn(),
+            getFavorites: jest.fn(),
+            removeFromFavorites: jest.fn(),
+            addToWishlist: jest.fn(),
+            getWishlist: jest.fn(),
+            removeFromWishlist: jest.fn(),
+            banUser: jest.fn(),
+            unbanUser: jest.fn(),
+            suspendUser: jest.fn(),
+            unsuspendUser: jest.fn(),
           },
         },
       ],
@@ -120,16 +130,17 @@ describe('userController', () => {
     );
   });
 
-  it('deleteUser -> Should send deleteUserDTO to service', async () => {
-    const mockDTO = { username: 'testuser', firebaseUid: '123' };
+  it("deleteUser -> Should send deleteUserDTO to service", async () => {
+    const firebaseUid = '123';
+    const mockDTO = { username: 'testuser', firebaseUid: firebaseUid };
 
-    jest.spyOn(userService, 'deleteUser').mockResolvedValue(mockDTO as any);
-    const user = await userController.deleteUser(mockDTO as any);
+    jest.spyOn(userService, "deleteUser").mockResolvedValue(mockDTO as any);
+    const user = await userController.deleteUser(firebaseUid);  // ← Passes just the firebaseUid
 
-    expect(user).toEqual({ message: mockDTO as UserResponseDTO });
-    expect(userService.deleteUser).toHaveBeenCalledWith(mockDTO);
+    expect(user).toEqual({message: expect.any(UserResponseDTO)});
+    expect(userService.deleteUser).toHaveBeenCalledWith({ firebaseUid });  // ← waits for an objeto
     expect(userService.deleteUser).toHaveBeenCalledTimes(1);
-  });
+});
 
   it('deleteUser -> Should return status 400', async () => {
     const mockDTO = null;
