@@ -8,13 +8,26 @@ import { CreateUserDTO } from "../../../user/DTOs/create.user.DTO";
 import { GetUserDTO } from "../../../user/DTOs/get.user.DTO";
 import { ValidateUserDTO } from "../DTOs/validate.user.DTO";
 
-
 /**
- * Concrete strategy class, it implements IAuthStrategy
- * which is the contract to be followed by any auth method in this application
+ * EmailStrategy
  * 
- * EmailStrategy is meant to auth with email and password
+ * Concrete authentication strategy implementing IAuthStrategy.
+ *
+ * Handles email/password authentication using Firebase Admin
+ * and synchronizes authenticated users with the local MongoDB database.
+ *
+ * - Validate users by verifying Firebase ID tokens
+ * - Register new users in Firebase Authentication
+ * - Create corresponding user records in the application database
+ * - Return User entities for successful authentication flows
+ *
+ * Part of the Strategy + Factory authentication architecture, allowing
+ * provider-specific logic to remain isolated from core services.
+ * 
+ * @author Vinicius Berger
  */
+
+
 @Injectable()
 export class EmailStrategy implements IAuthStrategy {
     provider: string;

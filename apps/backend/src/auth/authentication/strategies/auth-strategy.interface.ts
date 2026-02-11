@@ -6,6 +6,8 @@ import { User } from "src/user/schemas/user.schema";
  * * This class serves as the foundation for all authentication providers 
  * (e.g., Email, Google, GitHub). It enforces a consistent structure 
  * for signing in and registering users across the platform.
+ * 
+ * @author Vinicius Berger
  */
 Injectable()
 export interface IAuthStrategy {

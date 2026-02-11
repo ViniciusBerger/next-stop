@@ -3,6 +3,27 @@ import { Reflector } from '@nestjs/core';
 import mongoose from 'mongoose';
 import { ROLES_KEY } from 'src/auth/authorization/roles.decorator';
 
+/**
+ * RoleGuard
+ * 
+ * NestJS authorization guard responsible for enforcing Role-Based Access Control (RBAC).
+ *
+ * This guard uses Reflector to read role metadata applied via decorators on routes
+ * and controllers, then validates the authenticated user's roles against the
+ * MongoDB User collection.
+ *
+ * - Read required roles from @Roles decorators
+ * - Retrieve the authenticated user from the request context
+ * - Fetch the user record from MongoDB
+ * - Verify the user has at least one required role
+ * - Throw UnauthorizedException when access is denied
+ *
+ * Designed to integrate with NestJS Guards and custom role decorators
+ * for fine-grained route protection.
+ * 
+ * @author Vinicius Berger
+ */
+
 @Injectable()
 export class RoleGuard implements CanActivate {
     constructor(private reflector: Reflector) {}  // inject reflector to read metadata (annotations for roles on routes)
