@@ -1,139 +1,197 @@
-import { Test, TestingModule } from "@nestjs/testing"
-import { UserController } from "./user.controller"
-import { UserService } from "../service/user.service"
-import { BadRequestException } from "@nestjs/common";
-import { UserResponseDTO } from "../DTOs/user.response.DTO";
+import { Test, TestingModule } from '@nestjs/testing';
+import { UserController } from './user.controller';
+import { UserService } from '../service/user.service';
+import { BadRequestException } from '@nestjs/common';
+import { UserResponseDTO } from '../DTOs/user.response.DTO';
 
 /**
  * UserController unit tests
- * 
- * This test suite verifies the functionality of the UserController class, checking status code 
+ *
+ * This test suite verifies the functionality of the UserController class, checking status code
  * and data transfer. It uses Jest for mocking dependencies and assertions.
- * 
+ *
  * these tests follow the triple A of testing: Arrange, act and assert [AAA]
- * 
+ *
  * To run the tests, use the command: npm test -- apps/backend/src/user/controller/user.controller.spec.ts
- * 
+ *
  */
 
-describe('userController', ()=> {
-    let userController: UserController;
-    let userService:UserService;
+describe('userController', () => {
+  let userController: UserController;
+  let userService: UserService;
 
-    beforeEach(async ()=> {
-        jest.clearAllMocks()
-        // create testing environment before each it
-        const module: TestingModule = await Test.createTestingModule({
-            controllers: [UserController],
-            providers: [{
-                provide: UserService,
-                // methods testing will have access to
-                useValue: {
-                    getUser: jest.fn(),
-                    createUser: jest.fn(),
-                    updateUser: jest.fn(),
-                    deleteUser: jest.fn(),
-                }
-            }
-        ]
-        }).compile()
-        
-        // instantiate service and controller
-        userController = module.get<UserController>(UserController)
-        userService = module.get<UserService>(UserService) 
-    })
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    // create testing environment before each it
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [UserController],
+      providers: [
+        {
+          provide: UserService,
+          // methods testing will have access to
+          useValue: {
+            getUser: jest.fn(),
+            createUser: jest.fn(),
+            updateUser: jest.fn(),
+            deleteUser: jest.fn(),
+            addToFavorites: jest.fn(),
+            getFavorites: jest.fn(),
+            removeFromFavorites: jest.fn(),
+            addToWishlist: jest.fn(),
+            getWishlist: jest.fn(),
+            removeFromWishlist: jest.fn(),
+            banUser: jest.fn(),
+            unbanUser: jest.fn(),
+            suspendUser: jest.fn(),
+            unsuspendUser: jest.fn(),
+          },
+        },
+      ],
+    }).compile();
 
+    // instantiate service and controller
+    userController = module.get<UserController>(UserController);
+    userService = module.get<UserService>(UserService);
+  });
 
-    it("Should define userService and userRepository", ()=> {
-        expect(userController).toBeDefined()
-        expect(userService).toBeDefined()
-    })
+  it('Should define userService and userRepository', () => {
+    expect(userController).toBeDefined();
+    expect(userService).toBeDefined();
+  });
 
+  it('createUser -> Should send createUserDTO to service', async () => {
+    const mockDTO = { username: 'testuser', firebaseUid: '123' };
 
-    it("createUser -> Should send createUserDTO to service",async ()=> {
-        const mockDTO = { username: 'testuser', firebaseUid: '123' };
+    jest.spyOn(userService, 'createUser').mockResolvedValue(mockDTO);
+    const user = await userController.createUser(mockDTO as any);
 
-        jest.spyOn(userService, "createUser").mockResolvedValue(mockDTO)
-        const user = await userController.createUser(mockDTO as any)
+    expect(user).toEqual(expect.objectContaining(mockDTO));
+    expect(userService.createUser).toHaveBeenCalledWith(mockDTO);
+    expect(userService.createUser).toHaveBeenCalledTimes(1);
+  });
 
-        expect(user).toEqual(expect.objectContaining(mockDTO))
-        expect(userService.createUser).toHaveBeenCalledWith(mockDTO)
-        expect(userService.createUser).toHaveBeenCalledTimes(1)
+  it('createUser -> Should return status 400', async () => {
+    const mockDTO = null;
 
-    })
+    jest
+      .spyOn(userService, 'createUser')
+      .mockRejectedValue(new BadRequestException());
 
+    await expect(userController.createUser(mockDTO as any)).rejects.toThrow(
+      BadRequestException,
+    );
+  });
 
-    it("createUser -> Should return status 400",async()=> {
-        const mockDTO = null
+  it('getUser -> Should send getUserDTO to service', async () => {
+    const mockDTO = { username: 'testuser', firebaseUid: '123' };
 
-        jest.spyOn(userService, "createUser").mockRejectedValue(new BadRequestException())
+    jest.spyOn(userService, 'getUser').mockResolvedValue(mockDTO as any);
+    const user = await userController.getUser(mockDTO as any);
 
-        await (expect(userController.createUser(mockDTO as any)).rejects.toThrow(BadRequestException))
-    })
+    expect(user).toEqual(expect.objectContaining(mockDTO) as UserResponseDTO);
+    expect(userService.getUser).toHaveBeenCalledWith(mockDTO);
+    expect(userService.getUser).toHaveBeenCalledTimes(1);
+  });
 
+  it('getUser -> Should return status 400', async () => {
+    const mockDTO = null;
 
-    it("getUser -> Should send getUserDTO to service",async ()=> {
-        const mockDTO = { username: 'testuser', firebaseUid: '123' };
+    jest
+      .spyOn(userService, 'getUser')
+      .mockRejectedValue(new BadRequestException());
 
-        jest.spyOn(userService, "getUser").mockResolvedValue(mockDTO as any)
-        const user = await userController.getUser(mockDTO as any)
+    await expect(userController.getUser(mockDTO as any)).rejects.toThrow(
+      BadRequestException,
+    );
+  });
 
-        expect(user).toEqual(expect.objectContaining(mockDTO) as UserResponseDTO)
-        expect(userService.getUser).toHaveBeenCalledWith(mockDTO)
-        expect(userService.getUser).toHaveBeenCalledTimes(1)
+  it('updateUser -> Should send editUserDTO to service', async () => {
+    const mockDTO = { username: 'testuser', firebaseUid: '123' };
 
-    })
+    jest.spyOn(userService, 'updateUser').mockResolvedValue(mockDTO as any);
+    const user = await userController.updateUser(mockDTO as any);
 
+    expect(user).toEqual({
+      message: expect.objectContaining(mockDTO) as UserResponseDTO,
+    });
+    expect(userService.updateUser).toHaveBeenCalledWith(mockDTO);
+    expect(userService.updateUser).toHaveBeenCalledTimes(1);
+  });
 
-    it("getUser -> Should return status 400",async()=> {
-        const mockDTO = null
+  it('updateUser -> Should return status 400', async () => {
+    const mockDTO = null;
 
-        jest.spyOn(userService, "getUser").mockRejectedValue(new BadRequestException())
+    jest
+      .spyOn(userService, 'updateUser')
+      .mockRejectedValue(new BadRequestException());
 
-        await (expect(userController.getUser(mockDTO as any)).rejects.toThrow(BadRequestException))
-    })
+    await expect(userController.updateUser(mockDTO as any)).rejects.toThrow(
+      BadRequestException,
+    );
+  });
 
+  it("deleteUser -> Should send deleteUserDTO to service", async () => {
+    const firebaseUid = '123';
+    const mockDTO = { username: 'testuser', firebaseUid: firebaseUid };
 
-    it("updateUser -> Should send editUserDTO to service",async ()=> {
-        const mockDTO = { username: 'testuser', firebaseUid: '123' };
+    jest.spyOn(userService, "deleteUser").mockResolvedValue(mockDTO as any);
+    const user = await userController.deleteUser(firebaseUid);  // ← Passes just the firebaseUid
 
-        jest.spyOn(userService, "updateUser").mockResolvedValue(mockDTO as any)
-        const user = await userController.updateUser(mockDTO as any)
+    expect(user).toEqual({message: expect.any(UserResponseDTO)});
+    expect(userService.deleteUser).toHaveBeenCalledWith({ firebaseUid });  // ← waits for an objeto
+    expect(userService.deleteUser).toHaveBeenCalledTimes(1);
+});
 
-        expect(user).toEqual({message: expect.objectContaining(mockDTO) as UserResponseDTO})
-        expect(userService.updateUser).toHaveBeenCalledWith(mockDTO)
-        expect(userService.updateUser).toHaveBeenCalledTimes(1)
+  it('deleteUser -> Should return status 400', async () => {
+    const mockDTO = null;
 
-    })
+    jest
+      .spyOn(userService, 'deleteUser')
+      .mockRejectedValue(new BadRequestException());
 
+    await expect(userController.deleteUser(mockDTO as any)).rejects.toThrow(
+      BadRequestException,
+    );
+  });
 
-    it("updateUser -> Should return status 400",async()=> {
-        const mockDTO = null
+  // Testing Favorites
+  it('addToFavorites -> Should add place to favorites', async () => {
+    const userId = 'user_123';
+    const placeId = 'place_456';
+    const mockResult = { favorites: [placeId] };
 
-        jest.spyOn(userService, "updateUser").mockRejectedValue(new BadRequestException())
+    jest
+      .spyOn(userService, 'addToFavorites')
+      .mockResolvedValue(mockResult as any);
+    const result = await userController.addToFavorites(userId, { placeId });
 
-        await (expect(userController.updateUser(mockDTO as any)).rejects.toThrow(BadRequestException))
-    })
+    expect(result.message).toEqual('Place added to favorites');
+    expect(userService.addToFavorites).toHaveBeenCalledWith(userId, placeId);
+  });
 
+  it('getFavorites -> Should return user favorites', async () => {
+    const userId = 'user_123';
+    const mockFavorites = [{ name: 'Pizzaria Bella' }];
 
-    it("deleteUser -> Should send deleteUserDTO to service",async ()=> {
-        const mockDTO = { username: 'testuser', firebaseUid: '123' };
+    jest
+      .spyOn(userService, 'getFavorites')
+      .mockResolvedValue(mockFavorites as any);
+    const result = await userController.getFavorites(userId);
 
-        jest.spyOn(userService, "deleteUser").mockResolvedValue(mockDTO as any)
-        const user = await userController.deleteUser(mockDTO as any)
+    expect(result).toEqual(mockFavorites);
+    expect(userService.getFavorites).toHaveBeenCalledWith(userId);
+  });
 
-        expect(user).toEqual({message: mockDTO as UserResponseDTO})
-        expect(userService.deleteUser).toHaveBeenCalledWith(mockDTO)
-        expect(userService.deleteUser).toHaveBeenCalledTimes(1)
+  // Testing Ban/Unban
+  it('banUser -> Should ban user', async () => {
+    const userId = 'user_123';
+    const reason = 'Spam';
+    const mockResult = { username: 'testuser', isBanned: true };
 
-    })
+    jest.spyOn(userService, 'banUser').mockResolvedValue(mockResult as any);
+    const result = await userController.banUser(userId, { reason });
 
-
-    it("deleteUser -> Should return status 400",async()=> {
-        const mockDTO = null
-
-        jest.spyOn(userService, "deleteUser").mockRejectedValue(new BadRequestException())
-
-        await (expect(userController.deleteUser(mockDTO as any)).rejects.toThrow(BadRequestException))
-    })
-})
+    expect(result.message).toEqual('User banned successfully');
+    expect(userService.banUser).toHaveBeenCalledWith(userId, reason);
+  });
+});

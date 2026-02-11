@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { Profile } from '../../profile/schemas/profile.schema'
+import { Profile, profileSchema } from '../../profile/schemas/profile.schema'
 import { Badge } from './badges.schema';
 
 @Schema({ collection: 'User' })
@@ -18,7 +18,7 @@ export class User extends Document {
     @Prop({type: String, unique: true})
     email: string;
     
-    @Prop({type: Profile, default: () => ({}) })
+    @Prop({type: profileSchema, default: () => ({}) })
     profile: Profile;
 
     @Prop({type: String, default: '' })
@@ -33,8 +33,23 @@ export class User extends Document {
     @Prop({type: Types.ObjectId, ref: 'User', default: []})
     friends: Types.ObjectId[];
 
-    @Prop({type: Boolean, deafault: false})
+    // ==== BAN/SUSPEND ====
+    @Prop({type: Boolean, default: false})
     isBanned: boolean
+
+    @Prop({type: Boolean, default: false})
+    isSuspended: boolean
+
+    @Prop({type: Date, required: false})
+    bannedAt?: Date;
+
+    @Prop({type: Date, required: false})
+    suspendedUntil?: Date;
+
+    @Prop({type: String, required: false})
+    banReason?: string;
+
+    // ==== DATES ====
 
     @Prop({type: Date, default: Date.now})
     createdAt: Date;
@@ -44,6 +59,14 @@ export class User extends Document {
 
     @Prop({type: Date, default: Date.now})
     lastLogin: Date;
+
+    // ==== FAVORITES/WISHLIST ====
+
+    @Prop({ type: [Types.ObjectId], ref: 'Place', default: [] })
+    favorites: Types.ObjectId[];
+
+    @Prop({ type: [Types.ObjectId], ref: 'Place', default: [] })
+    wishlist: Types.ObjectId[];
 }
 
 
