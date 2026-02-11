@@ -1,0 +1,15 @@
+{
+  "name": "next-stop",
+  "version": "1.0.0",
+  "description": "a social app for eaters who loves to share their food journey",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "workspaces":[
+    "apps/*"
+  ]
+}
