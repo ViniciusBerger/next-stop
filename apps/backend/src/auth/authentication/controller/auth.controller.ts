@@ -1,8 +1,9 @@
-import { BadRequestException, Body, Controller, Post } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Post, UseGuards } from "@nestjs/common";
 import { AuthService } from "../service/auth.service";
 import { UserResponseDTO } from "src/user/DTOs/user.response.DTO";
 import { RegisterUserDTO } from "../DTOs/register.user.DTO";
 import { ValidateUserDTO } from "../DTOs/validate.user.DTO";
+import { FirebaseAuthGuard } from "src/common/firebase/firebase.auth.guard";
 
 @Controller('auth')
 export class AuthController {
@@ -10,6 +11,7 @@ export class AuthController {
     constructor(private authService:AuthService) {}
 
     @Post('/register')
+    @UseGuards(FirebaseAuthGuard)
     async register(@Body() req: any) {
         const {provider, registerUserDTO} = req
 
@@ -21,6 +23,7 @@ export class AuthController {
     }
 
     @Post("/validate")
+    @UseGuards(FirebaseAuthGuard)
     async validate(@Body() req: any) {
         const {provider, validateUserDTO} = req
 
