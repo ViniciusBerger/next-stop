@@ -1,98 +1,262 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# NestJS NEXT-STOP API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A modular NestJS REST API designed for a social/location-based application.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+This backend supports:
 
-## Description
+- Firebase email/password authentication
+- MongoDB persistence via Mongoose
+- Role-based authorization (RBAC)
+- Places & outings (posts/check-ins)
+- User profiles
+- Strategy + Factory authentication architecture
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
-## Project setup
+## Architecture Overview
 
-```bash
-$ npm install
-```
+The project follows clean modular NestJS patterns with:
 
-## Compile and run the project
+- Controllers – HTTP endpoints
+- Services – Business logic
+- DTOs – Validation & transport objects
+- Schemas – Mongoose models
+- Guards / Decorators – Authentication & authorization
+- Strategies + Factory – Provider-based authentication
 
-```bash
-# development
-$ npm run start
+### Core Design Patterns
 
-# watch mode
-$ npm run start:dev
+### Strategy + Factory (Authentication)
 
-# production mode
-$ npm run start:prod
-```
+Authentication providers are abstracted via:
 
-## Run tests
+- IAuthStrategy
+- EmailStrategy
+- AuthStrategyFactory
+- AuthService
 
-```bash
-# unit tests
-$ npm run test
+This allows adding new auth providers (Google, Apple, etc.) without touching core logic.
 
-# e2e tests
-$ npm run test:e2e
+### RBAC (Role-Based Access Control)
 
-# test coverage
-$ npm run test:cov
-```
+Implemented using:
 
-## Deployment
+- RoleGuard
+- @Roles() decorator
+- MongoDB role validation
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+---
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Authentication
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+Powered by Firebase Admin SDK.
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Register
 
-## Resources
+POST /auth/register
 
-Check out a few resources that may come in handy when working with NestJS:
+Request body:
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+    {
+      "provider": "password",
+      "registerUserDTO": {
+        "email": "test@test.com",
+        "password": "123456",
+        "displayName": "John"
+      }
+    }
 
-## Support
+Creates:
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+- Firebase user
+- MongoDB user document
 
-## Stay in touch
+Returns sanitized user response.
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+---
 
-## License
+### Validate (Login)
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+POST /auth/validate
+
+Request body:
+
+    {
+      "provider": "password",
+      "validateUserDTO": {
+        "token": "<firebase-id-token>"
+      }
+    }
+
+Validates Firebase token and returns a validated user.
+
+---
+
+##  Places Module
+
+Manage locations.
+
+### Create Place
+POST /places  
+Body: CreatePlaceDTO
+
+### Get All Places
+GET /places  
+Optional filters via query.
+
+### Get Place Details
+GET /places/details?id=xxx  
+or  
+GET /places/details?googlePlaceId=xxx
+
+### Update Place
+PUT /places?id=xxx  
+Body: UpdatePlaceDTO
+
+### Delete Place
+DELETE /places?id=xxx
+
+---
+
+##  Outings Module
+
+Outings represent posts/check-ins tied to places.
+
+### Create Outing
+POST /outings  
+Body: CreateOutingDTO
+
+### Feed
+GET /outings  
+Optional filters.
+
+### Get Outing Details
+GET /outings/details?id=xxx
+
+### User History
+GET /outings/user/:userId
+
+### Like / Unlike Outing
+POST /outings/like  
+Body: LikeOutingDTO
+
+### Delete Outing
+DELETE /outings/:id
+
+### Get Outings by Place
+GET /outings/place/:placeId
+
+---
+
+## 👤 Profile Module
+
+Profiles are retrieved/updated by Firebase UID or username.
+
+### Get Profile
+
+GET /profile?firebaseUid=xxx  
+or  
+GET /profile?username=xxx
+
+
+### Update Profile
+
+PUT /profile
+
+Query:
+
+- firebaseUid OR username
+
+Body:
+
+- preferences
+- privacy
+
+---
+
+## Authorization (RBAC)
+
+Routes can be protected using:
+
+@Roles('admin')
+
+Validated via:
+
+- RoleGuard
+- MongoDB user roles
+
+---
+
+## Firebase
+
+Firebase Admin initialized via:
+
+src/common/firebase/firebase.admin.ts
+
+Credentials provided through environment variables or service account.
+
+Used for:
+
+- User creation
+- Token validation
+
+---
+
+## MongoDB
+
+Mongoose connection configured in:
+
+src/common/mongoose.ts
+
+Schemas:
+
+- User
+- Profile
+- Place
+- Outing
+
+---
+
+## Validation
+
+Uses:
+
+- DTOs
+- Custom global validation pipe
+- Global exception filter
+
+Located in:
+
+src/common/validation.pipe.ts  
+src/common/errors/
+
+---
+
+## Environment Variables
+
+Required:
+
+MONGO_URI=your_mongodb_connection  
+FIREBASE_PROJECT_ID=xxx  
+FIREBASE_CLIENT_EMAIL=xxx  
+FIREBASE_PRIVATE_KEY=xxx
+
+---
+
+## Running the backend
+
+npm install  
+npm run start:dev
+
+---
+
+## Tech Stack
+
+- NestJS
+- MongoDB + Mongoose
+- Firebase Admin SDK
+- class-validator
+- class-transformer
+
+---
+
