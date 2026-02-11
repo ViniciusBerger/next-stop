@@ -9,7 +9,7 @@ export class User extends Document {
     @Prop({type: String, required: true, unique: true})
     firebaseUid: string;
     
-    @Prop({type: String, required:true})
+    @Prop({type: String, default: "member"})
     role: string;
 
     @Prop({type: String, required:true, unique: true})

@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { EmailStrategy } from '../strategies/email.strategy';
-import { AuthStrategy } from './auth.strategy.abstract';
+import { EmailStrategy } from './email.strategy';
+import { IAuthStrategy } from './auth-strategy.interface';
 
 /**
  * In the strategy pattern we must have a factory to handle which strategy
@@ -15,13 +15,10 @@ export class AuthStrategyFactory {
   ) {}
 
   // This is the core logic of the factory
-  getStrategy(provider: string): AuthStrategy {
+  getStrategy(provider: string): IAuthStrategy {
     switch (provider.toLocaleLowerCase()) {
       case 'password':
-      case 'email':
         return this.emailStrategy;
-      case 'google':
-        
       default:
         throw new BadRequestException(`Provider ${provider} not supported`);
     }

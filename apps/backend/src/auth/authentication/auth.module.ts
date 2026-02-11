@@ -1,9 +1,9 @@
 import { Module } from "@nestjs/common";
-import { AuthController } from "./auth.controller";
+import { AuthController } from "./controller/auth.controller";
 import { UserModule } from "src/user/user.module";
-import { AuthService } from "./auth.service";
+import { AuthService } from "./service/auth.service";
 import { EmailStrategy } from "./strategies/email.strategy";
-import { AuthStrategyFactory } from "./strategies/auth.strategy.factory";
+import { AuthStrategyFactory } from "./strategies/auth-strategy.factory";
 
 @Module({
     // import modules to be used for this module

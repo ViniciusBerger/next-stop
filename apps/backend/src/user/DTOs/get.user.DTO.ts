@@ -1,4 +1,5 @@
-import { IsString, IsEmail, IsNotEmpty, MinLength, MaxLength, Min, IsStrongPassword, IsOptional } from 'class-validator';
+
+import { IsString, IsNotEmpty, MinLength, IsOptional } from 'class-validator';
 
 
 export class GetUserDTO {
@@ -11,4 +12,10 @@ export class GetUserDTO {
     @IsString()
     @IsNotEmpty()
     username?: string;
+
+    constructor(user: any) {
+        this.firebaseUid = user.uid
+        this.username = user.username
+    }
+
 }

@@ -5,9 +5,7 @@ import { ROLES_KEY } from 'src/auth/authorization/roles.decorator';
 
 @Injectable()
 export class RoleGuard implements CanActivate {
-    constructor(private reflector: Reflector) {
-        // inject reflector to read metadata (annotations for roles on routes)
-    }
+    constructor(private reflector: Reflector) {}  // inject reflector to read metadata (annotations for roles on routes)
 
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
