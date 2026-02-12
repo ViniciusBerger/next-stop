@@ -6,8 +6,10 @@ import { HomeHeader } from "../../components/homeHeader";
 import { styles } from "../../src/styles/login.styles";
 import HomeMenu from "../../components/homeMenu";
 import { useState } from "react";
+import { useRouter } from "expo-router";
 
 export default function Home() {
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   return (
@@ -18,7 +20,7 @@ export default function Home() {
         <View style={styles.headerBackground} />
         <HomeHeader onMenuPress={() => setIsMenuOpen(true)} />
 
-        <DiscoverCard onPress={() => console.log("Go to discover")} />
+        <DiscoverCard onPress={() => router.push("/discover")} />
 
         <PostCard
           username="User’s name"

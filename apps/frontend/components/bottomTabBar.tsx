@@ -10,7 +10,7 @@ export function BottomTabBar() {
         <Image source={icons.house} style={styles.tabIcon} />
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.tabButton}>
+      <TouchableOpacity style={styles.tabButton} onPress={() => router.push("/discover")}>
         <Image source={icons.search} style={styles.tabIcon} />
       </TouchableOpacity>
 
