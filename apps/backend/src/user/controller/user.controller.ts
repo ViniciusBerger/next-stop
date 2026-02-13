@@ -1,156 +1,201 @@
-import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Put, Query } from "@nestjs/common";
-import { UserService } from "../service/user.service";
-import { GetUserDTO } from "../DTOs/get.user.DTO";
-import { UserResponseDTO } from "../DTOs/user.response.DTO";
-import { CreateUserDTO } from "../DTOs/create.user.DTO";
-import { EditUserDTO } from "../DTOs/edit.user.DTO";
-import { DeleteUserDTO } from "../DTOs/delete.user.DTO";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  NotFoundException,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  UseInterceptors,
+  ClassSerializerInterceptor,
+} from '@nestjs/common';
+import { UserService } from '../service/user.service';
+import { GetUserDTO } from '../DTOs/get.user.DTO';
+import { UserResponseDTO } from '../DTOs/user.response.DTO';
+import { CreateUserDTO } from '../DTOs/create.user.DTO';
+import { EditUserDTO } from '../DTOs/edit.user.DTO';
 
-@Controller("users")
+@UseInterceptors(ClassSerializerInterceptor)
+@Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-    @Post('/user') 
-    async createUser(@Body() createUserDTO: CreateUserDTO)  {
-      const userAdded = await this.userService.createUser(createUserDTO);
-      return new UserResponseDTO(userAdded);
-    }
+  // ----- USERS (RESTful) -----
 
-    @Get('/user')
-    async getUser(@Query() getUserDTO: GetUserDTO) {
-      const user = await this.userService.getUser(getUserDTO);
-      if (!user) throw new NotFoundException(`User not found`);
-      return new UserResponseDTO(user);
-    }
+  @Post()
+  async createUser(@Body() dto: CreateUserDTO) {
+    const user = await this.userService.createUser(dto);
+    return new UserResponseDTO(user);
+  }
 
-    @Patch('/user')
-    async updateUser(@Body() editUserDTO: EditUserDTO) {
-      const updatedUser = await this.userService.updateUser(editUserDTO);
-      return { message: new UserResponseDTO(updatedUser) };
-    }
+  // Permite busca por firebaseUid OU username via query (?firebaseUid=... | ?username=...)
+  @Get()
+  async getUser(@Query() query: GetUserDTO) {
+    const user = await this.userService.getUser(query);
+    if (!user) throw new NotFoundException('User not found');
+    return new UserResponseDTO(user);
+  }
 
-    @Delete(':firebaseUid')
-    async deleteUser(@Param('firebaseUid') firebaseUid: string) {
-      const deleteUserDTO: DeleteUserDTO = { firebaseUid };
-      const deletedUser = await this.userService.deleteUser(deleteUserDTO);
-      if (!deletedUser) throw new NotFoundException(`User not found`);
-      return { message: new UserResponseDTO(deletedUser) };
-    }
+  @Patch(':firebaseUid')
+  async updateUser(
+    @Param('firebaseUid') firebaseUid: string,
+    @Body() dto: EditUserDTO,
+  ) {
+    const updated = await this.userService.updateUser({
+      ...dto,
+      firebaseUid,
+    });
+    return new UserResponseDTO(updated);
+  }
 
-    // ============== FAVORITES ==============
-    
-    @Post(':userId/favorites')
-    async addToFavorites(
-      @Param('userId') userId: string, 
-      @Body() body: { placeId: string }
-    ) {
-      const updatedUser = await this.userService.addToFavorites(userId, body.placeId);
-      return { message: 'Place added to favorites', favorites: updatedUser.favorites };
-    }
+  @Delete(':firebaseUid')
+  async deleteUser(@Param('firebaseUid') firebaseUid: string) {
+    const deleted = await this.userService.deleteUser(firebaseUid);
+    if (!deleted) throw new NotFoundException('User not found');
+    return new UserResponseDTO(deleted);
+  }
 
-    @Get(':userId/favorites')
-    async getFavorites(@Param('userId') userId: string) {
-      const favorites = await this.userService.getFavorites(userId);
-      return favorites;
-    }
+  // ----- FAVORITES -----
 
-    @Delete(':userId/favorites/:placeId')
-    async removeFromFavorites(
-      @Param('userId') userId: string, 
-      @Param('placeId') placeId: string
-    ) {
-      const updatedUser = await this.userService.removeFromFavorites(userId, placeId);
-      return { message: 'Place removed from favorites', favorites: updatedUser.favorites };
-    }
+  @Post(':firebaseUid/favorites')
+  async addToFavorites(
+    @Param('firebaseUid') firebaseUid: string,
+    @Body() body: { placeId: string },
+  ) {
+    if (!body?.placeId) throw new BadRequestException('placeId is required');
+    const updated = await this.userService.addToFavorites(
+      firebaseUid,
+      body.placeId,
+    );
+    return { message: 'Place added to favorites', favorites: updated.favorites };
+  }
 
-    // ============== WISHLIST ==============
-    
-    @Post(':userId/wishlist')
-    async addToWishlist(
-      @Param('userId') userId: string, 
-      @Body() body: { placeId: string }
-    ) {
-      const updatedUser = await this.userService.addToWishlist(userId, body.placeId);
-      return { message: 'Place added to wishlist', wishlist: updatedUser.wishlist };
-    }
+  @Get(':firebaseUid/favorites')
+  async getFavorites(@Param('firebaseUid') firebaseUid: string) {
+    return this.userService.getFavorites(firebaseUid);
+  }
 
-    @Get(':userId/wishlist')
-    async getWishlist(@Param('userId') userId: string) {
-      const wishlist = await this.userService.getWishlist(userId);
-      return wishlist;
-    }
+  @Delete(':firebaseUid/favorites/:placeId')
+  async removeFromFavorites(
+    @Param('firebaseUid') firebaseUid: string,
+    @Param('placeId') placeId: string,
+  ) {
+    const updated = await this.userService.removeFromFavorites(
+      firebaseUid,
+      placeId,
+    );
+    return {
+      message: 'Place removed from favorites',
+      favorites: updated.favorites,
+    };
+  }
 
-    @Delete(':userId/wishlist/:placeId')
-    async removeFromWishlist(
-      @Param('userId') userId: string, 
-      @Param('placeId') placeId: string
-    ) {
-      const updatedUser = await this.userService.removeFromWishlist(userId, placeId);
-      return { message: 'Place removed from wishlist', wishlist: updatedUser.wishlist };
-    }
+  // ----- WISHLIST -----
 
-    // ============== ADMIN - BAN/SUSPEND ==============
-    // TODO: Add @UseGuards(AdminGuard) when authentication is implemented
+  @Post(':firebaseUid/wishlist')
+  async addToWishlist(
+    @Param('firebaseUid') firebaseUid: string,
+    @Body() body: { placeId: string },
+  ) {
+    if (!body?.placeId) throw new BadRequestException('placeId is required');
+    const updated = await this.userService.addToWishlist(
+      firebaseUid,
+      body.placeId,
+    );
+    return { message: 'Place added to wishlist', wishlist: updated.wishlist };
+  }
 
-    @Put('admin/:userId/ban')
-    async banUser(
-      @Param('userId') userId: string,
-      @Body() body?: { reason?: string }
-    ) {
-      const bannedUser = await this.userService.banUser(userId, body?.reason);
-      return { 
-        message: 'User banned successfully',
-        user: {
-          username: bannedUser.username,
-          isBanned: bannedUser.isBanned,
-          bannedAt: bannedUser.bannedAt,
-          banReason: bannedUser.banReason
-        }
-      };
-    }
+  @Get(':firebaseUid/wishlist')
+  async getWishlist(@Param('firebaseUid') firebaseUid: string) {
+    return this.userService.getWishlist(firebaseUid);
+  }
 
-    @Put('admin/:userId/unban')
-    async unbanUser(@Param('userId') userId: string) {
-      const unbannedUser = await this.userService.unbanUser(userId);
-      return { 
-        message: 'User unbanned successfully',
-        user: {
-          username: unbannedUser.username,
-          isBanned: unbannedUser.isBanned
-        }
-      };
-    }
+  @Delete(':firebaseUid/wishlist/:placeId')
+  async removeFromWishlist(
+    @Param('firebaseUid') firebaseUid: string,
+    @Param('placeId') placeId: string,
+  ) {
+    const updated = await this.userService.removeFromWishlist(
+      firebaseUid,
+      placeId,
+    );
+    return {
+      message: 'Place removed from wishlist',
+      wishlist: updated.wishlist,
+    };
+  }
 
-    @Put('admin/:userId/suspend')
-    async suspendUser(
-      @Param('userId') userId: string,
-      @Body() body: { suspendedUntil: string, reason?: string }
-    ) {
-      const suspendedUser = await this.userService.suspendUser(
-        userId, 
-        new Date(body.suspendedUntil),
-        body.reason
-      );
-      return { 
-        message: 'User suspended successfully',
-        user: {
-          username: suspendedUser.username,
-          isSuspended: suspendedUser.isSuspended,
-          suspendedUntil: suspendedUser.suspendedUntil,
-          banReason: suspendedUser.banReason
-        }
-      };
-    }
+  // ----- ADMIN -----
 
-    @Put('admin/:userId/unsuspend')
-    async unsuspendUser(@Param('userId') userId: string) {
-      const unsuspendedUser = await this.userService.unsuspendUser(userId);
-      return { 
-        message: 'User unsuspended successfully',
-        user: {
-          username: unsuspendedUser.username,
-          isSuspended: unsuspendedUser.isSuspended
-        }
-      };
-    }
+  @Put('admin/:firebaseUid/ban')
+  async banUser(
+    @Param('firebaseUid') firebaseUid: string,
+    @Body() body?: { reason?: string },
+  ) {
+    const banned = await this.userService.banUser(firebaseUid, body?.reason);
+    return {
+      message: 'User banned successfully',
+      user: {
+        username: banned.username,
+        isBanned: banned.isBanned,
+        bannedAt: banned.bannedAt,
+        banReason: banned.banReason,
+      },
+    };
+  }
+
+  @Put('admin/:firebaseUid/unban')
+  async unbanUser(@Param('firebaseUid') firebaseUid: string) {
+    const unbanned = await this.userService.unbanUser(firebaseUid);
+    return {
+      message: 'User unbanned successfully',
+      user: {
+        username: unbanned.username,
+        isBanned: unbanned.isBanned,
+      },
+    };
+  }
+
+  @Put('admin/:firebaseUid/suspend')
+  async suspendUser(
+    @Param('firebaseUid') firebaseUid: string,
+    @Body() body: { suspendedUntil: string; reason?: string },
+  ) {
+    const suspended = await this.userService.suspendUser(
+      firebaseUid,
+      new Date(body.suspendedUntil),
+      body.reason,
+    );
+    return {
+      message: 'User suspended successfully',
+      user: {
+        username: suspended.username,
+        isSuspended: suspended.isSuspended,
+        suspendedUntil: suspended.suspendedUntil,
+        suspensionReason: suspended.suspensionReason,
+      },
+    };
+  }
+
+  @Put('admin/:firebaseUid/unsuspend')
+  async unsuspendUser(@Param('firebaseUid') firebaseUid: string) {
+    const unsuspended = await this.userService.unsuspendUser(firebaseUid);
+    return {
+      message: 'User unsuspended successfully',
+      user: {
+        username: unsuspended.username,
+        isSuspended: unsuspended.isSuspended,
+      },
+    };
+  }
+
+  // ----- ALIASES DEPRECATED (opcional) -----
+  // Se o FE ainda chama /users/user, você pode manter temporariamente:
+  // @Post('user') createUserAlias(@Body() dto: CreateUserDTO) { return this.createUser(dto); }
+  // @Get('user') getUserAlias(@Query() q: GetUserDTO) { return this.getUser(q); }
+  // @Patch('user') updateUserAlias(@Body() dto: EditUserDTO) { return this.updateUser(dto.firebaseUid, dto); }
 }

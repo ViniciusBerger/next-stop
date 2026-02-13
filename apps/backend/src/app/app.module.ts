@@ -12,6 +12,7 @@ import { FirebaseModule } from 'src/common/firebase/firebase.admin';
 import { ReviewModule } from 'src/reviews/review.module';
 import { EventModule } from 'src/events/event.module';
 import { ReportModule } from 'src/reports/report.module';
+import { FriendsModule } from 'src/friends/friends.module';
 
 @Module({
   imports: [
@@ -29,7 +30,8 @@ import { ReportModule } from 'src/reports/report.module';
     AuthModule,
     ReviewModule,
     EventModule,
-    ReportModule
+    ReportModule,
+    FriendsModule,
   ],
   controllers: [AppController],
 

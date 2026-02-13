@@ -1,8 +1,7 @@
-import { IsString, IsEmail, IsNotEmpty, MinLength, MaxLength, Min, IsStrongPassword, IsOptional } from 'class-validator';
-
+import { IsString, IsNotEmpty } from 'class-validator';
 
 export class DeleteUserDTO {
-    @IsString()
-    @MinLength(24)
-    firebaseUid: string; 
+  @IsString()
+  @IsNotEmpty()
+  firebaseUid: string;
 }
