@@ -1,6 +1,6 @@
 import { AuthService } from "./auth.service"
 import { Test, TestingModule } from "@nestjs/testing";
-import { UserRepository } from "../../../user/user.repository";
+import { UserRepository } from "../../user/user.repository";
 import { AuthStrategyFactory } from "../strategies/auth-strategy.factory";
 import { BadRequestException } from "@nestjs/common";
 import { ValidateUserDTO } from "../DTOs/validate.user.DTO";

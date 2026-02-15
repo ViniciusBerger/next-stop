@@ -2,9 +2,10 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { User } from "../schemas/user.schema";
 import { GetUserDTO } from "../DTOs/get.user.DTO";
 import { CreateUserDTO } from "../DTOs/create.user.DTO";
-import { EditUserDTO } from "../DTOs/edit.user.DTO";
+import { UpdateUserDTO } from "../DTOs/update.user.DTO";
 import { UserRepository } from "../user.repository";
 import { DeleteUserDTO } from "../DTOs/delete.user.DTO";
+import { AddFriendDTO } from "../DTOs/add.friend.DTO";
 
 @Injectable()
 export class UserService {

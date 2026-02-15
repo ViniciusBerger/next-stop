@@ -2,8 +2,8 @@ import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, 
 import { UserService } from "../service/user.service";
 import { GetUserDTO } from "../DTOs/get.user.DTO";
 import { UserResponseDTO } from "../DTOs/user.response.DTO";
-import { CreateUserDTO } from "../DTOs/create.user.DTO";
-import { EditUserDTO } from "../DTOs/edit.user.DTO";
+import { UpdateUserDTO } from "../DTOs/update.user.DTO";
+import { AddFriendDTO } from "../DTOs/add.friend.DTO";
 import { DeleteUserDTO } from "../DTOs/delete.user.DTO";
 
 @Controller("users")

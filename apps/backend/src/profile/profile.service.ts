@@ -5,6 +5,7 @@ import { User } from '../user/schemas/user.schema';
 import { GetProfileDTO } from './DTOs/get.profile.DTO';
 import { UpdateProfileDTO } from './DTOs/update.profile.DTO';
 
+
 @Injectable()
 export class ProfileService {
   private userModel: Model<User>;
@@ -13,7 +14,6 @@ export class ProfileService {
     this.userModel = userModelReceived;
   }
 
-  // GET profile by firebaseUid or username
   async getProfile(getProfileDTO: GetProfileDTO): Promise<User | null> {
     // Destructuring DTO
     const { firebaseUid, username } = getProfileDTO;
@@ -34,9 +34,7 @@ export class ProfileService {
   }
 
   // PUT/UPDATE profile (preferences e privacy)
-  async updateProfile(
-    getProfileDTO: GetProfileDTO,
-    updateProfileDTO: UpdateProfileDTO,
+  async updateProfile(getProfileDTO: GetProfileDTO, updateProfileDTO: UpdateProfileDTO,
   ): Promise<User | null> {
     // Destructuring to identify the user
     const { firebaseUid, username } = getProfileDTO;
@@ -49,6 +47,7 @@ export class ProfileService {
     const updateData: any = {};
 
     if (updateProfileDTO.preferences) {
+      
       if (updateProfileDTO.preferences.cuisine !== undefined) {
         updateData['profile.preferences.cuisine'] = updateProfileDTO.preferences.cuisine;
       }

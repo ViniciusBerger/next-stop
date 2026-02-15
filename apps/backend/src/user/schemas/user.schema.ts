@@ -21,12 +21,6 @@ export class User extends Document {
     @Prop({type: profileSchema, default: () => ({}) })
     profile: Profile;
 
-    @Prop({type: String, default: '' })
-    bio: string;
-
-    @Prop({type: String, default: '' }) // url to the profile picture
-    profilePicture: string;
-
     @Prop({type: [Badge], default: [] })
     badges: Badge[];
 

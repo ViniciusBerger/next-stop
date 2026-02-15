@@ -3,9 +3,9 @@ import { RegisterUserDTO } from "../DTOs/register.user.DTO";
 import { User } from "src/user/schemas/user.schema";
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import admin from 'firebase-admin'
-import { UserService } from "../../../user/service/user.service";
-import { CreateUserDTO } from "../../../user/DTOs/create.user.DTO";
-import { GetUserDTO } from "../../../user/DTOs/get.user.DTO";
+import { UserService } from "../../user/service/user.service";
+import { CreateUserDTO } from "../../user/DTOs/create.user.DTO";
+import { GetUserDTO } from "../../user/DTOs/get.user.DTO";
 import { ValidateUserDTO } from "../DTOs/validate.user.DTO";
 
 /**
@@ -29,7 +29,7 @@ import { ValidateUserDTO } from "../DTOs/validate.user.DTO";
 
 
 @Injectable()
-export class EmailStrategy implements IAuthStrategy {
+export class AuthStrategy implements IAuthStrategy {
     provider: string;
 
     // inject firebase admin
@@ -41,11 +41,10 @@ export class EmailStrategy implements IAuthStrategy {
     // validate user
     async validate(credentials: ValidateUserDTO): Promise<User| null> {
         const userClaims = await this.firebase.auth().verifyIdToken(credentials.token);
-
-        if (!userClaims) throw new BadRequestException("user is not registered! Please register before login")
-
-        const user = await this.userService.getUser(new GetUserDTO(userClaims.uid))
+        console.log(userClaims)
         
+        if (!userClaims) throw new BadRequestException("user is not registered! Please register before login")
+        const user = await this.userService.getUser(new GetUserDTO(userClaims.uid))
         return user
     }
 
@@ -53,8 +52,9 @@ export class EmailStrategy implements IAuthStrategy {
     // should register user and return user Object
     async register(credentials: RegisterUserDTO): Promise<User | null> {
         const firebaseUser = await this.firebase.auth().createUser({email: credentials.email, password: credentials.password, displayName: credentials.displayName})
-
-        const createUserDTO: CreateUserDTO = {...credentials, "firebaseUid": firebaseUser.uid, role: "member"} 
+        
+        const {password, ...userData} = credentials
+        const createUserDTO: CreateUserDTO = {...userData, "firebaseUid": firebaseUser.uid} 
         const newUser = await this.userService.createUser(createUserDTO)
 
         return newUser

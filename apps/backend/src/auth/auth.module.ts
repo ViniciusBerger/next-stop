@@ -2,8 +2,7 @@ import { Module } from "@nestjs/common";
 import { AuthController } from "./controller/auth.controller";
 import { UserModule } from "src/user/user.module";
 import { AuthService } from "./service/auth.service";
-import { EmailStrategy } from "./strategies/email.strategy";
-import { AuthStrategyFactory } from "./strategies/auth-strategy.factory";
+import { AuthStrategy } from "./strategies/auth-strategy";
 
 @Module({
     // import modules to be used for this module
@@ -12,7 +11,7 @@ import { AuthStrategyFactory } from "./strategies/auth-strategy.factory";
     controllers: [AuthController],
   
     //providers are services which this module provides
-    providers: [AuthService, EmailStrategy, AuthStrategyFactory], 
+    providers: [AuthService, AuthStrategy], 
 })
 export class AuthModule {}
 
