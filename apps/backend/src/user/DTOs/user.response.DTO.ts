@@ -7,7 +7,7 @@ import { User } from "../schemas/user.schema";
 export class UserResponseDTO {
 
     @Exclude()
-    _id:any;
+    _id: any;
     @Exclude()
     firebaseUid?: string;
     @Exclude()
@@ -27,14 +27,30 @@ export class UserResponseDTO {
     @Expose()
     friends: Types.ObjectId[];
     @Expose()
-    isBanned: boolean
+    isBanned: boolean;
+    
+    // ==== BAN/SUSPEND ====
+    @Expose()
+    isSuspended: boolean;
+    @Expose()
+    bannedAt?: Date;
+    @Expose()
+    suspendedUntil?: Date;
+    @Expose()
+    banReason?: string;
+    
+    // ==== FAVORITES/WISHLIST ====
+    @Expose()
+    favorites: Types.ObjectId[];
+    @Expose()
+    wishlist: Types.ObjectId[];
+    
     @Exclude()
     createdAt?: Date;
     @Exclude()
     updatedAt?: Date;
     @Exclude()
     lastLogin?: Date;
-
 
     constructor(user: User) {
         this._id = user._id;
@@ -46,6 +62,15 @@ export class UserResponseDTO {
         this.badges = user.badges;
         this.friends = user.friends;
         this.isBanned = user.isBanned;
+
+        // ==== Ban/Suspend ====
+        this.isSuspended = user.isSuspended;
+        this.bannedAt = user.bannedAt;
+        this.suspendedUntil = user.suspendedUntil;
+        this.banReason = user.banReason;
+        this.favorites = user.favorites;
+        this.wishlist = user.wishlist;
+        
         this.createdAt = user.createdAt;
         this.updatedAt = user.updatedAt;
         this.lastLogin = user.lastLogin;
