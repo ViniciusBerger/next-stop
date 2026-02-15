@@ -21,14 +21,16 @@ import { ExceptionFactory } from './errors/exception.Factory';
  */
 // 
 export const GlobalValidationPipe = new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-        transformOptions: {
-        exposeUnsetFields: false, // This is the magic line
-      },
-        // --- Add these two lines for debugging ---
-        disableErrorMessages: false, // Ensures messages are sent to the client
-    
-        exceptionFactory: (errors)=> new ExceptionFactory().createException(errors)
-    })
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+    transformOptions: {
+        exposeUnsetFields: false,
+    },
+    //disableErrorMessages: false,
+    exceptionFactory: (errors) => {
+       
+        console.log('VALIDATION FAILED:', JSON.stringify(errors, null, 2));
+        return new ExceptionFactory().createException(errors);
+    }
+});

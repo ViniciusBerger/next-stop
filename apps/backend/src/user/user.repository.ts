@@ -40,10 +40,15 @@ export class UserRepository {
     }
 
 
-    async deleteUser(firebaseUid: string) {
+    async deleteUser(firebaseUid: string):Promise<User | null>{
         const deletedUser = await this.userModel.findOneAndDelete({ firebaseUid:firebaseUid}).exec();
         return deletedUser;
     }
 
+    async addFriend(firebaseUid: string, friendUid: string):Promise<User | null>{
+        const user = await this.userModel.findOneAndUpdate({firebaseUid:firebaseUid}, {$addToSet:{friends: friendUid}},{ new: true, runValidators: true }).exec()
+
+        return user
+    }
     
 }

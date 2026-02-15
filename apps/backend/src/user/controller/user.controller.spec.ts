@@ -50,28 +50,6 @@ describe('userController', ()=> {
     })
 
 
-    it("createUser -> Should send createUserDTO to service",async ()=> {
-        const mockDTO = { username: 'testuser', firebaseUid: '123' };
-
-        jest.spyOn(userService, "createUser").mockResolvedValue(mockDTO)
-        const user = await userController.createUser(mockDTO as any)
-
-        expect(user).toEqual(expect.objectContaining(mockDTO))
-        expect(userService.createUser).toHaveBeenCalledWith(mockDTO)
-        expect(userService.createUser).toHaveBeenCalledTimes(1)
-
-    })
-
-
-    it("createUser -> Should return status 400",async()=> {
-        const mockDTO = null
-
-        jest.spyOn(userService, "createUser").mockRejectedValue(new BadRequestException())
-
-        await (expect(userController.createUser(mockDTO as any)).rejects.toThrow(BadRequestException))
-    })
-
-
     it("getUser -> Should send getUserDTO to service",async ()=> {
         const mockDTO = { username: 'testuser', firebaseUid: '123' };
 

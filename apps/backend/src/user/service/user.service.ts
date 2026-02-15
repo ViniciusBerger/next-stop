@@ -2,9 +2,10 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import { User } from "../schemas/user.schema";
 import { GetUserDTO } from "../DTOs/get.user.DTO";
 import { CreateUserDTO } from "../DTOs/create.user.DTO";
-import { EditUserDTO } from "../DTOs/edit.user.DTO";
+import { UpdateUserDTO } from "../DTOs/update.user.DTO";
 import { UserRepository } from "../user.repository";
 import { DeleteUserDTO } from "../DTOs/delete.user.DTO";
+import { AddFriendDTO } from "../DTOs/add.friend.DTO";
 
 
 
@@ -27,15 +28,12 @@ export class UserService {
 
     async getUser(getUserDTO: GetUserDTO): Promise<User | null> {
         //getUserDTO destructuring
-        const { firebaseUid, username} = getUserDTO;
+        const {firebaseUid, username} = getUserDTO;
         const mongoQuery: any = {};
 
         // dictionary for mongo query
         if(firebaseUid) mongoQuery.firebaseUid = firebaseUid;
         if(username) mongoQuery.username = username;
-
-
-        if (Object.keys(mongoQuery).length === 0) throw new BadRequestException('Please provide the valid user params');
 
         // consult database
         const userReceived = await this.userRepository.findOne(mongoQuery);
@@ -43,17 +41,14 @@ export class UserService {
     }
 
 
-    async updateUser(editUserDTO: EditUserDTO) {
+    async updateUser(editUserDTO: UpdateUserDTO) {
         //editUserDTO destructuring
-        const { firebaseUid, username, bio, profilePicture} = editUserDTO;
+        const { firebaseUid, username} = editUserDTO;
         const mongoQuery: any = {};
-
 
         // dictionary for mongo query
         if(username) mongoQuery.username = username;
-        if (bio) mongoQuery.bio = bio;
-        if (profilePicture) mongoQuery.profilePicture = profilePicture;
-
+        
 
         //find and update user
         const updatedUser = await this.userRepository.updateUser(firebaseUid, mongoQuery)
@@ -65,5 +60,11 @@ export class UserService {
         return deletedUser;
     }
 
-    
+    async handleFriendRequest(userUid:string, addFriendDTO: AddFriendDTO) {
+        const user:User = await this.userRepository.addFriend(userUid, addFriendDTO.friendUid)
+
+        user.friends.forEach(
+            (friend)=>{ if(friend.equals(addFriendDTO.friendUid)) return true})
+        
+    }
 }

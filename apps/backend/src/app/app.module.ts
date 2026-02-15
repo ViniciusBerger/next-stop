@@ -6,7 +6,7 @@ import { GlobalExceptionFilter } from '../common/errors/global.error.filter';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UserModule } from '../user/user.module';
 import { PlaceModule } from '../places/place.module';
-import { AuthModule } from 'src/auth/authentication/auth.module';
+import { AuthModule } from 'src/auth/auth.module';
 import { MongooseConnectionModule } from 'src/common/mongoose';
 import { FirebaseModule } from 'src/common/firebase/firebase.admin';
 import { ReviewModule } from 'src/reviews/review.module';

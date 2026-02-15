@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { AuthStrategyFactory } from "../strategies/auth-strategy.factory";
+import { AuthStrategy } from "../strategies/auth-strategy";
 import { RegisterUserDTO } from "../DTOs/register.user.DTO";
 import { ValidateUserDTO } from "../DTOs/validate.user.DTO";
 /**
@@ -24,23 +24,17 @@ import { ValidateUserDTO } from "../DTOs/validate.user.DTO";
 
 @Injectable()
 export class AuthService {
-    constructor(private readonly factory: AuthStrategyFactory) {}
+    constructor(private readonly strategy: AuthStrategy) {}
 
-    async handleRegister(provider: string, registerUserDTO: RegisterUserDTO) {
-        const strategy = this.factory.getStrategy(provider)
-        const user = await strategy.register(registerUserDTO)
-
-        if (!user) throw new BadRequestException
-
+    async handleRegister(registerUserDTO: RegisterUserDTO) {
+        const user = await this.strategy.register(registerUserDTO)
+        if (!user) throw new BadRequestException()
         return user;
     }
 
-    async handleValidate(provider: string, validateUserDTO: ValidateUserDTO) {
-        const strategy = this.factory.getStrategy(provider)
-        const user = await strategy.validate(validateUserDTO)
-
+    async handleValidate( validateUserDTO: ValidateUserDTO) {
+        const user = await this.strategy.validate(validateUserDTO)
         if (!user) throw new BadRequestException
-
         return user;
     }
 

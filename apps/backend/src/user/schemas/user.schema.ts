@@ -18,14 +18,8 @@ export class User extends Document {
     @Prop({type: String, unique: true})
     email: string;
     
-    @Prop({type: Profile, default: () => ({}) })
+    @Prop({type: SchemaFactory.createForClass(Profile), default: () => ({})})
     profile: Profile;
-
-    @Prop({type: String, default: '' })
-    bio: string;
-
-    @Prop({type: String, default: '' }) // url to the profile picture
-    profilePicture: string;
 
     @Prop({type: [Badge], default: [] })
     badges: Badge[];
@@ -33,7 +27,7 @@ export class User extends Document {
     @Prop({type: Types.ObjectId, ref: 'User', default: []})
     friends: Types.ObjectId[];
 
-    @Prop({type: Boolean, deafault: false})
+    @Prop({type: Boolean, default: false})
     isBanned: boolean
 
     @Prop({type: Date, default: Date.now})

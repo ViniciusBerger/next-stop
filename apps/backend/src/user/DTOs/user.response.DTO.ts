@@ -21,7 +21,7 @@ export class UserResponseDTO {
     @Expose()
     bio: string;
     @Expose()
-    profilePicture: string;
+    profilePicture: Profile;
     @Expose()
     badges: Badge[];
     @Expose()
@@ -43,8 +43,6 @@ export class UserResponseDTO {
         this.username = user.username;
         this.email = user.email;
         this.profile = user.profile;
-        this.bio = user.bio;
-        this.profilePicture = user.profilePicture;
         this.badges = user.badges;
         this.friends = user.friends;
         this.isBanned = user.isBanned;

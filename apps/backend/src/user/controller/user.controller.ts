@@ -1,21 +1,14 @@
-import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Req, Query } from "@nestjs/common";
 import { UserService } from "../service/user.service";
 import { GetUserDTO } from "../DTOs/get.user.DTO";
 import { UserResponseDTO } from "../DTOs/user.response.DTO";
-import { CreateUserDTO } from "../DTOs/create.user.DTO";
-import { EditUserDTO } from "../DTOs/edit.user.DTO";
+import { UpdateUserDTO } from "../DTOs/update.user.DTO";
+import { AddFriendDTO } from "../DTOs/add.friend.DTO";
 import { DeleteUserDTO } from "../DTOs/delete.user.DTO";
 
 @Controller("users")
 export class UserController {
   constructor(private readonly userService: UserService) {}
-
-    @Post('/user') 
-    async createUser(@Body() createUserDTO: CreateUserDTO )  {
-      const userAdded = await this.userService.createUser(createUserDTO)
-
-      return new UserResponseDTO(userAdded)
-    }
 
     
     @Get('/user')
@@ -29,9 +22,8 @@ export class UserController {
 
 
     @Patch('/user')
-    async updateUser(@Body() editUserDTO: EditUserDTO) {
-      const updateUser = await this.userService.updateUser(editUserDTO);
-
+    async updateUser(@Body() updateUserDTO: UpdateUserDTO) {
+      const updateUser = await this.userService.updateUser(updateUserDTO);
       return {message: new UserResponseDTO(updateUser)
       };
       
@@ -41,9 +33,12 @@ export class UserController {
     async deleteUser(@Param('firebaseUid') deleteUserDTO: DeleteUserDTO) {
       const deletedUser = await this.userService.deleteUser(deleteUserDTO);
 
-      if (!deletedUser) throw new NotFoundException(`User not found`);
-
       return {message: new UserResponseDTO(deletedUser)}
+    }
+
+    @Patch("/friend/add")
+    async addFriend(@Req() req, @Body() addFriendDTO: AddFriendDTO) {
+        return await this.userService.handleFriendRequest(req.user.uid, addFriendDTO);
     }
 
 

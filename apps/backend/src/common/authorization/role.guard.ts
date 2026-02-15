@@ -1,7 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import mongoose from 'mongoose';
-import { ROLES_KEY } from 'src/auth/authorization/roles.decorator';
+import { ROLES_KEY } from 'src/common/authorization/roles.decorator';
 
 /**
  * RoleGuard
