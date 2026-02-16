@@ -27,7 +27,7 @@ export const GlobalValidationPipe = new ValidationPipe({
     transformOptions: {
         exposeUnsetFields: false,
     },
-    //disableErrorMessages: false,
+    disableErrorMessages: false,
     exceptionFactory: (errors) => {
        
         console.log('VALIDATION FAILED:', JSON.stringify(errors, null, 2));

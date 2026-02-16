@@ -22,7 +22,9 @@ describe('UserService', ()=> {
             findOne: jest.fn(), 
             createUser: jest.fn(),
             deleteUser: jest.fn(),
-            updateUser: jest.fn()
+            updateUser: jest.fn(),
+            addFriend: jest.fn(),
+            deleteFriend: jest.fn()
   };
 
     beforeEach(async () => {
@@ -154,5 +156,15 @@ describe('UserService', ()=> {
 
     await expect(userService.deleteUser({ firebaseUid: '' })).rejects.toThrow(BadRequestException);
   });
+
+  // it('handleFriendRequest -> Should add a friend', async()=> {
+  //   const req = { requesterId:"userUid", friendUid: "friendUid"}
+
+  //   jest.spyOn(userRepository, 'addFriend').mockResolvedValue({success: true, message: "friend added sucessfully"})
+  //   const result = await userService.handleFriendRequest(req.requesterId, req.friendUid as any)
+
+  //   expect(result.success).toBe(true)
+  //   expect(userRepository.addFriend).toHaveBeenCalledWith(req.requesterId, req.friendUid)
+  // }) 
   
 })

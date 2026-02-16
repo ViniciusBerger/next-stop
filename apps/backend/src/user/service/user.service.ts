@@ -5,7 +5,7 @@ import { CreateUserDTO } from "../DTOs/create.user.DTO";
 import { UpdateUserDTO } from "../DTOs/update.user.DTO";
 import { UserRepository } from "../user.repository";
 import { DeleteUserDTO } from "../DTOs/delete.user.DTO";
-import { AddFriendDTO } from "../DTOs/add.friend.DTO";
+import { FriendRequestDTO } from "../DTOs/friend.request";
 
 
 
@@ -60,11 +60,18 @@ export class UserService {
         return deletedUser;
     }
 
-    async handleFriendRequest(userUid:string, addFriendDTO: AddFriendDTO) {
-        const user:User = await this.userRepository.addFriend(userUid, addFriendDTO.friendUid)
-
-        user.friends.forEach(
-            (friend)=>{ if(friend.equals(addFriendDTO.friendUid)) return true})
+    async handleFriendRequest(userUid:string, friendRequestDTO: FriendRequestDTO) {
+        const response = await this.userRepository.addFriend(userUid, friendRequestDTO.friendUid)
         
+        if (!response.success) throw new BadRequestException(response.message)
+        return response;
+        
+    }
+
+    async handleFriendDelete(userUid: string, targetUid: string) {
+        const response = await this.userRepository.deleteFriend(userUid, targetUid)
+        
+        if (!response.success) throw new BadRequestException(response.message)
+        return response;
     }
 }

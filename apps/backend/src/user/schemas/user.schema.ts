@@ -24,8 +24,8 @@ export class User extends Document {
     @Prop({type: [Badge], default: [] })
     badges: Badge[];
 
-    @Prop({type: Types.ObjectId, ref: 'User', default: []})
-    friends: Types.ObjectId[];
+    @Prop({type: [String], ref: 'User', default: []})
+    friends: string[];
 
     @Prop({type: Boolean, default: false})
     isBanned: boolean

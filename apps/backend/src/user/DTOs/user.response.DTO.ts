@@ -25,7 +25,7 @@ export class UserResponseDTO {
     @Expose()
     badges: Badge[];
     @Expose()
-    friends: Types.ObjectId[];
+    friends: string[];
     @Expose()
     isBanned: boolean
     @Exclude()
