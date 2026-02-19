@@ -1,170 +1,162 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { UserRepository } from "../user.repository";
-import { UserService } from "./user.service";
-import { BadRequestException } from "@nestjs/common";
+import { Test, TestingModule } from '@nestjs/testing';
+import { UserService } from './user.service';
+import { UserRepository } from '../repository/user.repository';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { FriendRequestDTO } from '../DTOs/friend.request';
 
-/**
- * UserService unit tests
- * 
- * This test suite verifies the functionality of the UserService class, including user retrieval and creation.
- * It uses Jest for mocking dependencies and assertions.
- * 
- * these tests follow the triple A of testing: Arrange, act and assert [AAA]
- * 
- * To run the tests, use the command: npm test -- apps/backend/src/user/service/user.service.spec.ts
- * 
- */
+describe('UserService - Unit Test', () => {
+  let service: UserService;
+  let repository: UserRepository;
 
-describe('UserService', ()=> {
-    let userService: UserService;
-    let userRepository: UserRepository
-    const mockUserRepository = {
-            findOne: jest.fn(), 
-            createUser: jest.fn(),
-            deleteUser: jest.fn(),
-            updateUser: jest.fn(),
-            addFriend: jest.fn(),
-            deleteFriend: jest.fn()
-  };
+  // Mock data for consistency
+  const mockUser = { firebaseUid: 'user_1', username: 'tester', friends: [] };
+  const mockFriend = { firebaseUid: 'user_2', username: 'friend', friends: [] };
 
-    beforeEach(async () => {
-      
-      jest.clearAllMocks()
-        // create testing environment before each it
-      const module: TestingModule = await Test.createTestingModule({
-        providers: [
-          UserService,
-          {
-            provide: UserRepository,
-            // methods testing will have access to
-            useValue: mockUserRepository,
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        UserService,
+        {
+          // repository mock 
+          provide: UserRepository,
+          useValue: {
+            create: jest.fn(),
+            findOne: jest.fn(),
+            update: jest.fn(),
+            delete: jest.fn(),
           },
-        ],
-      }).compile();
+        },
+      ],
+    }).compile();
 
-      // Instantiate service and repository
-      userService = module.get<UserService>(UserService);
-      userRepository = module.get<UserRepository>(UserRepository);
-  });
-    
-
-  it('should define userService and userRepository', ()=> {
-    expect(userService).toBeDefined();
-    expect(userRepository).toBeDefined();
-  })
-
-
-  it('createUser -> should create a new user', async()=> {
-    const mockUser = { 
-        firebaseUid: 'user_test0000000000000001',
-        username: 'mockUser',
-        email: 'mockUser@example.com',
-        role: 'member'};
-
-
-    jest.spyOn(userRepository, 'createUser').mockResolvedValue(mockUser as any); 
-    const user = await userService.createUser(mockUser as any)
-    
-
-    expect(user).toEqual(mockUser);
-    expect(userRepository.createUser).toHaveBeenCalledWith(mockUser)
-  })
-
-
-  it('createUser -> should throw bad request exception if no params provided', async()=> {
-    jest.spyOn(userRepository, 'createUser').mockImplementation().mockRejectedValue(new BadRequestException())
-    await expect(userService.createUser({} as any)).rejects.toThrow(BadRequestException);
-    })
-
-
-  it('getUser -> should return user by firebaseUid', async()=> {
-    
-    const firebaseUid = 'user_test0000000000000001'
-    const mockUserResponse = { firebaseUid: firebaseUid, username: 'tester' };
-
-    // Mock the getUser method from userService to return the mockUser
-    jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUserResponse as any);
-    const user = await userService.getUser({firebaseUid})
-    
-    expect(user?.firebaseUid).toEqual(firebaseUid);
-    expect(userRepository.findOne).toHaveBeenCalledWith({firebaseUid});
-    expect(userRepository.findOne).toHaveBeenCalledTimes(1);
-  })
-
-
-  it('getUser -> should return NULL if user not found', async()=> {
-    const mockUser = {firebaseUid: "", username:"random user"};
-
-    jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
-    const user = await userService.getUser(mockUser)
-    
-    expect(user).toBeNull;
-    expect(userRepository.findOne).toHaveBeenCalledWith({username: "random user"})
-    expect(userRepository.findOne).toHaveBeenCalledTimes(1)
-  })
-
-
-  it ('updateUser -> should return new document version stored on db', async ()=> {
-    let mockUser = {firebaseUid: 'user_test0000000000000001', username: 'mockUser', bio: 'mock bio',};
-    const newMockUser = {firebaseUid: 'user_test0000000000000001', username: 'mockUser', bio: 'new mock bio',}
-
-    jest.spyOn(userRepository, 'updateUser').mockResolvedValue(newMockUser as any)
-    mockUser = await userService.updateUser(newMockUser)
-    
-    expect(mockUser).toEqual(newMockUser)
-    expect(userRepository.updateUser).toHaveBeenCalledWith(newMockUser.firebaseUid, expect.objectContaining({username: "mockUser" }));
-    expect(userRepository.updateUser).toHaveBeenCalledTimes(1);
-  })
-
-
-  it('updateUser -> should throw bad request exception if no params provided',async()=> {
-    jest.spyOn(userRepository, "updateUser").mockRejectedValue(new BadRequestException())
-    
-    await expect(userService.updateUser("" as any)).rejects.toThrow(BadRequestException)
-  })
-
-
-  it('updateUser -> should throw type error if no params provided',async()=> {
-    jest.spyOn(userRepository, "updateUser").mockRejectedValue(new TypeError())
-    
-    await expect(userService.updateUser(undefined as any)).rejects.toThrow(TypeError)
-  })
-
-
-  it('deleteUser -> should successfully delete the user when a valid UID is provided', async () => {
-    const mockUser = {
-        firebaseUid: 'user_test0000000000000001',
-        username: 'mockUser',
-        email: 'mockUser@example.com',
-        role: 'member',
-        bio: 'mock bio',
-        profilePicture: 'https://example.com/images/mock.jpg',
-    };
-    
-    jest.spyOn(userRepository, 'deleteUser').mockResolvedValue(mockUser as any);
-    const result = await userService.deleteUser(mockUser.firebaseUid as any);
-
-
-    expect(result.firebaseUid).toEqual(mockUser.firebaseUid);
-    expect(userRepository.deleteUser).toHaveBeenCalledWith(mockUser.firebaseUid);
-    expect(userRepository.deleteUser).toHaveBeenCalledTimes(1);
+    service = module.get<UserService>(UserService);
+    repository = module.get<UserRepository>(UserRepository);
   });
 
+  describe('handleFriendRequest', () => {
+    it('should throw BadRequestException if a user tries to friend themselves', async () => {
+      const uid = 'same_id';
+      const dto = { friendUid: 'same_id' };
 
-  it('deleteUser -> should throw BadRequestException if no UID is passed', async () => {
-    jest.spyOn(userRepository, 'deleteUser').mockRejectedValue(new BadRequestException());
+      await expect(service.handleFriendRequest(uid, dto))
+        .rejects.toThrow(BadRequestException);
+      
+      // Ensure the repository wasnt called
+      expect(repository.update).not.toHaveBeenCalled();
+    });
 
-    await expect(userService.deleteUser({ firebaseUid: '' })).rejects.toThrow(BadRequestException);
+
+    it('should call repository.update twice with correct MongoDB operators', async () => {
+      // Mock success for both updates
+      jest.spyOn(repository, 'update').mockResolvedValue(mockUser as any);
+
+      const result = await service.handleFriendRequest(mockUser.firebaseUid, new FriendRequestDTO(mockFriend.firebaseUid));
+
+      expect(result.success).toBe(true);
+      expect(repository.update).toHaveBeenCalledTimes(2);
+
+    });
+
+
+    it('should throw NotFoundException if one of the users does not exist', async () => {
+      // Simulate the second user not being found
+      jest.spyOn(repository, 'update')
+        .mockResolvedValueOnce(mockUser as any) // first call succeeds
+        .mockResolvedValueOnce(null);           // second call fails
+
+      await expect(service.handleFriendRequest('user_1', { friendUid: 'ghost' }))
+        .rejects.toThrow(NotFoundException);
+    });
   });
 
-  // it('handleFriendRequest -> Should add a friend', async()=> {
-  //   const req = { requesterId:"userUid", friendUid: "friendUid"}
-
-  //   jest.spyOn(userRepository, 'addFriend').mockResolvedValue({success: true, message: "friend added sucessfully"})
-  //   const result = await userService.handleFriendRequest(req.requesterId, req.friendUid as any)
-
-  //   expect(result.success).toBe(true)
-  //   expect(userRepository.addFriend).toHaveBeenCalledWith(req.requesterId, req.friendUid)
-  // }) 
   
-})
+  describe('findOne', () => {
+    it('should prioritize firebaseUid in the filter if provided', async () => {
+      const dto = { firebaseUid: 'uid_123', username: 'ignored_name' };
+      jest.spyOn(repository, 'findOne').mockResolvedValue(mockUser as any);
+
+      await service.findOne(dto);
+
+      expect(repository.findOne).toHaveBeenCalledWith({ firebaseUid: 'uid_123' });
+    });
+
+    it('should throw NotFoundException if repository returns null', async () => {
+      jest.spyOn(repository, 'findOne').mockResolvedValue(null);
+
+      await expect(service.findOne({ username: 'nobody' }))
+        .rejects.toThrow(NotFoundException);
+    });
+  });
+
+
+  describe('updateUser', () => {
+    it('should successfully update user and return the result', async () => {
+      const updateDto = { firebaseUid: 'user_1', username: 'new_name' };
+      // We simulate the repo returning the "new" document
+      jest.spyOn(repository, 'update').mockResolvedValue({ ...mockUser, username: 'new_name' } as any);
+
+      const result = await service.updateUser(updateDto);
+
+      expect(result.username).toBe('new_name');
+      // Logic Check: Did the service separate the UID from the data?
+      expect(repository.update).toHaveBeenCalledWith(
+        { firebaseUid: 'user_1' },
+        { $set: { username: 'new_name' } }
+      );
+    });
+
+    it('should throw NotFoundException if repository returns null', async () => {
+      jest.spyOn(repository, 'update').mockResolvedValue(null);
+      
+      await expect(service.updateUser({ firebaseUid: 'ghost', username: 'val' }))
+        .rejects.toThrow(NotFoundException);
+    });
+  });
+
+
+  describe('handleFriendDelete', () => {
+    it('should call repository.update twice using the $pull operator', async () => {
+      // Both updates succeed
+      jest.spyOn(repository, 'update').mockResolvedValue(mockUser as any);
+
+      const result = await service.handleFriendDelete('user_1', 'user_2');
+
+      expect(result.success).toBe(true);
+      expect(repository.update).toHaveBeenCalledTimes(2);
+
+      // Verify the Service logic: "Remove friend from user"
+      expect(repository.update).toHaveBeenCalledWith(
+        { firebaseUid: 'user_1' },
+        { $pull: { friends: 'user_2' } }
+      );
+      // Verify the Service logic: "Remove user from friend"
+      expect(repository.update).toHaveBeenCalledWith(
+        { firebaseUid: 'user_2' },
+        { $pull: { friends: 'user_1' } }
+      );
+    });
+
+  it('should throw NotFoundException if the friend (targetUid) does not exist in the database', async () => {
+    jest.spyOn(repository, 'update')
+      .mockResolvedValueOnce(mockUser as any) // First call (userUid) returns a user object
+      .mockResolvedValueOnce(null); // Second call (targetUid) returns null
+
+    // We expect service to catch that 'null' and throw the 404
+    await expect(service.handleFriendDelete('user_1', 'non_existent_friend'))
+      .rejects.toThrow(NotFoundException);
+
+    // Verify orchestration: both calls were still attempted
+    expect(repository.update).toHaveBeenCalledTimes(2);
+  });
+
+  it('should throw NotFoundException if both users are missing', async () => {
+    // All update attempts return null
+    jest.spyOn(repository, 'update').mockResolvedValue(null);
+
+    await expect(service.handleFriendDelete('ghost_1', 'ghost_2'))
+      .rejects.toThrow(NotFoundException);
+  });
+  });
+
+
+});

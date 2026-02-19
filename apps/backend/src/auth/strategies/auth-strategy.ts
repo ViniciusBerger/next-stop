@@ -1,6 +1,6 @@
 import { IAuthStrategy } from "./auth-strategy.interface";
 import { RegisterUserDTO } from "../DTOs/register.user.DTO";
-import { User } from "src/user/schemas/user.schema";
+import { User } from "../../user/user.schema";
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import admin from 'firebase-admin'
 import { UserService } from "../../user/service/user.service";
@@ -44,7 +44,7 @@ export class AuthStrategy implements IAuthStrategy {
         console.log(userClaims)
         
         if (!userClaims) throw new BadRequestException("user is not registered! Please register before login")
-        const user = await this.userService.getUser(new GetUserDTO(userClaims.uid))
+        const user = await this.userService.findOne(new GetUserDTO(userClaims.uid))
         return user
     }
 

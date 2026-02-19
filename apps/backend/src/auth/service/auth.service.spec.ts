@@ -1,16 +1,15 @@
 import { AuthService } from "./auth.service"
 import { Test, TestingModule } from "@nestjs/testing";
-import { UserRepository } from "../../user/user.repository";
-import { AuthStrategyFactory } from "../strategies/auth-strategy.factory";
+import { UserRepository } from "../../user/repository/user.repository";
 import { BadRequestException } from "@nestjs/common";
 import { ValidateUserDTO } from "../DTOs/validate.user.DTO";
+import { AuthStrategy } from "../strategies/auth-strategy";
 
 describe("AuthService", ()=> {
     
     let authService: AuthService;
     let userRepository: UserRepository
     
-    const PROVIDER = "password"
     const expectedUser = {
             firebaseUid: "testUid",
             role: "member",
@@ -22,18 +21,14 @@ describe("AuthService", ()=> {
             findOne: jest.fn(), 
             createUser: jest.fn(),
             deleteUser: jest.fn(),
-            updateUser: jest.fn()
+            updateUser: jest.fn(),
+            handleFriendRequest: jest.fn()
     };
 
     const mockAuthStrategy = {
         validate: jest.fn().mockResolvedValue(expectedUser),
         register: jest.fn().mockResolvedValue(expectedUser),
     };
-
-    const mockAuthStrategyFactory = {
-    // This is the method the AuthService actually calls
-    getStrategy: jest.fn().mockReturnValue(mockAuthStrategy) 
-};
 
 
     beforeEach(async()=> {
@@ -48,10 +43,9 @@ describe("AuthService", ()=> {
                     useValue: mockUserRepository
                 },
                 {
-                    provide: AuthStrategyFactory,
-                    useValue: mockAuthStrategyFactory
-
-                },
+                    provide: AuthStrategy,
+                    useValue: mockAuthStrategy
+                }
                 ],
             }).compile();
 
@@ -74,11 +68,10 @@ describe("AuthService", ()=> {
             displayName: "Code master"}
            
         
-        const registeredUser = await authService.handleRegister(PROVIDER, mockUser)
+        const registeredUser = await authService.handleRegister(mockUser)
 
         expect(registeredUser.username).toBe(expectedUser.username)
         expect(registeredUser.firebaseUid).toBe(expectedUser.firebaseUid)
-        expect(mockAuthStrategyFactory.getStrategy).toHaveBeenCalledWith(PROVIDER);
 
     })
 
@@ -87,9 +80,9 @@ describe("AuthService", ()=> {
 
         jest.spyOn(authService, "handleRegister").mockRejectedValue(new BadRequestException)
 
-        expect(authService.handleRegister(PROVIDER, mockUser as any)).rejects.toThrow(BadRequestException)
+        expect(authService.handleRegister(mockUser as any)).rejects.toThrow(BadRequestException)
 
-        expect(authService.handleRegister).toHaveBeenCalledWith(PROVIDER, mockUser)
+        expect(authService.handleRegister).toHaveBeenCalledWith(mockUser)
         expect(authService.handleRegister).toHaveBeenCalledTimes(1)
 
     })
@@ -98,10 +91,9 @@ describe("AuthService", ()=> {
     it ("handleValidate -> Should return a user validated by firebase", async()=> {
         const mockUser = {token: "testUid"}
 
-        const validatedUser = await authService.handleValidate(PROVIDER, mockUser as ValidateUserDTO)
+        const validatedUser = await authService.handleValidate(mockUser as ValidateUserDTO)
 
         expect(validatedUser.username).toBe(expectedUser.username)
         expect(validatedUser.firebaseUid).toBe(expectedUser.firebaseUid)
-        expect(mockAuthStrategyFactory.getStrategy).toHaveBeenCalledWith(PROVIDER);
     })
 })
