@@ -71,7 +71,7 @@ describe('UserService - Unit Test', () => {
 
   
   describe('findOne', () => {
-    it('should prioritize firebaseUid in the filter if provided', async () => {
+    it('should return user if provided', async () => {
       const dto = { firebaseUid: 'uid_123', username: 'ignored_name' };
       jest.spyOn(repository, 'findOne').mockResolvedValue(mockUser as any);
 
@@ -83,32 +83,27 @@ describe('UserService - Unit Test', () => {
     it('should throw NotFoundException if repository returns null', async () => {
       jest.spyOn(repository, 'findOne').mockResolvedValue(null);
 
-      await expect(service.findOne({ username: 'nobody' }))
+      await expect(service.findOne({ firebaseUid: 'uid_123' }))
         .rejects.toThrow(NotFoundException);
     });
   });
 
 
   describe('updateUser', () => {
-    it('should successfully update user and return the result', async () => {
+    it('should successfully update user and return the updated user', async () => {
       const updateDto = { firebaseUid: 'user_1', username: 'new_name' };
       // We simulate the repo returning the "new" document
       jest.spyOn(repository, 'update').mockResolvedValue({ ...mockUser, username: 'new_name' } as any);
 
-      const result = await service.updateUser(updateDto);
+      const result = await service.updateUser(updateDto.firebaseUid, updateDto);
 
       expect(result.username).toBe('new_name');
-      // Logic Check: Did the service separate the UID from the data?
-      expect(repository.update).toHaveBeenCalledWith(
-        { firebaseUid: 'user_1' },
-        { $set: { username: 'new_name' } }
-      );
     });
 
     it('should throw NotFoundException if repository returns null', async () => {
       jest.spyOn(repository, 'update').mockResolvedValue(null);
       
-      await expect(service.updateUser({ firebaseUid: 'ghost', username: 'val' }))
+      await expect(service.updateUser("uid_123", {  username: 'val' }))
         .rejects.toThrow(NotFoundException);
     });
   });

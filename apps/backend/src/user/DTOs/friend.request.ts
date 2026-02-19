@@ -6,7 +6,14 @@ const FB_UID_LENGTH = 28;
 /**
  * Payload for sending or responding to friend requests.
  */
+
 export class FriendRequestDTO {
+    
+    //Partial constructor allows for manual instantiation if needed
+    constructor(partial: Partial<string>) {
+        Object.assign(this, partial);
+    }
+    
     // The unique Firebase ID of the target friend.
     @IsNotEmpty()
     @IsString()
