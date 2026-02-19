@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing"
 import { UserController } from "./user.controller"
 import { UserService } from "../service/user.service"
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import { NotFoundException } from "@nestjs/common";
 import { UserResponseDTO } from "../DTOs/user.response.DTO";
 import { GetUserDTO } from "../DTOs/get.user.DTO";
 import { UpdateUserDTO } from "../DTOs/update.user.DTO";
@@ -9,14 +9,14 @@ import { DeleteUserDTO } from "../DTOs/delete.user.DTO";
 
 /**
  * UserController unit tests
- * 
- * This test suite verifies the functionality of the UserController class, checking status code 
+ *
+ * This test suite verifies the functionality of the UserController class, checking status code
  * and data transfer. It uses Jest for mocking dependencies and assertions.
- * 
+ *
  * these tests follow the triple A of testing: Arrange, act and assert [AAA]
- * 
+ *
  * To run the tests, use the command: npm test -- apps/backend/src/user/controller/user.controller.spec.ts
- * 
+ *
  */
 
 describe('UserController', () => {

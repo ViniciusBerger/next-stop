@@ -24,7 +24,7 @@ export function BackButton({ color = "white", path }: BackButtonProps) {
       onPress={handlePress} 
       style={styles.button}
       activeOpacity={0.7}
-      hitSlop={20}
+      hitSlop={25}
     >
       <Ionicons name="arrow-back" size={28} color={color} />
     </TouchableOpacity>
