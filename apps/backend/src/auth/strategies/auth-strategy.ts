@@ -44,7 +44,8 @@ export class AuthStrategy implements IAuthStrategy {
         
         
         if (!userClaims) throw new BadRequestException("user is not registered! Please register before login")
-        const user = await this.userService.findById(new GetUserDTO(userClaims.uid as any))
+        // Explicitly maps the UID to the expected Firebase ID in the DTO
+        const user = await this.userService.findById({ firebaseUid: userClaims.uid } as GetUserDTO);
         return user
     }
 

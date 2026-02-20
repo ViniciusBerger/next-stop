@@ -1,10 +1,14 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Href, useRouter } from 'expo-router';
+import { deleteItemAsync } from 'expo-secure-store'; // Import the specific function
+import { auth } from '@/src/config/firebase'; // Import your firebase auth instance
+import { signOut } from 'firebase/auth'; // Import signOut function
 
 interface MenuItem {
   label: string;
-  path: Href;
+  path?: Href;
+  isLogout?: boolean;
 }
 
 interface HomeMenuProps {
@@ -21,11 +25,37 @@ const MENU_OPTIONS: MenuItem[] = [
   { label: "Badges", path: "/badges" as Href },
   { label: "Friends", path: "/friends" as Href },
   { label: "History", path: "/history" as Href },
-  { label: "Send feedback/ Report an issue", path: "/feedback" as Href }
+  { label: "Send feedback/ Report an issue", path: "/feedback" as Href },
+  { label: "Logout", isLogout: true }
 ];
 
 export default function HomeMenu({ isVisible, onClose }: HomeMenuProps) {
   const router = useRouter();
+
+  // Function to handle the full logout process
+  const handleLogout = async () => {
+    try {
+      // 1. Sign out from Firebase
+      await signOut(auth);
+      
+      // 2. Remove the token from local storage
+      try {
+        // For phones
+        await deleteItemAsync("userToken");
+      } catch (e) {
+        // For web
+        localStorage.removeItem("userToken");
+      }
+      
+      // 3. Close the menu and go back to login
+      onClose();
+      router.replace("/login");
+    } catch (error: any) {
+      console.error("Logout Error:", error.message);
+      Alert.alert("Error", "Failed to log out. Please try again.");
+    }
+  };
+
 
   if (!isVisible) return null;
 
@@ -43,11 +73,16 @@ export default function HomeMenu({ isVisible, onClose }: HomeMenuProps) {
                 index === MENU_OPTIONS.length - 1 && { borderBottomWidth: 0 }
               ]}
               onPress={() => {
-                onClose(); //Close menu
-                router.push(item.path); //Navigate to page
-              }}
-            >
-              <Text style={styles.itemText}>{item.label}</Text>
+                if (item.isLogout) {
+                  handleLogout();
+                } else if (item.path) { // Fixed: Guard against undefined paths
+                  onClose();
+                  router.push(item.path);
+                } 
+              }}>
+              <Text style={[styles.itemText, item.isLogout && styles.logoutText]}>
+                {item.label}
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -92,5 +127,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#000',
     fontWeight: '500',
+  },
+  // Added specific styles for the logout button
+  logoutItem: {
+    backgroundColor: '#fff', 
+  },
+  logoutText: {
+    color: '#dc2626', // Red color for logout visibility
+    fontWeight: 'bold',
   },
 });
