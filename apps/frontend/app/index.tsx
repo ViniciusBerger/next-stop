@@ -1,7 +1,7 @@
 import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
-import { useGeolocation } from "../hooks/useGeolocation";
+import useGeolocation from '@/hooks/useGeolocation';
 
 export default function Index() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -48,8 +48,8 @@ export default function Index() {
 
   // Redirect based on authentication
   return isAuthenticated ? (
-    <Redirect href="/(tabs)/home" />
+    <Redirect href="/discover" />
   ) : (
-    <Redirect href="/login" />
+    <Redirect href="/discover" />
   );
 }

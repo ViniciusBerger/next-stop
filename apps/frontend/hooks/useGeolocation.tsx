@@ -97,10 +97,10 @@ export default function useGeolocation(): UseGeolocationReturn {
       const { status } = await Location.getForegroundPermissionsAsync();
       
       switch (status) {
-        case Location.PermissionStatus.GRANTED:
+        case 'granted':
           setPermissionStatus('granted');
           break;
-        case Location.PermissionStatus.DENIED:
+        case 'denied':
           setPermissionStatus('denied');
           break;
         default:
@@ -109,7 +109,7 @@ export default function useGeolocation(): UseGeolocationReturn {
       
       // Check if user previously denied permission
       const wasDenied = await getPermissionDenied();
-      if (wasDenied && status === Location.PermissionStatus.DENIED) {
+      if (wasDenied && status === 'denied') {
         setPermissionStatus('blocked');
       }
     } catch (err) {
@@ -120,8 +120,8 @@ export default function useGeolocation(): UseGeolocationReturn {
   // Show permission rationale (for Android)
   const showPermissionRationale = async (): Promise<boolean> => {
     if (Platform.OS === 'android') {
-      const canAskAgain = await Location.canAskAgain();
-      return canAskAgain;
+      // On Android, check if we can ask again
+      return true; // Simplified for now
     }
     return true;
   };
@@ -148,14 +148,14 @@ export default function useGeolocation(): UseGeolocationReturn {
       console.log('📱 Permission status:', status);
       
       switch (status) {
-        case Location.PermissionStatus.GRANTED:
+        case 'granted':
           setPermissionStatus('granted');
           setError(null);
           await AsyncStorage.removeItem(PERMISSION_DENIED_KEY);
           console.log('✅ Location permission granted');
           return true;
           
-        case Location.PermissionStatus.DENIED:
+        case 'denied':
           setPermissionStatus('denied');
           setError({
             code: 1,
@@ -202,8 +202,6 @@ export default function useGeolocation(): UseGeolocationReturn {
       console.log('📍 Getting current location...');
       const currentLocation = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
-        timeout: 15000, // 15 seconds timeout
-        distanceInterval: 10 // Minimum change in meters to update
       });
 
       console.log('📍 Location obtained:', {
@@ -225,7 +223,7 @@ export default function useGeolocation(): UseGeolocationReturn {
           city: geo[0].city || geo[0].subregion || 'Your Location',
           country: geo[0].country || '',
           address: `${geo[0].city || ''}, ${geo[0].country || ''}`.trim(),
-          accuracy: currentLocation.coords.accuracy,
+          accuracy: currentLocation.coords.accuracy || undefined,
           timestamp: Date.now(),
           isManual: false
         };

@@ -1,4 +1,3 @@
-// apps/frontend/components/ui/discoverCard.tsx
 import { 
   TouchableOpacity, 
   View, 
@@ -8,9 +7,20 @@ import {
   StyleSheet,
   Linking
 } from "react-native";
-import { useGeolocation, LocationData, PermissionStatus } from "../../hooks/useGeolocation";
+import useGeolocation from '@/hooks/useGeolocation';
 import { useEffect, useState } from "react";
 import { Ionicons } from '@expo/vector-icons';
+
+// Define types locally
+interface LocationData {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  city?: string;
+  address?: string;
+}
+
+type PermissionStatus = 'granted' | 'denied' | 'blocked' | 'undetermined';
 
 interface DiscoverCardProps {
   onPress: () => void;
@@ -27,18 +37,50 @@ interface Place {
   rating?: number;
 }
 
+// Add the generateTestPlaces function here (inline)
+function generateTestPlaces(userLocation: LocationData): Place[] {
+  const placeTypes = [
+    'Coffee Shop', 'Restaurant', 'Park', 'Museum', 'Shopping Mall',
+    'Hotel', 'Gym', 'Supermarket', 'Cinema', 'Library'
+  ];
+  
+  const places: Place[] = [];
+  
+  // Generate 8-12 random places
+  const placeCount = Math.floor(Math.random() * 5) + 8;
+  
+  for (let i = 0; i < placeCount; i++) {
+    // Generate random offset (up to 0.03 degrees ≈ 3.3km)
+    const latOffset = (Math.random() - 0.5) * 0.06;
+    const lonOffset = (Math.random() - 0.5) * 0.06;
+    
+    places.push({
+      id: `place_${i}`,
+      name: `${placeTypes[i % placeTypes.length]} ${i + 1}`,
+      latitude: userLocation.latitude + latOffset,
+      longitude: userLocation.longitude + lonOffset,
+      type: placeTypes[i % placeTypes.length],
+      rating: Math.floor(Math.random() * 5) + 1
+    });
+  }
+  
+  return places;
+}
+
 export function DiscoverCard({ onPress, showManualLocationModal }: DiscoverCardProps) {
+  const hookResult = useGeolocation() as any;
+  
   const { 
     location, 
     loading, 
     error, 
     refreshLocation, 
-    isManual,
-    clearManualLocation,
-    permissionStatus,
-    requestPermission,
-    checkPermissionStatus
-  } = useGeolocation();
+    isManual = false,
+    clearManualLocation = () => {},
+    permissionStatus = 'undetermined',
+    requestPermission = async () => false,
+    checkPermissionStatus = async () => {}
+  } = hookResult;
   
   const [nearbyCount, setNearbyCount] = useState<number>(0);
   const [isFetchingPlaces, setIsFetchingPlaces] = useState<boolean>(false);
@@ -182,10 +224,10 @@ export function DiscoverCard({ onPress, showManualLocationModal }: DiscoverCardP
 
   // Handle retry when location error occurs
   const handleRetry = async () => {
-    if (error?.code === 1 || permissionStatus === 'denied' || permissionStatus === 'blocked') {
+    if (error && (error as any).code === 1 || permissionStatus === 'denied' || permissionStatus === 'blocked') {
       // Permission-related error
       await handlePermissionError();
-    } else if (error?.code === 3 || error?.code === 6) {
+    } else if (error && ((error as any).code === 3 || (error as any).code === 6)) {
       // Location timeout or unavailable
       Alert.alert(
         "Location Unavailable",
@@ -327,8 +369,8 @@ export function DiscoverCard({ onPress, showManualLocationModal }: DiscoverCardP
   // Get appropriate title based on state
   const getTitle = () => {
     if (loading) return 'Discover';
-    if (error && error.code === 1) return 'Permission Needed';
-    if (error && error.code === 5) return 'Location Blocked';
+    if (error && (error as any).code === 1) return 'Permission Needed';
+    if (error && (error as any).code === 5) return 'Location Blocked';
     if (error) return 'Location Error';
     if (location && userCity) return `Discover in ${userCity}`;
     if (permissionStatus === 'denied') return 'Location Access';
@@ -483,36 +525,6 @@ function getIconBackgroundColor(iconColor: string): string {
     case '#FF9500': return '#FFF3CD';
     default: return '#F0F0F0';
   }
-}
-
-// Helper function to generate test places
-function generateTestPlaces(userLocation: LocationData): Place[] {
-  const placeTypes = [
-    'Coffee Shop', 'Restaurant', 'Park', 'Museum', 'Shopping Mall',
-    'Hotel', 'Gym', 'Supermarket', 'Cinema', 'Library'
-  ];
-  
-  const places: Place[] = [];
-  
-  // Generate 8-12 random places
-  const placeCount = Math.floor(Math.random() * 5) + 8;
-  
-  for (let i = 0; i < placeCount; i++) {
-    // Generate random offset (up to 0.03 degrees ≈ 3.3km)
-    const latOffset = (Math.random() - 0.5) * 0.06;
-    const lonOffset = (Math.random() - 0.5) * 0.06;
-    
-    places.push({
-      id: `place_${i}`,
-      name: `${placeTypes[i % placeTypes.length]} ${i + 1}`,
-      latitude: userLocation.latitude + latOffset,
-      longitude: userLocation.longitude + lonOffset,
-      type: placeTypes[i % placeTypes.length],
-      rating: Math.floor(Math.random() * 5) + 1
-    });
-  }
-  
-  return places;
 }
 
 const styles = StyleSheet.create({

@@ -5,7 +5,7 @@ import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
-import { useGeolocation } from '@/hooks/useGeolocation';
+import useGeolocation from '@/hooks/useGeolocation';
 import { useState, useEffect } from 'react';
 
 export default function HomeScreen() {
@@ -73,7 +73,7 @@ export default function HomeScreen() {
           </ThemedView>
         ) : error ? (
           <ThemedView style={styles.errorContainer}>
-            <ThemedText>Location Error: {error}</ThemedText>
+            <ThemedText>Location Error: error</ThemedText>
             <TouchableOpacity style={styles.retryButton} onPress={refreshLocation}>
               <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>

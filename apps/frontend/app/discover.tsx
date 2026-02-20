@@ -1,5 +1,4 @@
-// apps/frontend/app/(tabs)/discover.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
 import {
   View,
   Text,
@@ -12,11 +11,16 @@ import {
   Linking
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import useGeolocation from '../../hooks/useGeolocation';
-import DiscoverCard from '../../components/ui/discoverCard';
-import LocationInputModal from '../../components/ui/LocationInputModal';
-import PermissionModal from '../../components/ui/PermissionModal';
-import LocationBanner from '../../components/ui/LocationBanner';
+import useGeolocation from '../hooks/useGeolocation';
+import { DiscoverCard } from '@/components/discoverCard';
+import LocationInputModal from '../components/ui/LocationInputModal';
+import PermissionModal from '../components/ui/PermissionModal';
+import LocationBanner from '../components/ui/LocationBanner';
+import { EmptyState } from '../components/ui/EmptyState';
+import { SkeletonCard } from '../components/ui/Skeleton';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { showToast } from '../components/ui/Toast';
+import { PlaceCard } from '../components/ui/PlaceCard';
 
 export default function DiscoverScreen() {
   const {
@@ -36,6 +40,10 @@ export default function DiscoverScreen() {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [hasRequestedPermission, setHasRequestedPermission] = useState(false);
+  const [places, setPlaces] = useState<any[]>([]);
+  const [placesLoading, setPlacesLoading] = useState(false);
+  
+  const { isConnected } = useNetworkStatus();
 
   // Check permission status on mount
   useEffect(() => {
@@ -45,6 +53,13 @@ export default function DiscoverScreen() {
     checkPermission();
   }, []);
 
+  // Show offline warning
+  useEffect(() => {
+    if (!isConnected) {
+      showToast('You are offline. Some features may be unavailable.', 'warning', 5000);
+    }
+  }, [isConnected]);
+
   // Show permission modal if needed
   useEffect(() => {
     const showPermissionIfNeeded = async () => {
@@ -53,8 +68,8 @@ export default function DiscoverScreen() {
         !hasRequestedPermission &&
         !loading &&
         !location
-      ) {
-        // Small delay to let UI settle
+      ) 
+      {
         setTimeout(() => {
           setShowPermissionModal(true);
         }, 1000);
@@ -64,6 +79,39 @@ export default function DiscoverScreen() {
     showPermissionIfNeeded();
   }, [permissionStatus, hasRequestedPermission, loading, location]);
 
+  // Fetch places when location is available
+  useEffect(() => {
+    const fetchPlaces = async () => {
+      if (!location || permissionStatus !== 'granted') return;
+      
+      setPlacesLoading(true);
+      
+      try {
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Mock data
+        const mockPlaces = [
+          { id: '1', name: 'Central Park', type: 'park', distance: '0.5 km', rating: 4.8 },
+          { id: '2', name: 'Starbucks', type: 'cafe', distance: '0.8 km', rating: 4.3 },
+          { id: '3', name: 'The Italian Restaurant', type: 'restaurant', distance: '1.2 km', rating: 4.6 },
+          { id: '4', name: 'City Mall', type: 'shopping', distance: '1.5 km', rating: 4.2 },
+          { id: '5', name: 'Public Library', type: 'library', distance: '2.0 km', rating: 4.5 },
+        ];
+        
+        setPlaces(mockPlaces);
+        showToast(`${mockPlaces.length} places found nearby!`, 'success');
+      } catch (error) {
+        console.error('Error fetching places:', error);
+        showToast('Failed to load places', 'error');
+      } finally {
+        setPlacesLoading(false);
+      }
+    };
+
+    fetchPlaces();
+  }, [location, permissionStatus]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await refreshLocation();
@@ -72,6 +120,7 @@ export default function DiscoverScreen() {
 
   const handleLocationSet = (newLocation: any) => {
     console.log('Location set:', newLocation);
+    showToast('Location updated successfully', 'success');
   };
 
   const handleRequestPermission = async () => {
@@ -79,11 +128,7 @@ export default function DiscoverScreen() {
     const granted = await requestPermission();
     
     if (granted) {
-      Alert.alert(
-        'Success',
-        'Location permission granted!',
-        [{ text: 'OK' }]
-      );
+      showToast('Location permission granted!', 'success');
     }
   };
 
@@ -91,13 +136,13 @@ export default function DiscoverScreen() {
     Linking.openSettings();
   };
 
-  const renderPermissionState = () => {
-    // Show banner for denied/blocked states
+  const renderPermissionState = () => 
+    {
     if (permissionStatus === 'denied' || permissionStatus === 'blocked' || error) {
       return (
         <LocationBanner
           permissionStatus={permissionStatus}
-          error={error}
+          error={error || undefined}
           onRequestPermission={handleRequestPermission}
           onUseManualLocation={() => setShowLocationModal(true)}
           onRetry={refreshLocation}
@@ -105,7 +150,6 @@ export default function DiscoverScreen() {
       );
     }
 
-    // Show loading state
     if (loading && !location) {
       return (
         <View style={styles.loadingCard}>
@@ -120,7 +164,6 @@ export default function DiscoverScreen() {
       );
     }
 
-    // Show manual location indicator
     if (isManual) {
       return (
         <View style={styles.manualLocationCard}>
@@ -147,8 +190,7 @@ export default function DiscoverScreen() {
         </View>
       );
     }
-
-    // Show location card when granted
+    
     if (location && permissionStatus === 'granted') {
       return (
         <View style={styles.locationCard}>
@@ -184,60 +226,85 @@ export default function DiscoverScreen() {
   };
 
   const renderContent = () => {
-    if (permissionStatus === 'denied' && !isManual) {
-      return (
-        <View style={styles.noPermissionContainer}>
-          <Ionicons name="location-off" size={64} color="#ccc" />
-          <Text style={styles.noPermissionTitle}>
-            Location Access Needed
-          </Text>
-          <Text style={styles.noPermissionText}>
-            Enable location access to discover nearby places
-          </Text>
-          <View style={styles.noPermissionButtons}>
-            <TouchableOpacity 
-              style={styles.permissionButton}
-              onPress={handleRequestPermission}
-            >
-              <Text style={styles.permissionButtonText}>Allow Location</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.permissionButton, styles.manualButton]}
-              onPress={() => setShowLocationModal(true)}
-            >
-              <Text style={[styles.permissionButtonText, styles.manualButtonText]}>
-                Enter City Manually
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      );
-    }
-
-    if (location) {
+    // Show loading skeletons when places are loading
+    if (placesLoading) {
       return (
         <View style={styles.content}>
-          {/* Your DiscoverCard or other content */}
           <Text style={styles.sectionTitle}>Discover Nearby</Text>
-          {/* Add your place listings here */}
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
         </View>
       );
     }
 
+    // Show permission denied state
+    if (permissionStatus === 'denied' && !isManual) {
+      return (
+        <EmptyState
+          icon="location-outline"
+          title="Location Access Needed"
+          message="Enable location access to discover nearby places and get personalized recommendations."
+          buttonText="Allow Location"
+          onButtonPress={handleRequestPermission}
+        />
+      );
+    }
+
+    // Show no places found state
+    if (location && places.length === 0 && !placesLoading) {
+      return (
+        <EmptyState
+          icon="compass"
+          title="No Places Found"
+          message="We couldn't find any places nearby. Try adjusting your search area or filters."
+          buttonText="Search Again"
+          onButtonPress={refreshLocation}
+        />
+      );
+    }
+
+    // Show places list
+    if (location && places.length > 0) {
+      return (
+        <View style={styles.content}> 
+          <Text style={styles.sectionTitle}>Discover Nearby</Text>
+          {places.map((place) => (
+            <PlaceCard
+              key={place.id}
+              place={place}
+              onPress={() => {
+                console.log('Place pressed:', place.name);
+                showToast(`Viewing ${place.name}`, 'info');
+              }}
+            />
+          ))}
+        </View>
+      );
+    }
+
+    // Show offline state
+    if (!isConnected) {
+      return (
+        <EmptyState
+          icon="wifi-outline"
+          title="You're Offline"
+          message="Please check your internet connection and try again."
+          buttonText="Retry"
+          onButtonPress={refreshLocation}
+        />
+      );
+    }
+
+    // Show empty state when no location
     return (
-      <View style={styles.emptyContainer}>
-        <Ionicons name="compass" size={64} color="#ccc" />
-        <Text style={styles.emptyTitle}>No Location Available</Text>
-        <Text style={styles.emptyText}>
-          Enable location services or enter a city to discover places
-        </Text>
-        <TouchableOpacity 
-          style={styles.exploreButton}
-          onPress={() => setShowLocationModal(true)}
-        >
-          <Text style={styles.exploreButtonText}>Enter Location</Text>
-        </TouchableOpacity>
-      </View>
+      <EmptyState
+        icon="location"
+        title="No Location Available"
+        message="Enable location services or enter a city to discover places near you."
+        buttonText="Enter Location"
+        onButtonPress={() => setShowLocationModal(true)}
+      />
     );
   };
 
@@ -435,50 +502,7 @@ const styles = StyleSheet.create({
   },
   accuracy: {
     fontSize: 12,
-    color: '#666',
-  },
-  noPermissionContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 40,
-    marginTop: 40,
-  },
-  noPermissionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  noPermissionText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 24,
-  },
-  noPermissionButtons: {
-    width: '100%',
-    gap: 12,
-  },
-  permissionButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 16,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  permissionButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  manualButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  manualButtonText: {
-    color: '#007AFF',
+    color: '#666'
   },
   content: {
     padding: 16,
@@ -487,36 +511,5 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 16,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 40,
-    marginTop: 40,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 24,
-  },
-  exploreButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 10,
-  },
-  exploreButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  }
 });
