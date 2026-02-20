@@ -34,6 +34,8 @@ describe('UserController', () => {
                 useValue: {
                     findOne: jest.fn().mockResolvedValue(mockUser),
                     updateUser: jest.fn().mockResolvedValue(mockUser),
+                    findById: jest.fn().mockResolvedValue(mockUser),
+                    findByUsername: jest.fn().mockResolvedValue(mockUser),
                     deleteUser: jest.fn().mockResolvedValue(mockUser),
                 }
             }]
@@ -48,7 +50,7 @@ describe('UserController', () => {
         
         const result = await userController.findOne(params as GetUserDTO);
 
-        expect(userService.findOne).toHaveBeenCalledWith(params);
+        expect(userService.findById).toHaveBeenCalledWith(params.firebaseUid);
         expect(result).toBeInstanceOf(UserResponseDTO);
         expect(result.username).toBe(mockUser.username);
     });
@@ -72,10 +74,11 @@ describe('UserController', () => {
     });
 
     it("findOne -> Should throw NotFoundException if user does not exist", async () => {
-        jest.spyOn(userService, 'findOne').mockResolvedValue(null);
+        jest.spyOn(userService, 'findById').mockResolvedValue(null);
         const params = { firebaseUid: 'missing' };
 
         await expect(userController.findOne(params as any))
             .rejects.toThrow(NotFoundException);
     });
+
 });

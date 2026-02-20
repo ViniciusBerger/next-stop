@@ -71,19 +71,28 @@ describe('UserService - Unit Test', () => {
 
   
   describe('findOne', () => {
-    it('should return user if provided', async () => {
-      const dto = { firebaseUid: 'uid_123', username: 'ignored_name' };
+    it('should return user by id', async () => {
+      const dto = { firebaseUid: 'uid_123'};
       jest.spyOn(repository, 'findOne').mockResolvedValue(mockUser as any);
 
-      await service.findOne(dto);
+      await service.findById(dto);
 
       expect(repository.findOne).toHaveBeenCalledWith({ firebaseUid: 'uid_123' });
     });
 
-    it('should throw NotFoundException if repository returns null', async () => {
-      jest.spyOn(repository, 'findOne').mockResolvedValue(null);
+    it('should return user by username', async () => {
+      const dto = { username: 'ignored_name' };
+      jest.spyOn(repository, 'findOne').mockResolvedValue(mockUser as any);
 
-      await expect(service.findOne({ firebaseUid: 'uid_123' }))
+      await service.findByUsername(dto);
+
+      expect(repository.findOne).toHaveBeenCalledWith({ username: 'ignored_name' });
+    });
+
+    it('should throw NotFoundException if repository returns null', async () => {
+      jest.spyOn(repository, 'findOne').mockResolvedValue(null)
+
+      await expect(service.findById({ firebaseUid: 'uid_123' }))
         .rejects.toThrow(NotFoundException);
     });
   });

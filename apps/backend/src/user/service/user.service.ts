@@ -17,12 +17,20 @@ export class UserService {
         return await this.userRepository.create(dto);
     }
 
-    // Translates GetUserDTO into a search filter, prioritizing firebaseUid.
-    async findOne(dto: GetUserDTO): Promise<User | null> {
-        const { firebaseUid, username } = dto;
-        const filter = firebaseUid ? { firebaseUid } : { username };
+    // Translates GetUserDTO into a search filter, searching by firebaseUid.
+    async findById(dto: GetUserDTO): Promise<User | null> {
+        const { firebaseUid } = dto;
 
-        const user = await this.userRepository.findOne(filter);
+        const user = await this.userRepository.findOne({firebaseUid: firebaseUid});
+        if (!user) throw new NotFoundException("User not found");
+        return user;
+    }
+
+    // Translates GetUserDTO into a search filter, searching by username.
+    async findByUsername(dto: GetUserDTO): Promise<User | null> {
+        const { username } = dto;
+
+        const user = await this.userRepository.findOne({username: username});
         if (!user) throw new NotFoundException("User not found");
         return user;
     }

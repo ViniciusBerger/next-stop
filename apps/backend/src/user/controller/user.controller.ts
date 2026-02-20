@@ -19,14 +19,17 @@ export class UserController {
    */
   @Get(':firebaseUid')
   async findOne(@Param() params: GetUserDTO) {
-    const user = await this.userService.findOne(params);
+    const {firebaseUid, username} = params
+    let user
+
+    if (firebaseUid) user = await this.userService.findById(firebaseUid as GetUserDTO);
+    if (username) user = await this.userService.findByUsername(username as GetUserDTO) 
     
-    if (!user) {
-      throw new NotFoundException(`User with UID ${params.firebaseUid} not found`);
-    }
-    
+    if (!user) throw new NotFoundException(`User with ${params} was not found`);
     return new UserResponseDTO(user);
   }
+
+  
 
   /**
    * Updates user profile data.
