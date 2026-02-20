@@ -14,8 +14,9 @@ import HeaderBackground from "@/src/svgs/HeaderBackground";
 import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
 import { BackButton } from "@/components/backButton";
-// import { registerWithEmail, sendEmailVerification } from "../service/authService";
-// import { checkIfUsernameExists } from "@/src/service/userService";
+import { auth } from "@/src/config/firebase";
+import { signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import axios from "axios";
 
 // Validation Regex Patterns and Reserved Words
 const EMAIL_REGEX = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
@@ -89,25 +90,35 @@ export default function RegisterScreen() {
       return;
     }
 
-    // try {
-    //   // 1. Create the user
-    //   const userCredential = await registerWithEmail(email, password, name);
-      
-    //   // 2. Send the verification email
-    //   // (Assuming you use Firebase Auth)
-    //   if (userCredential.user) {
-    //     await sendEmailVerification(userCredential.user);
-    //   }
+setError("");
+  setLoading(true);
 
-    //   // 3. Move to the waiting screen
-    //   router.navigate("/emailverification");
-    // } catch (err: any) {
-    //   setError(err.message);
-    // }  
+  try {
+    // 1. Send data to NestJS. The backend will create the user in 
+    //    Firebase AND MongoDB in one go.
+    const response = await axios.post("http://localhost:3000/auth/register", {
+      email: email.toLowerCase().trim(),
+      password: password,
+      displayName: name,
+      username: name.toLowerCase().trim()
+    });
 
-    setError("");
-    setLoading(true);
+    // 2. Now that the backend successfully created the user, 
+    //    we can trigger the verification email from the frontend.
+    if (response.data) {
+      // Sign in locally to get the user object for the email trigger
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await sendEmailVerification(userCredential.user);
+
+      router.replace("/emailverification"); 
+    }
+  } catch (err: any) {
+    console.error("Registration error:", err.response?.data || err.message);
+    setError(err.response?.data?.message || "Registration failed");
+  } finally {
+    setLoading(false);
   }
+}
 
   return (
     <KeyboardAvoidingView 
