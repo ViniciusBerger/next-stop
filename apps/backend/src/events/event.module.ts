@@ -1,15 +1,20 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { EventController } from './event.controller';
-import { EventService } from './event.service';
+import { EventController } from './controller/event.controller';
+import { EventService } from './service/event.service';
+import { EventRepository } from './repository/event.repository';
 import { Event, eventSchema } from './schema/event.schema';
 
+/**
+ * Event Module
+ * Manages events with RSVP and privacy controls
+ */
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Event.name, schema: eventSchema }]),
   ],
   controllers: [EventController],
-  providers: [EventService],
-  exports: [EventService], // Export for use in other modules (e.g., Review)
+  providers: [EventService, EventRepository],
+  exports: [EventService],
 })
 export class EventModule {}

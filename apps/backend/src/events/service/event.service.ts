@@ -1,48 +1,62 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Event, EventPrivacy } from './schema/event.schema';
-import { CreateEventDTO } from './DTOs/create.event.DTO';
-import { UpdateEventDTO } from './DTOs/update.event.DTO';
-import { GetEventDTO } from './DTOs/get.event.DTO';
-import { AttendEventDTO } from './DTOs/attend.event.DTO';
-import { InviteEventDTO } from './DTOs/invite.event.DTO';
+import { EventRepository } from '../repository/event.repository';
+import { Event, EventPrivacy } from '../schema/event.schema';
+import { CreateEventDTO } from '../DTOs/create.event.DTO';
+import { UpdateEventDTO } from '../DTOs/update.event.DTO';
+import { GetEventDTO } from '../DTOs/get.event.DTO';
+import { AttendEventDTO } from '../DTOs/attend.event.DTO';
+import { InviteEventDTO } from '../DTOs/invite.event.DTO';
 
 @Injectable()
 export class EventService {
-  private eventModel: Model<Event>;
+  constructor(
+    private readonly eventRepository: EventRepository,
+    @InjectModel(Event.name) private readonly eventModel: Model<Event>
+  ) {}
 
-  constructor(@InjectModel(Event.name) eventModelReceived: Model<Event>) {
-    this.eventModel = eventModelReceived;
+  /**
+   * Creates a new event
+   */
+  async createEvent(dto: CreateEventDTO): Promise<Event> {
+    const newEvent = await this.eventRepository.create(dto as any);
+
+    // Populate before returning
+    return await this.eventModel
+      .findById(newEvent._id)
+      .populate('host', 'username profilePicture')
+      .populate('place', 'name address category customImages')
+      .exec() as Event;
   }
 
-  // CREATE - Create a new event
-  async createEvent(createEventDTO: CreateEventDTO): Promise<Event> {
-    const newEvent = new this.eventModel(createEventDTO);
-    return await newEvent.save();
-  }
+  /**
+   * Retrieves all events with optional filters
+   */
+  async getAllEvents(dto?: GetEventDTO): Promise<Event[]> {
+    const filter: any = {};
 
-  // GET ALL - Get all events (with optional filters)
-  async getAllEvents(getEventDTO?: GetEventDTO): Promise<Event[]> {
-    const mongoQuery: any = {};
-
-    if (getEventDTO) {
-      if (getEventDTO.host) mongoQuery.host = getEventDTO.host;
-      if (getEventDTO.place) mongoQuery.place = getEventDTO.place;
-      if (getEventDTO.status) mongoQuery.status = getEventDTO.status;
+    if (dto) {
+      if (dto.host) filter.host = dto.host;
+      if (dto.place) filter.place = dto.place;
+      if (dto.status) filter.status = dto.status;
     }
 
+    const events = await this.eventRepository.findMany(filter);
+
     return await this.eventModel
-      .find(mongoQuery)
+      .find({ _id: { $in: events.map(e => e._id) } })
       .populate('host', 'username profilePicture')
       .populate('place', 'name address category customImages')
       .populate('attendees', 'username profilePicture')
       .populate('invitedFriends', 'username profilePicture')
-      .sort({ date: 1 }) // Upcoming events first
+      .sort({ date: 1 })
       .exec();
   }
 
-  // GET ONE - Get a specific event by ID (with access control)
+  /**
+   * Retrieves a specific event with access control
+   */
   async getEvent(eventId: string, userId?: string): Promise<Event> {
     const event = await this.eventModel
       .findById(eventId)
@@ -70,7 +84,9 @@ export class EventService {
     return event;
   }
 
-  // GET USER EVENTS - Get events created by or attended by user
+  /**
+   * Retrieves events created by or attended by user
+   */
   async getUserEvents(userId: string): Promise<{ created: Event[]; attending: Event[] }> {
     const createdEvents = await this.eventModel
       .find({ host: userId })
@@ -92,19 +108,21 @@ export class EventService {
     };
   }
 
-  // UPDATE - Update event (host only)
+  /**
+   * Updates an event (host only)
+   */
   async updateEvent(
     eventId: string,
     userId: string,
-    updateEventDTO: UpdateEventDTO,
+    updateDto: UpdateEventDTO,
   ): Promise<Event> {
-    const event = await this.eventModel.findById(eventId).exec();
+    const event = await this.eventRepository.findById(eventId);
 
     if (!event) {
       throw new NotFoundException('Event not found');
     }
 
-    // Only host can update event
+    // Only host can update
     if (event.host.toString() !== userId.toString()) {
       throw new ForbiddenException('Only the event host can update this event');
     }
@@ -112,45 +130,51 @@ export class EventService {
     // Build update object
     const updateData: any = {};
 
-    if (updateEventDTO.name !== undefined) updateData.name = updateEventDTO.name;
-    if (updateEventDTO.description !== undefined) updateData.description = updateEventDTO.description;
-    if (updateEventDTO.date !== undefined) updateData.date = updateEventDTO.date;
-    if (updateEventDTO.location !== undefined) updateData.location = updateEventDTO.location;
-    if (updateEventDTO.privacy !== undefined) updateData.privacy = updateEventDTO.privacy;
-    if (updateEventDTO.invitedFriends !== undefined) updateData.invitedFriends = updateEventDTO.invitedFriends;
-    if (updateEventDTO.status !== undefined) updateData.status = updateEventDTO.status;
+    if (updateDto.name !== undefined) updateData.name = updateDto.name;
+    if (updateDto.description !== undefined) updateData.description = updateDto.description;
+    if (updateDto.date !== undefined) updateData.date = updateDto.date;
+    if (updateDto.location !== undefined) updateData.location = updateDto.location;
+    if (updateDto.privacy !== undefined) updateData.privacy = updateDto.privacy;
+    if (updateDto.invitedFriends !== undefined) updateData.invitedFriends = updateDto.invitedFriends;
+    if (updateDto.status !== undefined) updateData.status = updateDto.status;
 
     updateData.updatedAt = new Date();
 
-    const updatedEvent = await this.eventModel
-      .findByIdAndUpdate(eventId, { $set: updateData }, { new: true, runValidators: true })
-      .populate('host', 'username profilePicture')
-      .populate('place', 'name address category customImages')
-      .populate('attendees', 'username profilePicture')
-      .populate('invitedFriends', 'username profilePicture')
-      .exec();
+    const updatedEvent = await this.eventRepository.update(
+      { _id: eventId },
+      { $set: updateData }
+    );
 
     if (!updatedEvent) {
       throw new NotFoundException('Event not found after update');
     }
 
-    return updatedEvent;
+    // Populate before returning
+    return await this.eventModel
+      .findById(updatedEvent._id)
+      .populate('host', 'username profilePicture')
+      .populate('place', 'name address category customImages')
+      .populate('attendees', 'username profilePicture')
+      .populate('invitedFriends', 'username profilePicture')
+      .exec() as Event;
   }
 
-  // DELETE - Delete event (host only)
+  /**
+   * Deletes an event (host only)
+   */
   async deleteEvent(eventId: string, userId: string): Promise<{ deleted: boolean; message: string }> {
-    const event = await this.eventModel.findById(eventId).exec();
+    const event = await this.eventRepository.findById(eventId);
 
     if (!event) {
       throw new NotFoundException('Event not found');
     }
 
-    // Only host can delete event
+    // Only host can delete
     if (event.host.toString() !== userId.toString()) {
       throw new ForbiddenException('Only the event host can delete this event');
     }
 
-    await this.eventModel.findByIdAndDelete(eventId).exec();
+    await this.eventRepository.delete({ _id: eventId });
 
     return {
       deleted: true,
@@ -158,17 +182,19 @@ export class EventService {
     };
   }
 
-  // ATTEND - Toggle RSVP (confirm/cancel attendance)
-  async toggleAttendance(attendEventDTO: AttendEventDTO): Promise<Event> {
-    const { eventId, userId } = attendEventDTO;
+  /**
+   * Toggles RSVP (confirm/cancel attendance)
+   */
+  async toggleAttendance(dto: AttendEventDTO): Promise<Event> {
+    const { eventId, userId } = dto;
 
-    const event = await this.eventModel.findById(eventId).exec();
+    const event = await this.eventRepository.findById(eventId);
 
     if (!event) {
       throw new NotFoundException('Event not found');
     }
 
-    // Check if event is in the future
+    // Check event status
     if (event.status === 'past') {
       throw new BadRequestException('Cannot RSVP to past events');
     }
@@ -177,17 +203,16 @@ export class EventService {
       throw new BadRequestException('Cannot RSVP to cancelled events');
     }
 
-    // Check if user already attending
+    // Check if already attending
     const attendeeIndex = event.attendees.findIndex(
       id => id.toString() === userId.toString(),
     );
 
     if (attendeeIndex > -1) {
-      // User already attending - CANCEL RSVP
+      // Cancel RSVP
       event.attendees.splice(attendeeIndex, 1);
     } else {
-      // User not attending - CONFIRM RSVP
-      // For private events, user must be invited
+      // Confirm RSVP
       if (event.privacy === EventPrivacy.PRIVATE) {
         const isInvited = event.invitedFriends.some(id => id.toString() === userId.toString());
         const isHost = event.host.toString() === userId.toString();
@@ -200,14 +225,24 @@ export class EventService {
       event.attendees.push(userId as any);
     }
 
-    return await event.save();
+    const saved = await this.eventRepository.save(event);
+
+    // Populate before returning
+    return await this.eventModel
+      .findById(saved._id)
+      .populate('host', 'username profilePicture')
+      .populate('place', 'name address category customImages')
+      .populate('attendees', 'username profilePicture')
+      .exec() as Event;
   }
 
-  // INVITE - Invite friends to event (host only)
-  async inviteFriends(inviteEventDTO: InviteEventDTO, userId: string): Promise<Event> {
-    const { eventId, friendIds } = inviteEventDTO;
+  /**
+   * Invites friends to event (host only)
+   */
+  async inviteFriends(dto: InviteEventDTO, userId: string): Promise<Event> {
+    const { eventId, friendIds } = dto;
 
-    const event = await this.eventModel.findById(eventId).exec();
+    const event = await this.eventRepository.findById(eventId);
 
     if (!event) {
       throw new NotFoundException('Event not found');
@@ -218,7 +253,7 @@ export class EventService {
       throw new ForbiddenException('Only the event host can invite friends');
     }
 
-    // Add friends to invitedFriends (avoid duplicates)
+    // Add friends (avoid duplicates)
     friendIds.forEach(friendId => {
       const alreadyInvited = event.invitedFriends.some(id => id.toString() === friendId);
       if (!alreadyInvited) {
@@ -226,6 +261,14 @@ export class EventService {
       }
     });
 
-    return await event.save();
+    const saved = await this.eventRepository.save(event);
+
+    // Populate before returning
+    return await this.eventModel
+      .findById(saved._id)
+      .populate('host', 'username profilePicture')
+      .populate('place', 'name address category customImages')
+      .populate('invitedFriends', 'username profilePicture')
+      .exec() as Event;
   }
 }
