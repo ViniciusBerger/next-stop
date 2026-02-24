@@ -11,20 +11,23 @@ import {
   Param,
   Headers,
 } from '@nestjs/common';
-import { EventService } from './event.service';
-import { CreateEventDTO } from './DTOs/create.event.DTO';
-import { UpdateEventDTO } from './DTOs/update.event.DTO';
-import { GetEventDTO } from './DTOs/get.event.DTO';
-import { AttendEventDTO } from './DTOs/attend.event.DTO';
-import { InviteEventDTO } from './DTOs/invite.event.DTO';
+import { EventService } from '../service/event.service';
+import { CreateEventDTO } from '../DTOs/create.event.DTO';
+import { UpdateEventDTO } from '../DTOs/update.event.DTO';
+import { GetEventDTO } from '../DTOs/get.event.DTO';
+import { AttendEventDTO } from '../DTOs/attend.event.DTO';
+import { InviteEventDTO } from '../DTOs/invite.event.DTO';
 import { plainToInstance } from 'class-transformer';
-import { EventResponseDTO } from './DTOs/event.response.DTO';
+import { EventResponseDTO } from '../DTOs/event.response.DTO';
 
 @Controller('events')
 export class EventController {
   constructor(private readonly eventService: EventService) {}
 
-  // POST /events - Create a new event
+  /**
+   * Creates a new event
+   * POST /events
+   */
   @Post()
   async createEvent(@Body() createEventDTO: CreateEventDTO) {
     const newEvent = await this.eventService.createEvent(createEventDTO);
@@ -34,7 +37,10 @@ export class EventController {
     });
   }
 
-  // GET /events - Get all events (with optional filters)
+  /**
+   * Retrieves all events with optional filters
+   * GET /events
+   */
   @Get()
   async getEvents(@Query() getEventDTO?: GetEventDTO) {
     const events = await this.eventService.getAllEvents(getEventDTO);
@@ -46,11 +52,14 @@ export class EventController {
     );
   }
 
-  // GET /events/:id - Get a specific event by ID
+  /**
+   * Retrieves a specific event
+   * GET /events/:id
+   */
   @Get(':id')
   async getEvent(
     @Param('id') id: string,
-    @Headers('user-id') userId?: string, // Optional: for access control
+    @Headers('user-id') userId?: string,
   ) {
     const event = await this.eventService.getEvent(id, userId);
 
@@ -59,7 +68,10 @@ export class EventController {
     });
   }
 
-  // GET /events/user/:userId - Get events created by or attended by user
+  /**
+   * Retrieves events created by or attended by user
+   * GET /events/user/:userId
+   */
   @Get('user/:userId')
   async getUserEvents(@Param('userId') userId: string) {
     const events = await this.eventService.getUserEvents(userId);
@@ -78,12 +90,15 @@ export class EventController {
     };
   }
 
-  // PUT /events/:id - Update event (host only)
+  /**
+   * Updates an event (host only)
+   * PUT /events/:id
+   */
   @Put(':id')
   async updateEvent(
     @Param('id') id: string,
     @Body() updateEventDTO: UpdateEventDTO,
-    @Headers('user-id') userId: string, // Required: to verify host
+    @Headers('user-id') userId: string,
   ) {
     if (!userId) {
       throw new BadRequestException('User ID is required');
@@ -96,11 +111,14 @@ export class EventController {
     });
   }
 
-  // DELETE /events/:id - Delete event (host only)
+  /**
+   * Deletes an event (host only)
+   * DELETE /events/:id
+   */
   @Delete(':id')
   async deleteEvent(
     @Param('id') id: string,
-    @Headers('user-id') userId: string, // Required: to verify host
+    @Headers('user-id') userId: string,
   ) {
     if (!userId) {
       throw new BadRequestException('User ID is required');
@@ -109,7 +127,10 @@ export class EventController {
     return await this.eventService.deleteEvent(id, userId);
   }
 
-  // POST /events/:id/attend - Toggle RSVP (confirm/cancel attendance)
+  /**
+   * Toggles RSVP (confirm/cancel attendance)
+   * POST /events/:id/attend
+   */
   @Post(':id/attend')
   async toggleAttendance(
     @Param('id') eventId: string,
@@ -125,12 +146,15 @@ export class EventController {
     });
   }
 
-  // POST /events/:id/invite - Invite friends (host only)
+  /**
+   * Invites friends (host only)
+   * POST /events/:id/invite
+   */
   @Post(':id/invite')
   async inviteFriends(
     @Param('id') eventId: string,
     @Body() body: { friendIds: string[] },
-    @Headers('user-id') userId: string, // Required: to verify host
+    @Headers('user-id') userId: string,
   ) {
     if (!userId) {
       throw new BadRequestException('User ID is required');
