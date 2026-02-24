@@ -7,11 +7,12 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { ProfileService } from './profile.service';
-import { GetProfileDTO } from './DTOs/get.profile.DTO';
-import { UpdateProfileDTO } from './DTOs/update.profile.DTO';
+import { ProfileService } from '../service/profile.service';
+import { GetProfileDTO } from '../DTOs/get.profile.DTO';
+import { UpdateProfileDTO } from '../DTOs/update.profile.DTO';
+import { ProfileResponseDTO } from '../DTOs/profile.response.DTO';
 import { plainToInstance } from 'class-transformer';
-import { ProfileResponseDTO } from './DTOs/profile.response.DTO';
+
 
 @Controller('profile')
 export class ProfileController {
