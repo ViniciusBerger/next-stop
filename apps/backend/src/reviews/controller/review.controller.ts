@@ -9,18 +9,21 @@ import {
   Query,
   Param,
 } from '@nestjs/common';
-import { ReviewService } from './review.service';
-import { CreateReviewDTO } from './DTOs/create.review.DTO';
-import { GetReviewDTO } from './DTOs/get.review.DTO';
-import { LikeReviewDTO } from './DTOs/like.review.DTO';
+import { ReviewService } from '../service/review.service';
+import { CreateReviewDTO } from '../DTOs/create.review.DTO';
+import { GetReviewDTO } from '../DTOs/get.review.DTO';
+import { LikeReviewDTO } from '../DTOs/like.review.DTO';
 import { plainToInstance } from 'class-transformer';
-import { ReviewResponseDTO } from './DTOs/review.response.DTO';
+import { ReviewResponseDTO } from '../DTOs/review.response.DTO';
 
 @Controller('reviews')
 export class ReviewController {
   constructor(private readonly reviewService: ReviewService) {}
 
-  // POST /reviews - Create a new review
+  /**
+   * Creates a new review (also serves as feed post)
+   * POST /reviews
+   */
   @Post()
   async createReview(@Body() createReviewDTO: CreateReviewDTO) {
     const newReview = await this.reviewService.createReview(createReviewDTO);
@@ -30,7 +33,10 @@ export class ReviewController {
     });
   }
 
-  // GET /reviews - Get all reviews (with optional filters)
+  /**
+   * Retrieves all reviews (Home Feed)
+   * GET /reviews
+   */
   @Get()
   async getReviews(@Query() getReviewDTO?: GetReviewDTO) {
     const reviews = await this.reviewService.getAllReviews(getReviewDTO);
@@ -42,7 +48,10 @@ export class ReviewController {
     );
   }
 
-  // GET /reviews/details - Get a specific review by ID
+  /**
+   * Retrieves a specific review
+   * GET /reviews/details?id=xxx
+   */
   @Get('details')
   async getReview(@Query() getReviewDTO: GetReviewDTO) {
     if (!getReviewDTO.id) {
@@ -51,16 +60,15 @@ export class ReviewController {
 
     const review = await this.reviewService.getReview(getReviewDTO);
 
-    if (!review) {
-      throw new NotFoundException('Review not found');
-    }
-
     return plainToInstance(ReviewResponseDTO, review.toObject(), {
       excludeExtraneousValues: true,
     });
   }
 
-  // GET /reviews/place/:placeId - Get all reviews for a specific place
+  /**
+   * Retrieves all reviews for a specific place
+   * GET /reviews/place/:placeId
+   */
   @Get('place/:placeId')
   async getPlaceReviews(@Param('placeId') placeId: string) {
     const reviews = await this.reviewService.getPlaceReviews(placeId);
@@ -72,7 +80,10 @@ export class ReviewController {
     );
   }
 
-  // GET /reviews/user/:userId - Get all reviews by a specific user
+  /**
+   * Retrieves all reviews by a specific user (History)
+   * GET /reviews/user/:userId
+   */
   @Get('user/:userId')
   async getUserReviews(@Param('userId') userId: string) {
     const reviews = await this.reviewService.getUserReviews(userId);
@@ -84,13 +95,19 @@ export class ReviewController {
     );
   }
 
-  // DELETE /reviews/:id - Delete a review
+  /**
+   * Deletes a review
+   * DELETE /reviews/:id
+   */
   @Delete(':id')
   async deleteReview(@Param('id') id: string) {
     return await this.reviewService.deleteReview(id);
   }
 
-  // POST /reviews/like - Toggle like on a review
+  /**
+   * Toggles like on a review
+   * POST /reviews/like
+   */
   @Post('like')
   async toggleLike(@Body() likeReviewDTO: LikeReviewDTO) {
     const updatedReview = await this.reviewService.toggleLike(likeReviewDTO);
