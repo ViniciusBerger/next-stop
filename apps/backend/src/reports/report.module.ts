@@ -1,15 +1,20 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ReportController } from './report.controller';
-import { ReportService } from './report.service';
+import { ReportController } from './controller/report.controller';
+import { ReportService } from './service/report.service';
+import { ReportRepository } from './repository/report.repository';
 import { Report, reportSchema } from './schema/report.schema';
 
+/**
+ * Report Module
+ * Manages user feedback and issue reports
+ */
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Report.name, schema: reportSchema }]),
   ],
   controllers: [ReportController],
-  providers: [ReportService],
-  exports: [ReportService], // Export for use in other modules if needed
+  providers: [ReportService, ReportRepository],
+  exports: [ReportService],
 })
 export class ReportModule {}

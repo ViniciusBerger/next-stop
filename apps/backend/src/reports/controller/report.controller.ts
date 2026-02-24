@@ -10,17 +10,20 @@ import {
   Query,
   Param,
 } from '@nestjs/common';
-import { ReportService } from './report.service';
-import { CreateReportDTO } from './DTOs/create.report.DTO';
-import { GetReportDTO } from './DTOs/get.report.DTO';
+import { ReportService } from '../service/report.service';
+import { CreateReportDTO } from '../DTOs/create.report.DTO';
+import { GetReportDTO } from '../DTOs/get.report.DTO';
 import { plainToInstance } from 'class-transformer';
-import { ReportResponseDTO } from './DTOs/report.response.DTO';
+import { ReportResponseDTO } from '../DTOs/report.response.DTO';
 
 @Controller('reports')
 export class ReportController {
   constructor(private readonly reportService: ReportService) {}
 
-  // POST /reports - User creates a report/feedback
+  /**
+   * User creates a report/feedback
+   * POST /reports
+   */
   @Post()
   async createReport(@Body() createReportDTO: CreateReportDTO) {
     const newReport = await this.reportService.createReport(createReportDTO);
@@ -30,8 +33,11 @@ export class ReportController {
     });
   }
 
-  // GET /reports - Admin gets all reports (with optional filters)
-  // TODO: Add admin authentication middleware
+  /**
+   * Admin gets all reports with optional filters
+   * GET /reports
+   * TODO: Add admin authentication middleware
+   */
   @Get()
   async getReports(@Query() getReportDTO?: GetReportDTO) {
     const reports = await this.reportService.getAllReports(getReportDTO);
@@ -43,16 +49,22 @@ export class ReportController {
     );
   }
 
-  // GET /reports/pending - Admin gets pending reports count
-  // TODO: Add admin authentication middleware
+  /**
+   * Admin gets pending reports count
+   * GET /reports/pending/count
+   * TODO: Add admin authentication middleware
+   */
   @Get('pending/count')
   async getPendingCount() {
     const count = await this.reportService.getPendingCount();
     return { pendingCount: count };
   }
 
-  // GET /reports/:id - Admin gets a specific report
-  // TODO: Add admin authentication middleware
+  /**
+   * Admin gets a specific report
+   * GET /reports/:id
+   * TODO: Add admin authentication middleware
+   */
   @Get(':id')
   async getReport(@Param('id') id: string) {
     const report = await this.reportService.getReport(id);
@@ -62,8 +74,11 @@ export class ReportController {
     });
   }
 
-  // PUT /reports/:id/complete - Admin marks report as completed
-  // TODO: Add admin authentication middleware
+  /**
+   * Admin marks report as completed
+   * PUT /reports/:id/complete
+   * TODO: Add admin authentication middleware
+   */
   @Put(':id/complete')
   async completeReport(@Param('id') id: string) {
     const completedReport = await this.reportService.completeReport(id);
@@ -73,8 +88,11 @@ export class ReportController {
     });
   }
 
-  // DELETE /reports/:id - Admin deletes a report
-  // TODO: Add admin authentication middleware
+  /**
+   * Admin deletes a report
+   * DELETE /reports/:id
+   * TODO: Add admin authentication middleware
+   */
   @Delete(':id')
   async deleteReport(@Param('id') id: string) {
     return await this.reportService.deleteReport(id);
