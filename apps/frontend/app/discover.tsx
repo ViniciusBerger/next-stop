@@ -21,6 +21,8 @@ import { SkeletonCard } from '../components/ui/Skeleton';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { showToast } from '../components/ui/Toast';
 import { PlaceCard } from '../components/ui/PlaceCard';
+import { ErrorState } from '../components/ui/StateComponents'; // ADD THIS
+import { ValidationError } from '../components/ui/StateComponents'; // ADD THIS
 
 export default function DiscoverScreen() {
   const {
@@ -42,8 +44,11 @@ export default function DiscoverScreen() {
   const [hasRequestedPermission, setHasRequestedPermission] = useState(false);
   const [places, setPlaces] = useState<any[]>([]);
   const [placesLoading, setPlacesLoading] = useState(false);
+  const [apiError, setApiError] = useState<Error | null>(null); // ADD THIS
+  const [searchQuery, setSearchQuery] = useState(''); // ADD THIS
+  const [filterError, setFilterError] = useState<string>(''); // ADD THIS
   
-  const { isConnected } = useNetworkStatus();
+  const { isConnected, isInternetReachable, isInitialized } = useNetworkStatus();
 
   // Check permission status on mount
   useEffect(() => {
@@ -53,12 +58,12 @@ export default function DiscoverScreen() {
     checkPermission();
   }, []);
 
-  // Show offline warning
+  // Show offline warning - IMPROVED
   useEffect(() => {
-    if (!isConnected) {
+    if (isInitialized && (!isConnected || !isInternetReachable)) {
       showToast('You are offline. Some features may be unavailable.', 'warning', 5000);
     }
-  }, [isConnected]);
+  }, [isConnected, isInternetReachable, isInitialized]);
 
   // Show permission modal if needed
   useEffect(() => {
@@ -79,16 +84,22 @@ export default function DiscoverScreen() {
     showPermissionIfNeeded();
   }, [permissionStatus, hasRequestedPermission, loading, location]);
 
-  // Fetch places when location is available
+  // Fetch places when location is available - ADDED ERROR HANDLING
   useEffect(() => {
     const fetchPlaces = async () => {
       if (!location || permissionStatus !== 'granted') return;
       
       setPlacesLoading(true);
+      setApiError(null);
       
       try {
-        // Simulate API call
+        // Simulate API call with potential error
         await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Randomly simulate error for testing (remove in production)
+        if (Math.random() < 0.1) { // 10% chance of error
+          throw new Error('Failed to fetch places. Please try again.');
+        }
         
         // Mock data
         const mockPlaces = [
@@ -103,6 +114,7 @@ export default function DiscoverScreen() {
         showToast(`${mockPlaces.length} places found nearby!`, 'success');
       } catch (error) {
         console.error('Error fetching places:', error);
+        setApiError(error as Error);
         showToast('Failed to load places', 'error');
       } finally {
         setPlacesLoading(false);
@@ -112,8 +124,15 @@ export default function DiscoverScreen() {
     fetchPlaces();
   }, [location, permissionStatus]);
 
+  // Filter places based on search query (if implemented)
+  const filteredPlaces = places.filter(place => 
+    place.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    place.type.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const onRefresh = async () => {
     setRefreshing(true);
+    setApiError(null);
     await refreshLocation();
     setRefreshing(false);
   };
@@ -136,8 +155,16 @@ export default function DiscoverScreen() {
     Linking.openSettings();
   };
 
-  const renderPermissionState = () => 
-    {
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query.length > 0 && filteredPlaces.length === 0) {
+      setFilterError(`No results found for "${query}"`);
+    } else {
+      setFilterError('');
+    }
+  };
+
+  const renderPermissionState = () => {
     if (permissionStatus === 'denied' || permissionStatus === 'blocked' || error) {
       return (
         <LocationBanner
@@ -226,7 +253,42 @@ export default function DiscoverScreen() {
   };
 
   const renderContent = () => {
-    // Show loading skeletons when places are loading
+    // Network offline state (priority 1)
+    if (isInitialized && (!isConnected || !isInternetReachable)) {
+      return (
+        <EmptyState
+          icon="wifi-outline"
+          title="You're Offline"
+          message="Please check your internet connection and try again."
+          buttonText="Retry"
+          onButtonPress={refreshLocation}
+        />
+      );
+    }
+
+    // API Error state (priority 2)
+    if (apiError) {
+      return (
+        <ErrorState
+          error={apiError}
+          onRetry={() => {
+            setApiError(null);
+            // Retry fetching places
+            if (location && permissionStatus === 'granted') {
+              setPlacesLoading(true);
+              setTimeout(() => {
+                // Simulate retry
+                setPlaces([]);
+                setPlacesLoading(false);
+                showToast('Retrying...', 'info');
+              }, 1000);
+            }
+          }}
+        />
+      );
+    }
+
+    // Loading skeletons (priority 3)
     if (placesLoading) {
       return (
         <View style={styles.content}>
@@ -238,7 +300,7 @@ export default function DiscoverScreen() {
       );
     }
 
-    // Show permission denied state
+    // Permission denied state (priority 4)
     if (permissionStatus === 'denied' && !isManual) {
       return (
         <EmptyState
@@ -251,55 +313,78 @@ export default function DiscoverScreen() {
       );
     }
 
-    // Show no places found state
-    if (location && places.length === 0 && !placesLoading) {
+    // Filter error state (search with no results)
+    if (filterError) {
       return (
-        <EmptyState
-          icon="compass"
-          title="No Places Found"
-          message="We couldn't find any places nearby. Try adjusting your search area or filters."
-          buttonText="Search Again"
-          onButtonPress={refreshLocation}
-        />
-      );
-    }
-
-    // Show places list
-    if (location && places.length > 0) {
-      return (
-        <View style={styles.content}> 
+        <View style={styles.content}>
           <Text style={styles.sectionTitle}>Discover Nearby</Text>
-          {places.map((place) => (
-            <PlaceCard
-              key={place.id}
-              place={place}
-              onPress={() => {
-                console.log('Place pressed:', place.name);
-                showToast(`Viewing ${place.name}`, 'info');
-              }}
-            />
-          ))}
+          <ValidationError error={filterError} />
+          <EmptyState
+            icon="search-outline"
+            title="No Results Found"
+            message={filterError}
+            buttonText="Clear Search"
+            onButtonPress={() => {
+              setSearchQuery('');
+              setFilterError('');
+            }}
+          />
         </View>
       );
     }
 
-    // Show offline state
-    if (!isConnected) {
+    // No places found state (priority 5)
+    if (location && places.length === 0 && !placesLoading) {
       return (
-        <EmptyState
-          icon="wifi-outline"
-          title="You're Offline"
-          message="Please check your internet connection and try again."
-          buttonText="Retry"
-          onButtonPress={refreshLocation}
-        />
+        <View style={styles.content}>
+          <Text style={styles.sectionTitle}>Discover Nearby</Text>
+          <EmptyState
+            icon="compass-outline"
+            title="No Places Found"
+            message="We couldn't find any places nearby. Try adjusting your search area or filters."
+            buttonText="Search Again"
+            onButtonPress={refreshLocation}
+          />
+        </View>
       );
     }
 
-    // Show empty state when no location
+    // Places list (success state)
+    if (location && places.length > 0) {
+      return (
+        <View style={styles.content}> 
+          <Text style={styles.sectionTitle}>Discover Nearby</Text>
+          {filteredPlaces.length === 0 && searchQuery ? (
+            <EmptyState
+              icon="search-outline"
+              title="No Matches"
+              message={`No places match "${searchQuery}"`}
+              buttonText="Clear Search"
+              onButtonPress={() => {
+                setSearchQuery('');
+                setFilterError('');
+              }}
+            />
+          ) : (
+            filteredPlaces.map((place) => (
+              <PlaceCard
+                key={place.id}
+                place={place}
+                onPress={() => {
+                  console.log('Place pressed:', place.name);
+                  showToast(`Viewing ${place.name}`, 'info');
+                }}
+              />
+            ))
+          )}
+        </View>
+      );
+    }
+
+    // Empty state when no location
     return (
       <EmptyState
-        icon="location"
+        icon="location-outline"
         title="No Location Available"
         message="Enable location services or enter a city to discover places near you."
         buttonText="Enter Location"
@@ -326,6 +411,25 @@ export default function DiscoverScreen() {
           <Text style={styles.subtitle}>Explore places around you</Text>
         </View>
 
+        {/* Optional Search Bar - ADD THIS for better UX */}
+        {location && permissionStatus === 'granted' && places.length > 0 && (
+          <View style={styles.searchContainer}>
+            <Ionicons name="search" size={20} color="#999" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search places..."
+              value={searchQuery}
+              onChangeText={handleSearch}
+              placeholderTextColor="#999"
+            />
+            {searchQuery ? (
+              <TouchableOpacity onPress={() => handleSearch('')}>
+                <Ionicons name="close-circle" size={20} color="#999" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        )}
+
         {renderPermissionState()}
         {renderContent()}
       </ScrollView>
@@ -351,6 +455,9 @@ export default function DiscoverScreen() {
   );
 }
 
+// Add TextInput to imports
+import { TextInput } from 'react-native';
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -372,6 +479,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginTop: 4,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e1e1e1',
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+    paddingVertical: 8,
   },
   loadingCard: {
     marginHorizontal: 16,
