@@ -1,11 +1,11 @@
-import { Test, TestingModule } from "@nestjs/testing"
-import { UserController } from "./user.controller"
-import { UserService } from "../service/user.service"
-import { NotFoundException } from "@nestjs/common";
-import { UserResponseDTO } from "../DTOs/user.response.DTO";
-import { GetUserDTO } from "../DTOs/get.user.DTO";
-import { UpdateUserDTO } from "../DTOs/update.user.DTO";
-import { DeleteUserDTO } from "../DTOs/delete.user.DTO";
+import { Test, TestingModule } from '@nestjs/testing';
+import { UserController } from './user.controller';
+import { UserService } from '../service/user.service';
+import { NotFoundException } from '@nestjs/common';
+import { UserResponseDTO } from '../DTOs/user.response.DTO';
+import { GetUserDTO } from '../DTOs/get.user.DTO';
+import { UpdateUserDTO } from '../DTOs/update.user.DTO';
+import { DeleteUserDTO } from '../DTOs/delete.user.DTO';
 
 /**
  * UserController unit tests
@@ -18,67 +18,133 @@ import { DeleteUserDTO } from "../DTOs/delete.user.DTO";
  * To run the tests, use the command: npm test -- apps/backend/src/user/controller/user.controller.spec.ts
  *
  */
+describe('UserController - Unit Test', () => {
+  let controller: UserController;
+  let service: UserService;
 
-describe('UserController', () => {
-    let userController: UserController;
-    let userService: UserService;
+  const mockUser = {
+    _id: 'user_123',
+    firebaseUid: '1234567890123456789012345678',
+    username: 'testuser',
+    email: 'test@example.com',
+    role: 'member',
+    profile: {},
+    badges: [],
+    friends: [],
+    favorites: [],
+    wishlist: [],
+    isBanned: false,
+    isSuspended: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastLogin: new Date(),
+  };
 
-    const mockUser = { username: 'testuser', firebaseUid: '1234567890123456789012345678' };
-    const mockRequest = { user: { uid: '1234567890123456789012345678' } };
+  const mockRequest = {
+    user: { uid: '1234567890123456789012345678' }
+  };
 
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            controllers: [UserController],
-            providers: [{
-                provide: UserService,
-                useValue: {
-                    findOne: jest.fn().mockResolvedValue(mockUser),
-                    updateUser: jest.fn().mockResolvedValue(mockUser),
-                    findById: jest.fn().mockResolvedValue(mockUser),
-                    findByUsername: jest.fn().mockResolvedValue(mockUser),
-                    deleteUser: jest.fn().mockResolvedValue(mockUser),
-                }
-            }]
-        }).compile();
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [UserController],
+      providers: [
+        {
+          provide: UserService,
+          useValue: {
+            findById: jest.fn().mockResolvedValue(mockUser),
+            findByUsername: jest.fn().mockResolvedValue(mockUser),
+            updateUser: jest.fn().mockResolvedValue(mockUser),
+            deleteUser: jest.fn().mockResolvedValue(mockUser),
+          },
+        },
+      ],
+    }).compile();
 
-        userController = module.get<UserController>(UserController);
-        userService = module.get<UserService>(UserService);
+    controller = module.get<UserController>(UserController);
+    service = module.get<UserService>(UserService);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+    expect(service).toBeDefined();
+  });
+
+  describe('findOne', () => {
+    it('should return user by firebaseUid', async () => {
+      const params = { firebaseUid: '1234567890123456789012345678' } as GetUserDTO;
+
+      const result = await controller.findOne(params);
+
+      expect(service.findById).toHaveBeenCalledWith(params.firebaseUid);
+      expect(result).toBeInstanceOf(UserResponseDTO);
+      expect(result.username).toBe(mockUser.username);
     });
 
-    it("findOne -> Should extract UID from DTO and return UserResponseDTO", async () => {
-        const params = { firebaseUid: '1234567890123456789012345678' };
-        
-        const result = await userController.findOne(params as GetUserDTO);
+    it('should return user by username', async () => {
+      const params = { username: 'testuser' } as GetUserDTO;
 
-        expect(userService.findById).toHaveBeenCalledWith(params.firebaseUid);
-        expect(result).toBeInstanceOf(UserResponseDTO);
-        expect(result.username).toBe(mockUser.username);
+      const result = await controller.findOne(params);
+
+      expect(service.findByUsername).toHaveBeenCalledWith(params.username);
+      expect(result).toBeInstanceOf(UserResponseDTO);
+      expect(result.username).toBe(mockUser.username);
     });
 
-    it("updateUser -> Should pass req.user.uid and DTO to service", async () => {
-        const updateDto = { username: 'newname' };
-        
-        const result = await userController.updateUser(mockRequest, updateDto as UpdateUserDTO);
+    it('should throw NotFoundException if user not found by firebaseUid', async () => {
+      jest.spyOn(service, 'findById').mockResolvedValue(null);
+      const params = { firebaseUid: 'nonexistent' } as GetUserDTO;
 
-        expect(userService.updateUser).toHaveBeenCalledWith(mockRequest.user.uid, updateDto);
-        expect(result).toBeInstanceOf(UserResponseDTO);
+      await expect(controller.findOne(params))
+        .rejects.toThrow(NotFoundException);
     });
 
-    it("deleteUser -> Should call service with DTO and return response", async () => {
-        const params = { firebaseUid: '1234567890123456789012345678' };
-        
-        const result = await userController.deleteUser(params as DeleteUserDTO);
+    it('should throw NotFoundException if user not found by username', async () => {
+      jest.spyOn(service, 'findByUsername').mockResolvedValue(null);
+      const params = { username: 'nonexistent' } as GetUserDTO;
 
-        expect(userService.deleteUser).toHaveBeenCalledWith(params);
-        expect(result).toBeInstanceOf(UserResponseDTO);
+      await expect(controller.findOne(params))
+        .rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('updateUser', () => {
+    it('should update user and return UserResponseDTO', async () => {
+      const updateDto: UpdateUserDTO = { username: 'updateduser' };
+
+      const result = await controller.updateUser(mockRequest, updateDto);
+
+      expect(service.updateUser).toHaveBeenCalledWith(mockRequest.user.uid, updateDto);
+      expect(result).toBeInstanceOf(UserResponseDTO);
     });
 
-    it("findOne -> Should throw NotFoundException if user does not exist", async () => {
-        jest.spyOn(userService, 'findById').mockResolvedValue(null);
-        const params = { firebaseUid: 'missing' };
+    it('should handle multiple field updates', async () => {
+      const updateDto: UpdateUserDTO = {
+        username: 'newusername',
+      };
 
-        await expect(userController.findOne(params as any))
-            .rejects.toThrow(NotFoundException);
+      const result = await controller.updateUser(mockRequest, updateDto);
+
+      expect(service.updateUser).toHaveBeenCalledWith(mockRequest.user.uid, updateDto);
+      expect(result).toBeInstanceOf(UserResponseDTO);
+    });
+  });
+
+  describe('deleteUser', () => {
+    it('should delete user and return UserResponseDTO', async () => {
+      const params: DeleteUserDTO = { firebaseUid: '1234567890123456789012345678' };
+
+      const result = await controller.deleteUser(params);
+
+      expect(service.deleteUser).toHaveBeenCalledWith(params);
+      expect(result).toBeInstanceOf(UserResponseDTO);
     });
 
+    it('should handle deletion of non-existent user', async () => {
+      jest.spyOn(service, 'deleteUser').mockRejectedValue(new NotFoundException());
+      const params: DeleteUserDTO = { firebaseUid: 'nonexistent' };
+
+      await expect(controller.deleteUser(params))
+        .rejects.toThrow(NotFoundException);
+    });
+  });
 });
