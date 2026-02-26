@@ -1,6 +1,6 @@
 import { Exclude, Expose, Type } from "class-transformer";
 import { Profile } from "../../profile/schemas/profile.schema";
-import { Badge } from "../../badges/badges.schema";
+import { Badge } from "../../badges/schemas/badges.schema";
 
 /**
  * DTO for sanitizing and returning user data to the client.

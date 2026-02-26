@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { Profile } from '../profile/schemas/profile.schema'
-import { Badge } from '../badges/badges.schema';
+import { Badge } from '../badges/schemas/badges.schema';
 
 /**
  * Persistence layer representation of a User.

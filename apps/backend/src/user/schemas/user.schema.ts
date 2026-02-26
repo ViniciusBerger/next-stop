@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { Profile, profileSchema } from '../../profile/schemas/profile.schema'
-import { Badge } from '../../badges/badges.schema';
+import { Badge } from '../../badges/schemas/badges.schema';  // ← Import Badge
 
 @Schema({ collection: 'User' })
 export class User extends Document {
@@ -21,10 +21,18 @@ export class User extends Document {
     @Prop({type: profileSchema, default: () => ({}) })
     profile: Profile;
 
-    @Prop({type: [Badge], default: [] })
-    badges: Badge[];
+    // ==== BADGES (UPDATED) ====
+    // Each badge entry has a reference to Badge + when it was earned
+    @Prop({ 
+      type: [{ 
+        badge: { type: Types.ObjectId, ref: 'Badge' },
+        earnedAt: { type: Date, default: Date.now }
+      }], 
+      default: [] 
+    })
+    badges: { badge: Types.ObjectId; earnedAt: Date }[];
 
-    @Prop({type: Types.ObjectId, ref: 'User', default: []})
+    @Prop({type: [Types.ObjectId], ref: 'User', default: []})
     friends: Types.ObjectId[];
 
     // ==== BAN/SUSPEND ====
@@ -62,6 +70,5 @@ export class User extends Document {
     @Prop({ type: [Types.ObjectId], ref: 'Place', default: [] })
     wishlist: Types.ObjectId[];
 }
-
 
 export const userSchema = SchemaFactory.createForClass(User);
