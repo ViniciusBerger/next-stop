@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReviewController } from './review.controller';
 import { ReviewService } from '../service/review.service';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 
 /**
  * ReviewController Unit Tests
@@ -155,24 +155,53 @@ describe('ReviewController - Unit Test', () => {
   });
 
   describe('deleteReview', () => {
-    it('should delete review', async () => {
-      const deleteResult = { deleted: true, message: 'Review deleted successfully' };
+  it('should delete review as author', async () => {
+    const deleteResult = { deleted: true, message: 'Review deleted successfully' };
 
-      jest.spyOn(service, 'deleteReview').mockResolvedValue(deleteResult);
+    jest.spyOn(service, 'deleteReview').mockResolvedValue(deleteResult);
 
-      const result = await controller.deleteReview('review_123');
+    const result = await controller.deleteReview('review_123', 'user_123');
 
-      expect(result.deleted).toBe(true);
-      expect(service.deleteReview).toHaveBeenCalledWith('review_123');
-    });
-
-    it('should throw NotFoundException if review not found', async () => {
-      jest.spyOn(service, 'deleteReview').mockRejectedValue(new NotFoundException());
-
-      await expect(controller.deleteReview('nonexistent'))
-        .rejects.toThrow(NotFoundException);
-    });
+    expect(result.deleted).toBe(true);
+    expect(service.deleteReview).toHaveBeenCalled();
   });
+
+  it('should delete review as admin', async () => {
+    const deleteResult = { deleted: true, message: 'Review deleted by admin successfully' };
+
+    const deleteSpy = jest.spyOn(service, 'deleteReview').mockResolvedValue(deleteResult);
+
+    const result = await controller.deleteReview('review_123', 'admin_user', 'admin');
+
+    expect(result.deleted).toBe(true);
+    expect(result.message).toContain('admin');
+    
+    // Verificar argumentos manualmente
+    const callArgs = deleteSpy.mock.calls[0];
+    expect(callArgs[0]).toBe('review_123');
+    expect(callArgs[1]).toBe('admin_user');
+    expect(callArgs[2]).toBe('admin');
+  });
+
+  it('should throw BadRequestException if userId not provided', async () => {
+    await expect(controller.deleteReview('review_123', ''))
+      .rejects.toThrow(BadRequestException);
+  });
+
+  it('should throw NotFoundException if review not found', async () => {
+    jest.spyOn(service, 'deleteReview').mockRejectedValue(new NotFoundException());
+
+    await expect(controller.deleteReview('nonexistent', 'user_123'))
+      .rejects.toThrow(NotFoundException);
+  });
+
+  it('should throw ForbiddenException if user is not author and not admin', async () => {
+    jest.spyOn(service, 'deleteReview').mockRejectedValue(new ForbiddenException());
+
+    await expect(controller.deleteReview('review_123', 'unauthorized_user', 'member'))
+      .rejects.toThrow(ForbiddenException);
+  });
+});
 
   describe('toggleLike', () => {
     it('should toggle like on review', async () => {

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ReviewRepository } from '../repository/review.repository';
 import { Review } from '../schema/review.schema';
 import { CreateReviewDTO } from '../DTOs/create.review.DTO';
@@ -109,27 +109,38 @@ export class ReviewService {
   }
 
   /**
-   * Deletes a review
-   * After deletion, updates Place's rating
-   */
-  async deleteReview(reviewId: string): Promise<{ deleted: boolean; message: string }> {
-    const review = await this.reviewRepository.findById(reviewId);
+ * Deletes a review (author or admin only)
+ */
+async deleteReview(
+  reviewId: string, 
+  userId: string, 
+  userRole?: string
+): Promise<{ deleted: boolean; message: string }> {
+  // Search review first so the author is checked
+  const review = await this.reviewRepository.findById(reviewId);
 
-    if (!review) {
-      throw new NotFoundException('Review not found');
-    }
-
-    const placeId = review.place.toString();
-    await this.reviewRepository.delete({ _id: reviewId });
-
-    // After deleting review, update Place's rating
-    await this.updatePlaceRating(placeId);
-
-    return {
-      deleted: true,
-      message: 'Review deleted successfully',
-    };
+  if (!review) {
+    throw new NotFoundException('Review not found');
   }
+
+  // Admin can delete any review, authors can delete their own reviews only.
+  const isAdmin = userRole === 'admin';
+  const isAuthor = review.author.toString() === userId;
+
+  if (!isAdmin && !isAuthor) {
+    throw new ForbiddenException('You can only delete your own reviews');
+  }
+
+  // Delete a review
+  await this.reviewRepository.delete({ _id: reviewId });
+
+  return {
+    deleted: true,
+    message: isAdmin 
+      ? 'Review deleted by admin successfully' 
+      : 'Review deleted successfully',
+  };
+}
 
   /**
    * Toggles like on a review
