@@ -4,6 +4,7 @@ import { ReportController } from './controller/report.controller';
 import { ReportService } from './service/report.service';
 import { ReportRepository } from './repository/report.repository';
 import { Report, reportSchema } from './schema/report.schema';
+import { User, userSchema } from '../user/schemas/user.schema';
 
 /**
  * Report Module
@@ -11,7 +12,10 @@ import { Report, reportSchema } from './schema/report.schema';
  */
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Report.name, schema: reportSchema }]),
+    MongooseModule.forFeature([
+      { name: Report.name, schema: reportSchema },
+      { name: User.name, schema: userSchema },
+    ]),
   ],
   controllers: [ReportController],
   providers: [ReportService, ReportRepository],

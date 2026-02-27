@@ -3,29 +3,45 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ReportRepository } from '../repository/report.repository';
 import { Report, ReportStatus } from '../schema/report.schema';
-import { CreateReportDTO } from '../DTOs/create.report.DTO';
 import { GetReportDTO } from '../DTOs/get.report.DTO';
+import { User } from '../../user/schemas/user.schema';
 
 @Injectable()
 export class ReportService {
   constructor(
     private readonly reportRepository: ReportRepository,
-    @InjectModel(Report.name) private readonly reportModel: Model<Report>
+    @InjectModel(Report.name) private reportModel: Model<Report>,
+    @InjectModel(User.name) private userModel: Model<User>,
   ) {}
 
   /**
    * Creates a new report/feedback
    */
-  async createReport(dto: CreateReportDTO): Promise<Report> {
-    const newReport = await this.reportRepository.create(dto as any);
+async createReport(dto: any): Promise<Report> {
+    // 1. Find the user by Firebase UID (the string sent from frontend)
+    const user = await this.userModel.findOne({ firebaseUid: dto.reportedBy }).exec();
 
-    // Populate before returning
+    if (!user) {
+      throw new NotFoundException(`User with UID ${dto.reportedBy} not found`);
+    }
+
+    // 2. Replace the Firebase UID with the real MongoDB _id
+    const reportData = {
+      ...dto,
+      reportedBy: user._id, // This is the 24-char ID the schema wants
+    };
+
+    // 3. Create and save the report
+    const newReport = new this.reportModel(reportData);
+    const savedReport = await newReport.save();
+
+    // 4. Populate the user details before returning
     return await this.reportModel
-      .findById(newReport._id)
+      .findById(savedReport._id)
       .populate('reportedBy', 'username email')
       .exec() as Report;
   }
-
+  
   /**
    * Retrieves all reports with optional filters
    */
