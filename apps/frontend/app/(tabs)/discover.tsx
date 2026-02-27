@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -11,26 +11,51 @@ import {
 import { ScreenLayout } from '@/components/screenLayout';
 import { PlaceCard } from '@/components/placeCard';
 import { Ionicons } from '@expo/vector-icons';
-import { useGeolocation } from '../hooks/useGeolocation';
+import { useGeolocation } from '../../hooks/useGeolocation';
 import { useRouter } from 'expo-router';
+import axios from "axios";
 
 export default function DiscoverScreen() {
-  const { location, refreshLocation } = useGeolocation();
+  const { location } = useGeolocation();
   const [searchQuery, setSearchQuery] = useState('');
+  const [places, setPlaces] = useState<Place[]>([]); // State to hold data from backend
+  const [isLoading, setIsLoading] = useState(true); // Loading state for UI feedback  const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
 
-const dummyPlaces = [
-  { id: '1', name: 'Central Coffee', type: 'cafe', address: '123 Main St', distance: '0.5 km', rating: 4.5 },
-  { id: '2', name: 'Green Park', type: 'park', address: '456 Park Ave', distance: '1.2 km', rating: 4.8 },
-  { id: '3', name: 'Urban Bistro', type: 'restaurant', address: '789 Metro Blvd', distance: '0.8 km', rating: 4.3 },
-  { id: '4', name: 'The Tech Hub', type: 'events', address: '101 Innovation Dr', distance: '2.5 km', rating: 4.9 },
-  { id: '5', name: 'Sunny Side Cafe', type: 'cafe', address: '202 Sunrise Terrace', distance: '1.1 km', rating: 4.6 },
-  { id: '6', name: 'Retro Records', type: 'shop', address: '55 Vinyl Way', distance: '1.5 km', rating: 4.2 },
-  { id: '7', name: 'Wildwood Trail', type: 'park', address: '99 Forest Rd', distance: '3.2 km', rating: 4.7 },
-  { id: '8', name: 'Blue Wave Sushi', type: 'restaurant', address: '303 Coastal Hwy', distance: '2.1 km', rating: 4.4 },
-  { id: '9', name: 'City Library', type: 'events', address: '12 Civic Center', distance: '0.9 km', rating: 4.8 },
-  { id: '10', name: 'The Corner Bakery', type: 'cafe', address: '14 Pastry Lane', distance: '0.4 km', rating: 4.1 },
-];
+  // Define the structure of a Place object so TypeScript understands the data
+  interface Place {
+    id: string;      // Unique identifier from MongoDB
+    name: string;    // Name of the location
+    type: string;    // Category (cafe, park, etc.)
+    address: string; // Physical location
+    distance: string;// Distance from user
+    rating: number;  // User rating
+  }
+
+useEffect(() => {
+    const fetchPlaces = async () => {
+      try {
+        setIsLoading(true);
+        // GET request to your NestJS places endpoint
+        const response = await axios.get('http://localhost:3000/places');
+
+        // Map the backend data to match your frontend interface if needed
+        // Note: MongoDB usually uses '_id', so we ensure 'id' is mapped correctly
+        const formattedPlaces = response.data.map((item: any) => ({
+          ...item,
+          id: item._id || item.id // Use MongoDB _id as the primary key
+        }));
+        
+        setPlaces(formattedPlaces); // Update state with the formatted database results
+      } catch (error) {
+        console.error("Failed to fetch places:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPlaces();
+  }, []);
 
   const handlePlacePress = (place: any) => {
     router.push("/locationdetails");
@@ -76,7 +101,7 @@ return (
             <Text style={styles.sheetTitle}>Places Nearby</Text>
             <View style={styles.titleUnderline} />
 
-            {dummyPlaces.map((item) => (
+            {places.map((item) => (
               <PlaceCard 
                 key={item.id} 
                 place={item} 
