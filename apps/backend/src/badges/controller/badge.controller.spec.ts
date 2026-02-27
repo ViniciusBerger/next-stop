@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadgeController } from './badge.controller';
 import { BadgeService } from '../service/badge.service';
+import { BadgeCheckerService } from '../checker/badge-checker.service'; 
 import { NotFoundException, ConflictException } from '@nestjs/common';
 
 /**
@@ -11,6 +12,7 @@ import { NotFoundException, ConflictException } from '@nestjs/common';
 describe('BadgeController - Unit Test', () => {
   let controller: BadgeController;
   let service: BadgeService;
+  let checkerService: BadgeCheckerService;
 
   const mockBadge = {
     _id: 'badge_123',
@@ -42,16 +44,25 @@ describe('BadgeController - Unit Test', () => {
             incrementAwardedCount: jest.fn(),
           },
         },
+        {
+          provide: BadgeCheckerService,
+          useValue: {
+            checkAllBadges: jest.fn(),
+            awardBadge: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     controller = module.get<BadgeController>(BadgeController);
     service = module.get<BadgeService>(BadgeService);
+    checkerService = module.get<BadgeCheckerService>(BadgeCheckerService);
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
     expect(service).toBeDefined();
+    expect(checkerService).toBeDefined();
   });
 
   describe('createBadge', () => {
@@ -160,6 +171,17 @@ describe('BadgeController - Unit Test', () => {
 
       expect(result.deleted).toBe(true);
       expect(service.deleteBadge).toHaveBeenCalledWith('trendsetter');
+    });
+  });
+
+  describe('recalculateBadges', () => {
+    it('should recalculate badges for a user', async () => {
+      jest.spyOn(checkerService, 'checkAllBadges').mockResolvedValue([]);
+
+      const result = await controller.recalculateBadges('user_123');
+
+      expect(result.success).toBe(true);
+      expect(checkerService.checkAllBadges).toHaveBeenCalledWith('user_123');
     });
   });
 });

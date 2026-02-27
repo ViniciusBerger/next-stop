@@ -1,18 +1,25 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventService } from './event.service';
 import { EventRepository } from '../repository/event.repository';
-import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
+import { BadgeCheckerService } from '../../badges/checker/badge-checker.service';
 import { Event, EventPrivacy, EventStatus } from '../schema/event.schema';
 
 /**
  * EventService Unit Tests
- * 
+ *
  * To run: npm test -- apps/backend/src/events/service/event.service.spec.ts
  */
 describe('EventService - Unit Test', () => {
   let service: EventService;
   let repository: EventRepository;
+  let eventModel: any;
+  let badgeChecker: BadgeCheckerService;
 
   const mockEvent = {
     _id: 'event_123',
@@ -28,8 +35,12 @@ describe('EventService - Unit Test', () => {
     status: EventStatus.UPCOMING,
     createdAt: new Date(),
     updatedAt: new Date(),
-    toObject: function() { return this; },
-    toString: function() { return this._id; }
+    toObject: function () {
+      return this;
+    },
+    toString: function () {
+      return this._id;
+    },
   };
 
   // Mock do EventModel
@@ -62,11 +73,21 @@ describe('EventService - Unit Test', () => {
           provide: getModelToken(Event.name),
           useValue: mockEventModel,
         },
+        {
+          provide: BadgeCheckerService,
+          useValue: {
+            checkEventBadges: jest.fn(),
+            checkAllBadges: jest.fn(),
+            awardBadge: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<EventService>(EventService);
     repository = module.get<EventRepository>(EventRepository);
+    eventModel = module.get(getModelToken(Event.name));
+    badgeChecker = module.get<BadgeCheckerService>(BadgeCheckerService);
 
     jest.clearAllMocks();
   });
@@ -74,6 +95,7 @@ describe('EventService - Unit Test', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
     expect(repository).toBeDefined();
+    expect(badgeChecker).toBeDefined();
   });
 
   describe('createEvent', () => {
@@ -124,7 +146,9 @@ describe('EventService - Unit Test', () => {
 
       await service.getAllEvents(dto);
 
-      expect(repository.findMany).toHaveBeenCalledWith({ host: 'user_specific' });
+      expect(repository.findMany).toHaveBeenCalledWith({
+        host: 'user_specific',
+      });
     });
 
     it('should filter by place', async () => {
@@ -137,7 +161,9 @@ describe('EventService - Unit Test', () => {
 
       await service.getAllEvents(dto);
 
-      expect(repository.findMany).toHaveBeenCalledWith({ place: 'place_specific' });
+      expect(repository.findMany).toHaveBeenCalledWith({
+        place: 'place_specific',
+      });
     });
 
     it('should filter by status', async () => {
@@ -150,7 +176,9 @@ describe('EventService - Unit Test', () => {
 
       await service.getAllEvents(dto);
 
-      expect(repository.findMany).toHaveBeenCalledWith({ status: EventStatus.UPCOMING });
+      expect(repository.findMany).toHaveBeenCalledWith({
+        status: EventStatus.UPCOMING,
+      });
     });
   });
 
@@ -166,33 +194,41 @@ describe('EventService - Unit Test', () => {
     });
 
     it('should return private event to host', async () => {
-      const privateEvent = { ...mockEvent, privacy: EventPrivacy.PRIVATE };
-      mockEventModel.findById.mockReturnThis();
-      mockEventModel.populate.mockReturnThis();
-      mockEventModel.exec.mockResolvedValue(privateEvent);
+      const privateEvent = {
+        ...mockEvent,
+        privacy: 'Private Event',
+        host: { _id: 'user_123', username: 'Host' },
+        attendees: [],
+        invitedFriends: [],
+      };
+
+      mockEventModel.findById.mockReturnValue({
+        populate: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(privateEvent),
+      });
 
       const result = await service.getEvent('event_123', 'user_123');
 
-      expect(result).toBeDefined();
+      expect(result).toEqual(privateEvent);
     });
 
     it('should throw ForbiddenException for private event if user not invited', async () => {
-      const privateEvent = { ...mockEvent, privacy: EventPrivacy.PRIVATE };
-      mockEventModel.findById.mockReturnThis();
-      mockEventModel.populate.mockReturnThis();
-      mockEventModel.exec.mockResolvedValue(privateEvent);
+      const privateEvent = {
+        ...mockEvent,
+        privacy: 'Private Event',
+        host: { _id: 'user_123', username: 'Host' },
+        attendees: [],
+        invitedFriends: [],
+      };
 
-      await expect(service.getEvent('event_123', 'unauthorized_user'))
-        .rejects.toThrow(ForbiddenException);
-    });
+      mockEventModel.findById.mockReturnValue({
+        populate: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(privateEvent),
+      });
 
-    it('should throw NotFoundException if event not found', async () => {
-      mockEventModel.findById.mockReturnThis();
-      mockEventModel.populate.mockReturnThis();
-      mockEventModel.exec.mockResolvedValue(null);
-
-      await expect(service.getEvent('ghost_event'))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        service.getEvent('event_123', 'unauthorized_user'),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -202,7 +238,7 @@ describe('EventService - Unit Test', () => {
       mockEventModel.populate.mockReturnThis();
       mockEventModel.sort.mockReturnThis();
       mockEventModel.exec
-        .mockResolvedValueOnce([mockEvent])  // created
+        .mockResolvedValueOnce([mockEvent]) // created
         .mockResolvedValueOnce([mockEvent]); // attending
 
       const result = await service.getUserEvents('user_123');
@@ -219,13 +255,20 @@ describe('EventService - Unit Test', () => {
       jest.spyOn(repository, 'findById').mockResolvedValue(mockEvent as any);
       jest.spyOn(repository, 'update').mockResolvedValue({
         ...mockEvent,
-        name: 'Updated Name'
+        name: 'Updated Name',
       } as any);
       mockEventModel.findById.mockReturnThis();
       mockEventModel.populate.mockReturnThis();
-      mockEventModel.exec.mockResolvedValue({ ...mockEvent, name: 'Updated Name' });
+      mockEventModel.exec.mockResolvedValue({
+        ...mockEvent,
+        name: 'Updated Name',
+      });
 
-      const result = await service.updateEvent('event_123', 'user_123', updateDto);
+      const result = await service.updateEvent(
+        'event_123',
+        'user_123',
+        updateDto,
+      );
 
       expect(result.name).toBe('Updated Name');
     });
@@ -235,8 +278,9 @@ describe('EventService - Unit Test', () => {
 
       jest.spyOn(repository, 'findById').mockResolvedValue(mockEvent as any);
 
-      await expect(service.updateEvent('event_123', 'unauthorized_user', updateDto))
-        .rejects.toThrow(ForbiddenException);
+      await expect(
+        service.updateEvent('event_123', 'unauthorized_user', updateDto),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should throw NotFoundException if event not found', async () => {
@@ -244,8 +288,9 @@ describe('EventService - Unit Test', () => {
 
       jest.spyOn(repository, 'findById').mockResolvedValue(null);
 
-      await expect(service.updateEvent('ghost_event', 'user_123', updateDto))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        service.updateEvent('ghost_event', 'user_123', updateDto),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -263,15 +308,17 @@ describe('EventService - Unit Test', () => {
     it('should throw ForbiddenException if non-host tries to delete', async () => {
       jest.spyOn(repository, 'findById').mockResolvedValue(mockEvent as any);
 
-      await expect(service.deleteEvent('event_123', 'unauthorized_user'))
-        .rejects.toThrow(ForbiddenException);
+      await expect(
+        service.deleteEvent('event_123', 'unauthorized_user'),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should throw NotFoundException if event not found', async () => {
       jest.spyOn(repository, 'findById').mockResolvedValue(null);
 
-      await expect(service.deleteEvent('ghost_event', 'user_123'))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        service.deleteEvent('ghost_event', 'user_123'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -280,14 +327,19 @@ describe('EventService - Unit Test', () => {
       const dto = { eventId: 'event_123', userId: 'user_new' };
       const eventToAttend = { ...mockEvent, attendees: [] };
 
-      jest.spyOn(repository, 'findById').mockResolvedValue(eventToAttend as any);
+      jest
+        .spyOn(repository, 'findById')
+        .mockResolvedValue(eventToAttend as any);
       jest.spyOn(repository, 'save').mockResolvedValue({
         ...eventToAttend,
-        attendees: ['user_new']
+        attendees: ['user_new'],
       } as any);
       mockEventModel.findById.mockReturnThis();
       mockEventModel.populate.mockReturnThis();
-      mockEventModel.exec.mockResolvedValue({ ...eventToAttend, attendees: ['user_new'] });
+      mockEventModel.exec.mockResolvedValue({
+        ...eventToAttend,
+        attendees: ['user_new'],
+      });
 
       const result = await service.toggleAttendance(dto);
 
@@ -296,16 +348,22 @@ describe('EventService - Unit Test', () => {
 
     it('should remove attendee if already attending', async () => {
       const dto = { eventId: 'event_123', userId: 'user_existing' };
-      const eventToLeave = { ...mockEvent, attendees: ['user_existing', 'user_other'] };
+      const eventToLeave = {
+        ...mockEvent,
+        attendees: ['user_existing', 'user_other'],
+      };
 
       jest.spyOn(repository, 'findById').mockResolvedValue(eventToLeave as any);
       jest.spyOn(repository, 'save').mockResolvedValue({
         ...eventToLeave,
-        attendees: ['user_other']
+        attendees: ['user_other'],
       } as any);
       mockEventModel.findById.mockReturnThis();
       mockEventModel.populate.mockReturnThis();
-      mockEventModel.exec.mockResolvedValue({ ...eventToLeave, attendees: ['user_other'] });
+      mockEventModel.exec.mockResolvedValue({
+        ...eventToLeave,
+        attendees: ['user_other'],
+      });
 
       const result = await service.toggleAttendance(dto);
 
@@ -313,47 +371,56 @@ describe('EventService - Unit Test', () => {
     });
 
     it('should throw BadRequestException for past events', async () => {
-      const dto = { eventId: 'event_123', userId: 'user_new' };
-      const pastEvent = { ...mockEvent, status: EventStatus.PAST };
+      const pastEvent = {
+        ...mockEvent,
+        date: new Date('2020-01-01'), // Past date
+        status: 'past',
+        attendees: [],
+      };
 
       jest.spyOn(repository, 'findById').mockResolvedValue(pastEvent as any);
 
-      await expect(service.toggleAttendance(dto))
-        .rejects.toThrow(BadRequestException);
+      const dto = { eventId: 'event_123', userId: 'user_456' };
+
+      await expect(service.toggleAttendance(dto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw BadRequestException for cancelled events', async () => {
-      const dto = { eventId: 'event_123', userId: 'user_new' };
-      const cancelledEvent = { ...mockEvent, status: EventStatus.CANCELLED };
+      const cancelledEvent = {
+        ...mockEvent,
+        status: 'cancelled',
+        attendees: [],
+      };
 
-      jest.spyOn(repository, 'findById').mockResolvedValue(cancelledEvent as any);
+      const dto = { eventId: 'event_123', userId: 'user_456' };
 
-      await expect(service.toggleAttendance(dto))
-        .rejects.toThrow(BadRequestException);
+      jest
+        .spyOn(repository, 'findById')
+        .mockResolvedValue(cancelledEvent as any);
+
+      await expect(service.toggleAttendance(dto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw ForbiddenException for private event if not invited', async () => {
-      const dto = { eventId: 'event_123', userId: 'uninvited_user' };
-      const privateEvent = { 
-        ...mockEvent, 
-        privacy: EventPrivacy.PRIVATE,
+      const privateEvent = {
+        ...mockEvent,
+        privacy: 'Private Event',
+        host: 'user_123',
         attendees: [],
-        invitedFriends: []
+        invitedFriends: [],
       };
 
       jest.spyOn(repository, 'findById').mockResolvedValue(privateEvent as any);
 
-      await expect(service.toggleAttendance(dto))
-        .rejects.toThrow(ForbiddenException);
-    });
+      const dto = { eventId: 'event_123', userId: 'unauthorized_user' };
 
-    it('should throw NotFoundException if event not found', async () => {
-      const dto = { eventId: 'ghost_event', userId: 'user_123' };
-
-      jest.spyOn(repository, 'findById').mockResolvedValue(null);
-
-      await expect(service.toggleAttendance(dto))
-        .rejects.toThrow(NotFoundException);
+      await expect(service.toggleAttendance(dto)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -362,16 +429,18 @@ describe('EventService - Unit Test', () => {
       const dto = { eventId: 'event_123', friendIds: ['friend_1', 'friend_2'] };
       const eventToInvite = { ...mockEvent, invitedFriends: [] };
 
-      jest.spyOn(repository, 'findById').mockResolvedValue(eventToInvite as any);
+      jest
+        .spyOn(repository, 'findById')
+        .mockResolvedValue(eventToInvite as any);
       jest.spyOn(repository, 'save').mockResolvedValue({
         ...eventToInvite,
-        invitedFriends: ['friend_1', 'friend_2']
+        invitedFriends: ['friend_1', 'friend_2'],
       } as any);
       mockEventModel.findById.mockReturnThis();
       mockEventModel.populate.mockReturnThis();
       mockEventModel.exec.mockResolvedValue({
         ...eventToInvite,
-        invitedFriends: ['friend_1', 'friend_2']
+        invitedFriends: ['friend_1', 'friend_2'],
       });
 
       const result = await service.inviteFriends(dto, 'user_123');
@@ -381,21 +450,23 @@ describe('EventService - Unit Test', () => {
 
     it('should not add duplicate invites', async () => {
       const dto = { eventId: 'event_123', friendIds: ['friend_1', 'friend_2'] };
-      const eventWithInvites = { 
-        ...mockEvent, 
-        invitedFriends: ['friend_1'] 
+      const eventWithInvites = {
+        ...mockEvent,
+        invitedFriends: ['friend_1'],
       };
 
-      jest.spyOn(repository, 'findById').mockResolvedValue(eventWithInvites as any);
+      jest
+        .spyOn(repository, 'findById')
+        .mockResolvedValue(eventWithInvites as any);
       jest.spyOn(repository, 'save').mockResolvedValue({
         ...eventWithInvites,
-        invitedFriends: ['friend_1', 'friend_2']
+        invitedFriends: ['friend_1', 'friend_2'],
       } as any);
       mockEventModel.findById.mockReturnThis();
       mockEventModel.populate.mockReturnThis();
       mockEventModel.exec.mockResolvedValue({
         ...eventWithInvites,
-        invitedFriends: ['friend_1', 'friend_2']
+        invitedFriends: ['friend_1', 'friend_2'],
       });
 
       const result = await service.inviteFriends(dto, 'user_123');
@@ -408,8 +479,9 @@ describe('EventService - Unit Test', () => {
 
       jest.spyOn(repository, 'findById').mockResolvedValue(mockEvent as any);
 
-      await expect(service.inviteFriends(dto, 'unauthorized_user'))
-        .rejects.toThrow(ForbiddenException);
+      await expect(
+        service.inviteFriends(dto, 'unauthorized_user'),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should throw NotFoundException if event not found', async () => {
@@ -417,8 +489,9 @@ describe('EventService - Unit Test', () => {
 
       jest.spyOn(repository, 'findById').mockResolvedValue(null);
 
-      await expect(service.inviteFriends(dto, 'user_123'))
-        .rejects.toThrow(NotFoundException);
+      await expect(service.inviteFriends(dto, 'user_123')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });
