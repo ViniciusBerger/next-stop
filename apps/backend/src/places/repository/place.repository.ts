@@ -19,7 +19,36 @@ export class PlaceRepository {
   }
 
   async findMany(filter: IplaceData): Promise<Place[]> {
-    return await this.placeModel.find(filter).exec();
+    return await this.placeModel
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .exec();
+  }
+
+  async findById(id: string): Promise<Place | null> {
+    return await this.placeModel.findById(id).exec();
+  }
+
+  async findNearby( // finds places by proximity
+    latitude: number,
+    longitude: number,
+    radiusMeters: number,
+    additionalFilters?: IplaceData
+  ): Promise<Place[]> {
+    const query: any = {
+      location: {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [longitude, latitude], // [lng, lat]
+          },
+          $maxDistance: radiusMeters,
+        },
+      },
+      ...additionalFilters,
+    };
+
+    return await this.placeModel.find(query).exec();
   }
 
   async update(

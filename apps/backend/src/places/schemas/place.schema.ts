@@ -3,7 +3,7 @@ import { Document, Types } from 'mongoose';
 
 @Schema({ collection: 'Place' })
 export class Place extends Document {
-  // FROM GOOGLE API
+  // FROM GOOGLE PLACES
   @Prop({ type: String, required: true, unique: true })
   googlePlaceId: string;
 
@@ -11,31 +11,50 @@ export class Place extends Document {
   name: string;
 
   @Prop({ type: String, required: true })
-  address: string; // formatted_address from Google
+  address: string;
 
   @Prop({ type: String, required: true })
-  category: string; // Restaurant, Pub, Park, etc
+  category: string;
 
-  @Prop({ type: String, default: '' })
-  description: string; // editorial_summary from Google (or empty)
+  @Prop({ type: String })
+  description?: string;
 
-  // FROM USERS (CUSTOMIZED)
+  // ============== PRICE LEVEL ==============
+  @Prop({ type: Number, min: 0, max: 4 })
+  priceLevel?: number;
+
+  // ============== LOCATION (OPTIONAL) ==============
+  @Prop({
+    type: {
+      type: String,
+      enum: ['Point'],
+    },
+    coordinates: {
+      type: [Number],
+    },
+  })
+  location?: {
+    type: string;
+    coordinates: number[];
+  };
+
+  // FROM USERS
   @Prop({ type: [String], default: [] })
-  customImages: string[]; // URLs to user-uploaded images
+  customImages: string[];
 
   @Prop({ type: [String], default: [] })
-  customTags: string[]; // cuisine type, ambiance, etc
+  customTags: string[];
 
   // SOCIAL DATA
   @Prop({ type: Number, default: 0 })
-  averageUserRating: number; // calculated from reviews
+  averageUserRating: number;
 
   @Prop({ type: Number, default: 0 })
-  totalUserReviews: number; // counter
+  totalUserReviews: number;
 
   // METADATA
-  @Prop({ type: Types.ObjectId, ref: 'User', required: false })
-  createdBy?: Types.ObjectId; // first user who added this place
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  createdBy?: Types.ObjectId;
 
   @Prop({ type: Date, default: Date.now })
   createdAt: Date;
@@ -45,3 +64,6 @@ export class Place extends Document {
 }
 
 export const placeSchema = SchemaFactory.createForClass(Place);
+
+// Geospatial index
+placeSchema.index({ location: '2dsphere' });

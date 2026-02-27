@@ -1,9 +1,44 @@
-import { IsString, IsOptional, IsArray, IsNumber, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsNumber, Min, Max, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class LocationDTO {
+  @IsString()
+  type: string;
+
+  @IsArray()
+  @IsNumber({}, { each: true })
+  coordinates: number[];
+}
 
 export class UpdatePlaceDTO {
   @IsOptional()
   @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsString()
   description?: string;
+
+  // PRICE LEVEL
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(4)
+  priceLevel?: number;
+
+  // LOCATION
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LocationDTO)
+  location?: LocationDTO;
 
   @IsOptional()
   @IsArray()
@@ -14,16 +49,4 @@ export class UpdatePlaceDTO {
   @IsArray()
   @IsString({ each: true })
   customTags?: string[];
-
-  // These fields are updated by the system, not directly by users
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(5)
-  averageUserRating?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  totalUserReviews?: number;
 }

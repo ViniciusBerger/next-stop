@@ -130,6 +130,46 @@ describe('PlaceController - Unit Test', () => {
       expect(service.getPlace).toHaveBeenCalledWith(dto);
     });
 
+    it('should filter places by maxPriceLevel', async () => {
+      const dto = { maxPriceLevel: 2 } as any;
+      jest.spyOn(service, 'getAllPlaces').mockResolvedValue([mockPlace] as any);
+
+      const result = await controller.getPlaces(dto);
+
+      expect(result).toBeDefined();
+      expect(service.getAllPlaces).toHaveBeenCalledWith(dto);
+    });
+
+    it('should filter places by location proximity', async () => {
+      const dto = {
+        latitude: 49.2827,
+        longitude: -123.1207,
+        radiusMeters: 5000,
+      } as any;
+      jest.spyOn(service, 'getAllPlaces').mockResolvedValue([mockPlace] as any);
+
+      const result = await controller.getPlaces(dto);
+
+      expect(result).toBeDefined();
+      expect(service.getAllPlaces).toHaveBeenCalledWith(dto);
+    });
+
+    it('should filter places by combined filters (location + category + price)', async () => {
+      const dto = {
+        latitude: 49.2827,
+        longitude: -123.1207,
+        radiusMeters: 3000,
+        category: 'Restaurant',
+        maxPriceLevel: 2,
+      } as any;
+      jest.spyOn(service, 'getAllPlaces').mockResolvedValue([mockPlace] as any);
+
+      const result = await controller.getPlaces(dto);
+
+      expect(result).toBeDefined();
+      expect(service.getAllPlaces).toHaveBeenCalledWith(dto);
+    });
+
     it('should return place by id', async () => {
       const dto = { id: 'place_123' } as any;
       jest.spyOn(service, 'getPlace').mockResolvedValue(mockPlace as any);

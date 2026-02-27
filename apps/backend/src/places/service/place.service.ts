@@ -1,4 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { PlaceRepository } from '../repository/place.repository';
 import { Place } from '../schemas/place.schema';
 import { CreatePlaceDTO } from '../DTOs/create.place.DTO';
@@ -7,62 +9,76 @@ import { GetPlaceDTO } from '../DTOs/get.place.DTO';
 
 @Injectable()
 export class PlaceService {
-  constructor(private readonly placeRepository: PlaceRepository) {}
+  constructor(
+    private readonly placeRepository: PlaceRepository,
+    @InjectModel(Place.name) private readonly placeModel: Model<Place>
+  ) {}
 
   /**
    * Creates a new place
-   * Checks for duplicate googlePlaceId before creating
    */
   async createPlace(dto: CreatePlaceDTO): Promise<Place> {
-    // Check if place with this googlePlaceId already exists
     const existingPlace = await this.placeRepository.findOne({
       googlePlaceId: dto.googlePlaceId,
     });
 
     if (existingPlace) {
-      throw new ConflictException(
-        `Place with googlePlaceId ${dto.googlePlaceId} already exists`,
-      );
+      throw new ConflictException('Place with this Google Place ID already exists');
     }
 
-    return await this.placeRepository.create(dto as any); // ← CORRIGIDO
+    return await this.placeRepository.create(dto as any);
   }
 
   /**
    * Retrieves all places with optional filters
    */
   async getAllPlaces(dto?: GetPlaceDTO): Promise<Place[]> {
-    if (!dto) {
-      return await this.placeRepository.findMany({});
+    // LOCATION FILTER (proximity)
+    if (dto?.latitude && dto?.longitude) {
+      const radiusMeters = dto.radiusMeters || 5000; // Default 5km
+
+      const additionalFilters: any = {};
+      if (dto.category) additionalFilters.category = dto.category;
+      if (dto.maxPriceLevel !== undefined) {
+        additionalFilters.priceLevel = { $lte: dto.maxPriceLevel };
+      }
+
+      return await this.placeRepository.findNearby(
+        dto.latitude,
+        dto.longitude,
+        radiusMeters,
+        additionalFilters
+      );
     }
 
+    // STANDARD FILTERS
     const filter: any = {};
 
-    if (dto.googlePlaceId) {
-      filter.googlePlaceId = dto.googlePlaceId;
-    }
-    if (dto.category) {
-      filter.category = dto.category;
-    }
-    if (dto.name) {
-      // Case-insensitive partial match
-      filter.name = { $regex: dto.name, $options: 'i' };
+    if (dto) {
+      if (dto.googlePlaceId) filter.googlePlaceId = dto.googlePlaceId;
+      if (dto.category) filter.category = dto.category;
+      if (dto.name) filter.name = { $regex: dto.name, $options: 'i' };
+      
+      // PRICE FILTER
+      if (dto.maxPriceLevel !== undefined) {
+        filter.priceLevel = { $lte: dto.maxPriceLevel };
+      }
     }
 
     return await this.placeRepository.findMany(filter);
   }
 
   /**
-   * Retrieves a single place by ID or googlePlaceId
+   * Retrieves a specific place
    */
   async getPlace(dto: GetPlaceDTO): Promise<Place> {
-    const { id, googlePlaceId } = dto;
-    const filter: any = {};
+    let place: Place | null = null;
 
-    if (id) filter._id = id;
-    if (googlePlaceId) filter.googlePlaceId = googlePlaceId;
-
-    const place = await this.placeRepository.findOne(filter);
+    if (dto.id) {
+      place = await this.placeRepository.findById(dto.id);
+    } else if (dto.googlePlaceId) {
+      place = await this.placeRepository.findOne({ googlePlaceId: dto.googlePlaceId });
+    }
 
     if (!place) {
       throw new NotFoundException('Place not found');
@@ -72,43 +88,17 @@ export class PlaceService {
   }
 
   /**
-   * Updates place data
+   * Updates a place
    */
-  async updatePlace(
-    getDto: GetPlaceDTO,
-    updateDto: UpdatePlaceDTO,
-  ): Promise<Place> {
-    const { id, googlePlaceId } = getDto;
+  async updatePlace(getDto: GetPlaceDTO, updateDto: UpdatePlaceDTO): Promise<Place> {
     const filter: any = {};
 
-    if (id) filter._id = id;
-    if (googlePlaceId) filter.googlePlaceId = googlePlaceId;
+    if (getDto.id) filter._id = getDto.id;
+    if (getDto.googlePlaceId) filter.googlePlaceId = getDto.googlePlaceId;
 
-    // Build update object
-    const updateData: any = {};
+    const updateData: any = { ...updateDto, updatedAt: new Date() };
 
-    if (updateDto.description !== undefined) {
-      updateData.description = updateDto.description;
-    }
-    if (updateDto.customImages !== undefined) {
-      updateData.customImages = updateDto.customImages;
-    }
-    if (updateDto.customTags !== undefined) {
-      updateData.customTags = updateDto.customTags;
-    }
-    if (updateDto.averageUserRating !== undefined) {
-      updateData.averageUserRating = updateDto.averageUserRating;
-    }
-    if (updateDto.totalUserReviews !== undefined) {
-      updateData.totalUserReviews = updateDto.totalUserReviews;
-    }
-
-    updateData.updatedAt = new Date();
-
-    const updatedPlace = await this.placeRepository.update(
-      filter,
-      { $set: updateData }
-    );
+    const updatedPlace = await this.placeRepository.update(filter, { $set: updateData });
 
     if (!updatedPlace) {
       throw new NotFoundException('Place not found');
@@ -121,11 +111,10 @@ export class PlaceService {
    * Deletes a place
    */
   async deletePlace(dto: GetPlaceDTO): Promise<{ deleted: boolean; message: string }> {
-    const { id, googlePlaceId } = dto;
     const filter: any = {};
 
-    if (id) filter._id = id;
-    if (googlePlaceId) filter.googlePlaceId = googlePlaceId;
+    if (dto.id) filter._id = dto.id;
+    if (dto.googlePlaceId) filter.googlePlaceId = dto.googlePlaceId;
 
     const deletedPlace = await this.placeRepository.delete(filter);
 
@@ -137,26 +126,5 @@ export class PlaceService {
       deleted: true,
       message: `Place "${deletedPlace.name}" deleted successfully`,
     };
-  }
-
-  /**
-   * Helper method to update place rating
-   * Called when a review is added/updated/deleted
-   */
-  async updatePlaceRating(
-    placeId: string,
-    newRating: number,
-    reviewCount: number
-  ): Promise<void> {
-    await this.placeRepository.update(
-      { _id: placeId },
-      {
-        $set: {
-          averageUserRating: newRating,
-          totalUserReviews: reviewCount,
-          updatedAt: new Date(),
-        },
-      }
-    );
   }
 }

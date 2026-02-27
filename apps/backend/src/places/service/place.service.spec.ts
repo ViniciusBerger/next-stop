@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PlaceService } from './place.service';
 import { PlaceRepository } from '../repository/place.repository';
 import { NotFoundException, ConflictException } from '@nestjs/common';
+import { getModelToken } from '@nestjs/mongoose';
+import { Place } from '../schemas/place.schema';
 
 /**
  * PlaceService Unit Tests
@@ -29,6 +31,16 @@ describe('PlaceService - Unit Test', () => {
     updatedAt: new Date(),
   };
 
+  // Mock do PlaceModel
+  const mockPlaceModel = {
+    find: jest.fn().mockReturnThis(),
+    findById: jest.fn().mockReturnThis(),
+    findOne: jest.fn().mockReturnThis(),
+    populate: jest.fn().mockReturnThis(),
+    sort: jest.fn().mockReturnThis(),
+    exec: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -39,15 +51,23 @@ describe('PlaceService - Unit Test', () => {
             create: jest.fn(),
             findOne: jest.fn(),
             findMany: jest.fn(),
+            findById: jest.fn(),
+            findNearby: jest.fn(), // ← ADICIONAR
             update: jest.fn(),
             delete: jest.fn(),
           },
+        },
+        {
+          provide: getModelToken(Place.name), // ← ADICIONAR
+          useValue: mockPlaceModel,
         },
       ],
     }).compile();
 
     service = module.get<PlaceService>(PlaceService);
     repository = module.get<PlaceRepository>(PlaceRepository);
+
+    jest.clearAllMocks(); // ← ADICIONAR
   });
 
   it('should be defined', () => {
@@ -62,7 +82,7 @@ describe('PlaceService - Unit Test', () => {
         name: 'New Restaurant',
         address: '456 New St',
         category: 'Restaurant',
-      };
+      } as any; // ← ADICIONAR 'as any'
 
       jest.spyOn(repository, 'findOne').mockResolvedValue(null);
       jest.spyOn(repository, 'create').mockResolvedValue(mockPlace as any);
@@ -80,7 +100,7 @@ describe('PlaceService - Unit Test', () => {
         name: 'Duplicate',
         address: 'Address',
         category: 'Restaurant',
-      };
+      } as any; // ← ADICIONAR 'as any'
 
       jest.spyOn(repository, 'findOne').mockResolvedValue(mockPlace as any);
 
@@ -100,7 +120,7 @@ describe('PlaceService - Unit Test', () => {
     });
 
     it('should filter by category', async () => {
-      const dto = { category: 'Restaurant' };
+      const dto = { category: 'Restaurant' } as any;
       jest.spyOn(repository, 'findMany').mockResolvedValue([mockPlace] as any);
 
       await service.getAllPlaces(dto);
@@ -109,7 +129,7 @@ describe('PlaceService - Unit Test', () => {
     });
 
     it('should filter by googlePlaceId', async () => {
-      const dto = { googlePlaceId: 'ChIJ_test' };
+      const dto = { googlePlaceId: 'ChIJ_test' } as any;
       jest.spyOn(repository, 'findMany').mockResolvedValue([mockPlace] as any);
 
       await service.getAllPlaces(dto);
@@ -118,7 +138,7 @@ describe('PlaceService - Unit Test', () => {
     });
 
     it('should search by name with regex', async () => {
-      const dto = { name: 'Pizza' };
+      const dto = { name: 'Pizza' } as any;
       jest.spyOn(repository, 'findMany').mockResolvedValue([mockPlace] as any);
 
       await service.getAllPlaces(dto);
@@ -131,7 +151,7 @@ describe('PlaceService - Unit Test', () => {
 
   describe('getPlace', () => {
     it('should return place by googlePlaceId', async () => {
-      const dto = { googlePlaceId: 'ChIJ_test' };
+      const dto = { googlePlaceId: 'ChIJ_test' } as any;
       jest.spyOn(repository, 'findOne').mockResolvedValue(mockPlace as any);
 
       const result = await service.getPlace(dto);
@@ -141,17 +161,17 @@ describe('PlaceService - Unit Test', () => {
     });
 
     it('should return place by id', async () => {
-      const dto = { id: 'place_123' };
-      jest.spyOn(repository, 'findOne').mockResolvedValue(mockPlace as any);
+      const dto = { id: 'place_123' } as any;
+      jest.spyOn(repository, 'findById').mockResolvedValue(mockPlace as any); // ← CORRIGIR
 
       const result = await service.getPlace(dto);
 
       expect(result).toEqual(mockPlace);
-      expect(repository.findOne).toHaveBeenCalledWith({ _id: 'place_123' });
+      expect(repository.findById).toHaveBeenCalledWith('place_123'); // ← CORRIGIR
     });
 
     it('should throw NotFoundException if place not found', async () => {
-      const dto = { googlePlaceId: 'ghost' };
+      const dto = { googlePlaceId: 'ghost' } as any;
       jest.spyOn(repository, 'findOne').mockResolvedValue(null);
 
       await expect(service.getPlace(dto))
@@ -161,8 +181,8 @@ describe('PlaceService - Unit Test', () => {
 
   describe('updatePlace', () => {
     it('should update place description', async () => {
-      const getDto = { googlePlaceId: 'ChIJ_test' };
-      const updateDto = { description: 'Updated description' };
+      const getDto = { googlePlaceId: 'ChIJ_test' } as any;
+      const updateDto = { description: 'Updated description' } as any; // ← ADICIONAR 'as any'
 
       jest.spyOn(repository, 'update').mockResolvedValue({
         ...mockPlace,
@@ -183,8 +203,8 @@ describe('PlaceService - Unit Test', () => {
     });
 
     it('should update custom images', async () => {
-      const getDto = { id: 'place_123' };
-      const updateDto = { customImages: ['img1.jpg', 'img2.jpg'] };
+      const getDto = { id: 'place_123' } as any;
+      const updateDto = { customImages: ['img1.jpg', 'img2.jpg'] } as any; // ← ADICIONAR 'as any'
 
       jest.spyOn(repository, 'update').mockResolvedValue(mockPlace as any);
 
@@ -200,28 +220,9 @@ describe('PlaceService - Unit Test', () => {
       );
     });
 
-    it('should update rating and review count', async () => {
-      const getDto = { googlePlaceId: 'ChIJ_test' };
-      const updateDto = { averageUserRating: 4.5, totalUserReviews: 10 };
-
-      jest.spyOn(repository, 'update').mockResolvedValue(mockPlace as any);
-
-      await service.updatePlace(getDto, updateDto);
-
-      expect(repository.update).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          $set: expect.objectContaining({
-            averageUserRating: 4.5,
-            totalUserReviews: 10
-          })
-        })
-      );
-    });
-
     it('should throw NotFoundException if place not found', async () => {
-      const getDto = { googlePlaceId: 'ghost' };
-      const updateDto = { description: 'test' };
+      const getDto = { googlePlaceId: 'ghost' } as any;
+      const updateDto = { description: 'test' } as any;
 
       jest.spyOn(repository, 'update').mockResolvedValue(null);
 
@@ -232,7 +233,7 @@ describe('PlaceService - Unit Test', () => {
 
   describe('deletePlace', () => {
     it('should delete place and return message', async () => {
-      const dto = { googlePlaceId: 'ChIJ_test' };
+      const dto = { googlePlaceId: 'ChIJ_test' } as any;
       jest.spyOn(repository, 'delete').mockResolvedValue(mockPlace as any);
 
       const result = await service.deletePlace(dto);
@@ -243,7 +244,7 @@ describe('PlaceService - Unit Test', () => {
     });
 
     it('should throw NotFoundException if place not found', async () => {
-      const dto = { googlePlaceId: 'ghost' };
+      const dto = { googlePlaceId: 'ghost' } as any;
       jest.spyOn(repository, 'delete').mockResolvedValue(null);
 
       await expect(service.deletePlace(dto))
@@ -251,21 +252,76 @@ describe('PlaceService - Unit Test', () => {
     });
   });
 
-  describe('updatePlaceRating', () => {
-    it('should update place rating and review count', async () => {
-      jest.spyOn(repository, 'update').mockResolvedValue(mockPlace as any);
+  // ============== NEW FILTER TEST ==============
+  describe('getAllPlaces - with filters', () => {
+    it('should filter by maxPriceLevel', async () => {
+      const dto = { maxPriceLevel: 2 } as any;
+      
+      jest.spyOn(repository, 'findMany').mockResolvedValue([mockPlace] as any);
 
-      await service.updatePlaceRating('place_123', 4.5, 20);
+      await service.getAllPlaces(dto);
 
-      expect(repository.update).toHaveBeenCalledWith(
-        { _id: 'place_123' },
-        {
-          $set: {
-            averageUserRating: 4.5,
-            totalUserReviews: 20,
-            updatedAt: expect.any(Date)
-          }
-        }
+      expect(repository.findMany).toHaveBeenCalledWith({
+        priceLevel: { $lte: 2 }
+      });
+    });
+
+    it('should find places by proximity', async () => {
+      const dto = {
+        latitude: 49.2827,
+        longitude: -123.1207,
+        radiusMeters: 5000,
+      } as any;
+
+      jest.spyOn(repository, 'findNearby').mockResolvedValue([mockPlace] as any);
+
+      const result = await service.getAllPlaces(dto);
+
+      expect(repository.findNearby).toHaveBeenCalledWith(
+        49.2827,
+        -123.1207,
+        5000,
+        {}
+      );
+      expect(result).toHaveLength(1);
+    });
+
+    it('should find places by proximity with category filter', async () => {
+      const dto = {
+        latitude: 49.2827,
+        longitude: -123.1207,
+        radiusMeters: 5000,
+        category: 'Restaurant',
+      } as any;
+
+      jest.spyOn(repository, 'findNearby').mockResolvedValue([mockPlace] as any);
+
+      await service.getAllPlaces(dto);
+
+      expect(repository.findNearby).toHaveBeenCalledWith(
+        49.2827,
+        -123.1207,
+        5000,
+        { category: 'Restaurant' }
+      );
+    });
+
+    it('should find places by proximity with price filter', async () => {
+      const dto = {
+        latitude: 49.2827,
+        longitude: -123.1207,
+        maxPriceLevel: 2,
+      } as any;
+
+      jest.spyOn(repository, 'findNearby').mockResolvedValue([mockPlace] as any);
+
+      await service.getAllPlaces(dto);
+
+      expect(repository.findNearby).toHaveBeenCalledWith(
+        49.2827,
+        -123.1207,
+        5000, // default radius
+        { priceLevel: { $lte: 2 } }
       );
     });
   });

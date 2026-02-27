@@ -1,46 +1,61 @@
-import { IsString, IsNotEmpty, IsOptional, IsArray, MinLength, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, Min, Max, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class LocationDTO {
+  @IsString()
+  @IsNotEmpty()
+  type: string; // 'Point'
+
+  @IsArray()
+  @IsNumber({}, { each: true })
+  coordinates: number[]; // [longitude, latitude]
+}
 
 export class CreatePlaceDTO {
   @IsString()
   @IsNotEmpty()
-  @MinLength(10)
-  @MaxLength(500)
-  googlePlaceId: string; // Google Place ID (unique identifier)
+  googlePlaceId: string;
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(2)
-  @MaxLength(255)
   name: string;
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(5)
-  @MaxLength(500)
   address: string;
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(2)
-  @MaxLength(100)
-  category: string; // Restaurant, Pub, Park, Museum, etc
+  category: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(1000)
-  description?: string; // editorial_summary from Google
+  description?: string;
+
+  // PRICE LEVEL
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(4)
+  priceLevel?: number;
+
+  // LOCATION
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LocationDTO)
+  location?: LocationDTO;
 
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  customImages?: string[]; // URLs to images
+  customImages?: string[];
 
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  customTags?: string[]; // cuisine, ambiance, etc
+  customTags?: string[];
 
   @IsOptional()
   @IsString()
-  createdBy?: string; // User firebaseUid
+  createdBy?: string;
 }
