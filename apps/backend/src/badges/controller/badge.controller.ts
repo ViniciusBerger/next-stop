@@ -5,12 +5,13 @@ import {
   Delete,
   Get,
   NotFoundException,
+  Param,
   Post,
   Put,
   Query,
-  Param,
 } from '@nestjs/common';
 import { BadgeService } from '../service/badge.service';
+import { BadgeCheckerService } from '../checker/badge-checker.service'; // IMPORT
 import { CreateBadgeDTO } from '../DTOs/create.badge.DTO';
 import { UpdateBadgeDTO } from '../DTOs/update.badge.DTO';
 import { GetBadgeDTO } from '../DTOs/get.badge.DTO';
@@ -19,7 +20,10 @@ import { BadgeResponseDTO } from '../DTOs/badge.response.DTO';
 
 @Controller('badges')
 export class BadgeController {
-  constructor(private readonly badgeService: BadgeService) {}
+  constructor(
+    private readonly badgeService: BadgeService,
+    private readonly badgeCheckerService: BadgeCheckerService, // INJECT
+  ) {}
 
   /**
    * Creates a new badge (admin/seed only)
@@ -98,5 +102,19 @@ export class BadgeController {
   @Delete(':badgeId')
   async deleteBadge(@Param('badgeId') badgeId: string) {
     return await this.badgeService.deleteBadge(badgeId);
+  }
+
+  /**
+   * Recalculate all badges for a user (Admin/Manual)
+   * POST /badges/recalculate/:userId
+   */
+  @Post('recalculate/:userId')
+  async recalculateBadges(@Param('userId') userId: string) {
+    await this.badgeCheckerService.checkAllBadges(userId);
+    
+    return {
+      success: true,
+      message: `Badges recalculated for user ${userId}`,
+    };
   }
 }
