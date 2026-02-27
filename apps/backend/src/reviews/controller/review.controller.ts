@@ -8,6 +8,8 @@ import {
   Post,
   Query,
   Param,
+  Headers,
+  ForbiddenException
 } from '@nestjs/common';
 import { ReviewService } from '../service/review.service';
 import { CreateReviewDTO } from '../DTOs/create.review.DTO';
@@ -96,13 +98,21 @@ export class ReviewController {
   }
 
   /**
-   * Deletes a review
-   * DELETE /reviews/:id
-   */
-  @Delete(':id')
-  async deleteReview(@Param('id') id: string) {
-    return await this.reviewService.deleteReview(id);
+ * Deletes a review (author only)
+ * DELETE /reviews/:id
+ */
+@Delete(':id')
+async deleteReview(
+  @Param('id') id: string,
+  @Headers('user-id') userId: string,
+  @Headers('user-role') userRole?: string,
+) {
+  if (!userId) {
+    throw new BadRequestException('User ID is required');
   }
+
+  return await this.reviewService.deleteReview(id, userId, userRole);
+}
 
   /**
    * Toggles like on a review
