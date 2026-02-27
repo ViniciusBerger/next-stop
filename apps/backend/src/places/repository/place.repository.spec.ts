@@ -30,6 +30,10 @@ describe('PlaceRepository - Integration', () => {
 
     repository = module.get<PlaceRepository>(PlaceRepository);
     placeModel = module.get<Model<Place>>(getModelToken(Place.name));
+
+    // ============== create geospatial index ==============
+    await placeModel.collection.createIndex({ location: '2dsphere' });
+    // ======================================================
   }, 60000); // 60 second timeout for MongoDB download
 
   afterAll(async () => {
@@ -224,5 +228,72 @@ describe('PlaceRepository - Integration', () => {
   it('delete() -> should return null if place not found', async () => {
     const result = await repository.delete({ googlePlaceId: 'nonexistent' });
     expect(result).toBeNull();
+  });
+
+  describe('findNearby', () => {
+    it('should find places within radius', async () => {
+      // Create places at different locations
+      await placeModel.create({
+        googlePlaceId: 'place_near',
+        name: 'Nearby Restaurant',
+        address: 'Close Address',
+        category: 'Restaurant',
+        location: {
+          type: 'Point',
+          coordinates: [-123.1207, 49.2827], // Vancouver downtown
+        },
+      });
+
+      await placeModel.create({
+        googlePlaceId: 'place_far',
+        name: 'Far Restaurant',
+        address: 'Far Address',
+        category: 'Restaurant',
+        location: {
+          type: 'Point',
+          coordinates: [-122.4194, 37.7749], // San Francisco (far!)
+        },
+      });
+
+      // Search near Vancouver with 10km radius
+      const result = await repository.findNearby(49.2827, -123.1207, 10000);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('Nearby Restaurant');
+    });
+
+    it('should filter by category within radius', async () => {
+      await placeModel.create({
+        googlePlaceId: 'cafe_near',
+        name: 'Nearby Cafe',
+        address: 'Address',
+        category: 'Cafe',
+        location: {
+          type: 'Point',
+          coordinates: [-123.1207, 49.2827],
+        },
+      });
+
+      await placeModel.create({
+        googlePlaceId: 'restaurant_near',
+        name: 'Nearby Restaurant',
+        address: 'Address',
+        category: 'Restaurant',
+        location: {
+          type: 'Point',
+          coordinates: [-123.1207, 49.2827],
+        },
+      });
+
+      const result = await repository.findNearby(
+        49.2827,
+        -123.1207,
+        10000,
+        { category: 'Cafe' }
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].category).toBe('Cafe');
+    });
   });
 });

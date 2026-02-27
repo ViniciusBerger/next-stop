@@ -1,5 +1,13 @@
 import { Exclude, Expose } from 'class-transformer';
 
+class LocationResponseDTO {
+  @Expose()
+  type: string;
+
+  @Expose()
+  coordinates: number[];
+}
+
 export class PlaceResponseDTO {
   @Expose()
   _id: string;
@@ -17,7 +25,13 @@ export class PlaceResponseDTO {
   category: string;
 
   @Expose()
-  description: string;
+  description?: string;
+
+  @Expose()
+  priceLevel?: number;
+
+  @Expose()
+  location?: LocationResponseDTO;
 
   @Expose()
   customImages: string[];
@@ -32,13 +46,11 @@ export class PlaceResponseDTO {
   totalUserReviews: number;
 
   @Expose()
-  createdBy: any; // User reference (can be populated)
+  createdBy?: any;
 
   @Expose()
   createdAt: Date;
 
   @Expose()
   updatedAt: Date;
-
-  // No fields to exclude for Place (all are public)
 }
