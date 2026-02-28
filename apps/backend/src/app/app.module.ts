@@ -6,16 +6,15 @@ import { GlobalExceptionFilter } from '../common/errors/global.error.filter';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UserModule } from 'src/user/user.module';
 import { PlaceModule } from 'src/places/place.module';
+import { SystemModule } from 'src/system/system.module'; 
 
 @Module({
   imports: [
-    // configuration module to inject environment variables
     ConfigModule.forRoot({
-      isGlobal: true, 
-      envFilePath: '.env', // ./backend/.env
+      isGlobal: true,
+      envFilePath: '.env',
     }),
 
-    // mongoose module to connect to MongoDB
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -24,23 +23,19 @@ import { PlaceModule } from 'src/places/place.module';
       }),
     }),
 
-    
-    UserModule, 
+    UserModule,
     PlaceModule,
-
+    SystemModule, 
   ],
 
   controllers: [AppController],
-  
 
-  //providers are services that the module provides
   providers: [
-    AppService, 
+    AppService,
     {
-      // Global exception filter to handle errors across app
       provide: `APP_FILTER`,
-      useClass: GlobalExceptionFilter
-    }
-  ], 
+      useClass: GlobalExceptionFilter,
+    },
+  ],
 })
 export class AppModule {}
