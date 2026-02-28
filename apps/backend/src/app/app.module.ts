@@ -6,7 +6,8 @@ import { GlobalExceptionFilter } from '../common/errors/global.error.filter';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UserModule } from 'src/user/user.module';
 import { PlaceModule } from 'src/places/place.module';
-import { SystemModule } from 'src/system/system.module'; 
+import { SystemModule } from 'src/system/system.module';
+import { FriendsModule } from 'src/friends/friends.module';  
 
 @Module({
   imports: [
@@ -25,7 +26,8 @@ import { SystemModule } from 'src/system/system.module';
 
     UserModule,
     PlaceModule,
-    SystemModule, 
+    SystemModule,
+    FriendsModule, 
   ],
 
   controllers: [AppController],
