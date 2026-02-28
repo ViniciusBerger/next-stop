@@ -10,44 +10,36 @@ import { DeleteUserDTO } from "../DTOs/delete.user.DTO";
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-    @Post('/user') 
-    async createUser(@Body() createUserDTO: CreateUserDTO )  {
-      const userAdded = await this.userService.createUser(createUserDTO)
+  @Post('/user')
+  async createUser(@Body() createUserDTO: CreateUserDTO) {
+    const userAdded = await this.userService.createUser(createUserDTO);
+    return new UserResponseDTO(userAdded);
+  }
 
-      return new UserResponseDTO(userAdded)
-    }
+  @Get('/user')
+  async getUser(@Query() getUserDTO: GetUserDTO) {
+    const user = await this.userService.getUser(getUserDTO);
+    if (!user) throw new NotFoundException(`User not found`);
+    return new UserResponseDTO(user);
+  }
 
-    
-    @Get('/user')
-    async getUser(@Query() getUserDTO: GetUserDTO) {
-        
-      const user = await this.userService.getUser(getUserDTO);
-      if (!user) throw new NotFoundException(`User not found`);
-        
-      return new UserResponseDTO(user);
-    }
+  @Patch('/user')
+  async updateUser(@Body() editUserDTO: EditUserDTO) {
+    const updateUser = await this.userService.updateUser(editUserDTO);
+    return { message: new UserResponseDTO(updateUser) };
+  }
 
+  @Delete(':id')
+  async deleteUser(@Param('id') deleteUserDTO: DeleteUserDTO) {
+    const deletedUser = await this.userService.deleteUser(deleteUserDTO);
+    if (!deletedUser) throw new NotFoundException(`User not found`);
+    return { message: new UserResponseDTO(deletedUser) };
+  }
 
-    @Patch('/user')
-    async updateUser(@Body() editUserDTO: EditUserDTO) {
-      const updateUser = await this.userService.updateUser(editUserDTO);
-
-      return {message: new UserResponseDTO(updateUser)
-      };
-      
-    }
-
-    @Delete(':id')
-    async deleteUser(@Param('id') deleteUserDTO: DeleteUserDTO) {
-      const deletedUser = await this.userService.deleteUser(deleteUserDTO);
-
-      if (!deletedUser) return new NotFoundException(`User not found`);
-
-      return {message: new UserResponseDTO(deletedUser)}
-    }
-
-
-
-
-
+  // ✅ EMAIL VERIFICATION ENDPOINT (ADDED)
+  @Get('/verify-email')
+  async verifyEmail(@Query('token') token: string) {
+    if (!token) throw new BadRequestException('Verification token is required');
+    return await this.userService.verifyEmailToken(token);
+  }
 }

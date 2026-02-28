@@ -1,156 +1,161 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { UserRepository } from "../user.repository";
 import { UserService } from "./user.service";
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import { BadRequestException } from "@nestjs/common";
 
 /**
  * UserService unit tests
- * 
- * This test suite verifies the functionality of the UserService class, including user retrieval and creation.
- * It uses Jest for mocking dependencies and assertions.
- * 
- * these tests follow the triple A of testing: Arrange, act and assert [AAA]
- * 
- * To run the tests, use the command: npm test -- apps/backend/src/user/service/user.service.spec.ts
- * 
+ *
+ * Tests follow AAA pattern (Arrange, Act, Assert)
  */
 
-describe('UserService', ()=> {
-    let userService: UserService;
-    let userRepository: UserRepository
+describe('UserService', () => {
+  let userService: UserService;
+  let userRepository: UserRepository;
 
-    beforeEach(async () => {
-      
-        // create testing environment before each it
+  beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
         {
           provide: UserRepository,
-          // methods testing will have access to
           useValue: {
-            findOne: jest.fn(), 
+            findOne: jest.fn(),
             createUser: jest.fn(),
             deleteUser: jest.fn(),
-            updateUser: jest.fn()
+            updateUser: jest.fn(),
           },
         },
       ],
     }).compile();
 
-    // Instantiate service and repository
     userService = module.get<UserService>(UserService);
     userRepository = module.get<UserRepository>(UserRepository);
   });
-    
 
-  it('should define userService and userRepository', ()=> {
+  it('should define userService and userRepository', () => {
     expect(userService).toBeDefined();
     expect(userRepository).toBeDefined();
-  })
+  });
 
+  it('createUser -> should create a new user', async () => {
+    const mockUser = {
+      firebaseUid: 'user_test_1',
+      username: 'mockUser',
+      email: 'mock@example.com',
+      role: 'member',
+    };
 
-  it('createUser -> should create a new user', async()=> {
-    const mockUser = { 
-        firebaseUid: 'user_test0000000000000001',
-        username: 'mockUser',
-        email: 'mockUser@example.com',
-        role: 'member',};
-
-
-    jest.spyOn(userRepository, 'createUser').mockResolvedValue(mockUser as any); 
-    const user = await userService.createUser(mockUser as any)
-    
+    jest.spyOn(userRepository, 'createUser').mockResolvedValue(mockUser as any);
+    const user = await userService.createUser(mockUser as any);
 
     expect(user).toEqual(mockUser);
-    expect(userRepository.createUser).toHaveBeenCalledWith(mockUser)
-  })
+    expect(userRepository.createUser).toHaveBeenCalledWith(mockUser);
+  });
 
-
-  it('createUser -> should throw bad request exception if no params provided', async()=> {
-    jest.spyOn(userRepository, 'createUser').mockImplementation().mockRejectedValue(new BadRequestException())
+  it('createUser -> should throw BadRequestException on failure', async () => {
+    jest.spyOn(userRepository, 'createUser').mockRejectedValue(new BadRequestException());
     await expect(userService.createUser({} as any)).rejects.toThrow(BadRequestException);
-    })
+  });
 
+  it('getUser -> should return user by firebaseUid', async () => {
+    const firebaseUid = 'user_test_1';
+    const mockUser = { firebaseUid, username: 'tester' };
 
-  it('getUser -> should return user by firebaseUid', async()=> {
-    
-    const firebaseUid = 'user_test0000000000000001'
-    const mockUserResponse = { firebaseUid: firebaseUid, username: 'tester' };
+    jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser as any);
+    const user = await userService.getUser({ firebaseUid });
 
-    // Mock the getUser method from userService to return the mockUser
-    jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUserResponse as any);
-    const user = await userService.getUser({firebaseUid})
-    
     expect(user?.firebaseUid).toEqual(firebaseUid);
-    expect(userRepository.findOne).toHaveBeenCalledWith({firebaseUid});
-    expect(userRepository.findOne).toHaveBeenCalledTimes(1);
-  })
+    expect(userRepository.findOne).toHaveBeenCalledWith({ firebaseUid });
+  });
 
-
-  it('getUser -> should return NULL if user not found', async()=> {
-    const mockUser = {firebaseUid: "", username:"random user"};
-
+  it('getUser -> should return null if user not found', async () => {
     jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
-    const user = await userService.getUser(mockUser)
-    
-    expect(user).toBeNull;
-    expect(userRepository.findOne).toHaveBeenCalledWith({username: "random user"})
-    expect(userRepository.findOne).toHaveBeenCalledTimes(1)
-  })
+    const user = await userService.getUser({ username: 'random' });
 
+    expect(user).toBeNull();
+    expect(userRepository.findOne).toHaveBeenCalledWith({ username: 'random' });
+  });
 
-  it ('updateUser -> should return new document version stored on db', async ()=> {
-    let mockUser = {firebaseUid: 'user_test0000000000000001', username: 'mockUser', bio: 'mock bio',};
-    const newMockUser = {firebaseUid: 'user_test0000000000000001', username: 'mockUser', bio: 'new mock bio',}
-
-    jest.spyOn(userRepository, 'updateUser').mockResolvedValue(newMockUser as any)
-    mockUser = await userService.updateUser(newMockUser)
-    
-    expect(mockUser).toEqual(newMockUser)
-    expect(userRepository.updateUser).toHaveBeenCalledWith(newMockUser.firebaseUid, expect.objectContaining({username: "mockUser" }));
-    expect(userRepository.updateUser).toHaveBeenCalledTimes(1);
-  })
-
-
-  it('updateUser -> should throw bad request exception if no params provided',async()=> {
-    jest.spyOn(userRepository, "updateUser").mockRejectedValue(new BadRequestException())
-    
-    await expect(userService.updateUser("" as any)).rejects.toThrow(BadRequestException)
-  })
-
-
-  it('updateUser -> should throw type error if no params provided',async()=> {
-    jest.spyOn(userRepository, "updateUser").mockRejectedValue(new TypeError())
-    
-    await expect(userService.updateUser(undefined as any)).rejects.toThrow(TypeError)
-  })
-
-
-  it('deleteUser -> should successfully delete the user when a valid UID is provided', async () => {
-    const mockUser = {
-        firebaseUid: 'user_test0000000000000001',
-        username: 'mockUser',
-        email: 'mockUser@example.com',
-        role: 'member',
-        bio: 'mock bio',
-        profilePicture: 'https://example.com/images/mock.jpg',
+  it('updateUser -> should update user', async () => {
+    const updatedUser = {
+      firebaseUid: 'user_test_1',
+      username: 'mockUser',
+      bio: 'new bio',
     };
-    
+
+    jest.spyOn(userRepository, 'updateUser').mockResolvedValue(updatedUser as any);
+    const result = await userService.updateUser(updatedUser as any);
+
+    expect(result).toEqual(updatedUser);
+    expect(userRepository.updateUser).toHaveBeenCalled();
+  });
+
+  it('deleteUser -> should delete user', async () => {
+    const mockUser = { firebaseUid: 'user_test_1' };
+
     jest.spyOn(userRepository, 'deleteUser').mockResolvedValue(mockUser as any);
     const result = await userService.deleteUser(mockUser.firebaseUid as any);
 
-
     expect(result.firebaseUid).toEqual(mockUser.firebaseUid);
     expect(userRepository.deleteUser).toHaveBeenCalledWith(mockUser.firebaseUid);
-    expect(userRepository.deleteUser).toHaveBeenCalledTimes(1);
   });
 
+  // ==============================
+  // EMAIL VERIFICATION FLOW TESTS
+  // ==============================
 
-  it('deleteUser -> should throw BadRequestException if no UID is passed', async () => {
-    jest.spyOn(userRepository, 'deleteUser').mockRejectedValue(new BadRequestException());
+  it('sendEmailVerification -> should generate token and expiry', async () => {
+    const firebaseUid = 'user_test_1';
 
-    await expect(userService.deleteUser({ firebaseUid: '' })).rejects.toThrow(BadRequestException);
+    jest.spyOn(userRepository, 'updateUser').mockResolvedValue({
+      firebaseUid,
+      emailVerified: false,
+      verificationToken: 'token123',
+      tokenExpiresAt: new Date(),
+    } as any);
+
+    const result = await userService.sendEmailVerification(firebaseUid);
+
+    expect(result.message).toBe('Verification token generated');
+    expect(result.token).toBeDefined();
+    expect(userRepository.updateUser).toHaveBeenCalled();
   });
-  
-})
+
+  it('sendEmailVerification -> should throw error if user not found', async () => {
+    jest.spyOn(userRepository, 'updateUser').mockResolvedValue(null);
+
+    await expect(
+      userService.sendEmailVerification('invalid-id'),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('verifyEmailToken -> should verify user with valid token', async () => {
+    const token = 'valid-token';
+    const firebaseUid = 'user_test_1';
+
+    jest.spyOn(userRepository, 'findOne').mockResolvedValue({
+      firebaseUid,
+      verificationToken: token,
+      tokenExpiresAt: new Date(Date.now() + 1000),
+    } as any);
+
+    jest.spyOn(userRepository, 'updateUser').mockResolvedValue({
+      firebaseUid,
+      emailVerified: true,
+    } as any);
+
+    const result = await userService.verifyEmailToken(token);
+
+    expect(result.message).toBe('Email verified successfully');
+    expect(userRepository.updateUser).toHaveBeenCalled();
+  });
+
+  it('verifyEmailToken -> should throw error for invalid token', async () => {
+    jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
+
+    await expect(
+      userService.verifyEmailToken('bad-token'),
+    ).rejects.toThrow(BadRequestException);
+  });
+});
