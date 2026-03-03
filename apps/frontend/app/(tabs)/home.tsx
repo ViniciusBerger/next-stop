@@ -1,11 +1,18 @@
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+  StyleSheet
+} from "react-native";
 import { DiscoverCard } from "../../components/discoverCard";
 import { PostCard } from "../../components/postCard";
 import { BottomTabBar } from "../../components/bottomTabBar";
 import { HomeHeader } from "../../components/homeHeader";
 import { styles } from "../../src/styles/login.styles";
 import HomeMenu from "../../components/homeMenu";
-import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "expo-router";
 import { getItemAsync } from "expo-secure-store";
 import axios from "axios";
@@ -201,32 +208,6 @@ export default function Home() {
         />
 
         <DiscoverCard onPress={() => router.push("/discover")} />
-
-        {/* Admin Test Button - Only shows in development mode */}
-        {__DEV__ && (
-          <View style={{ paddingHorizontal: 20, marginTop: 20, marginBottom: 10 }}>
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#7d77f0',
-                padding: 16,
-                borderRadius: 12,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                borderWidth: 1,
-                borderColor: '#DEE4FF',
-              }}
-              onPress={() => router.push("/(admin)/moderation" as any)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="shield" size={20} color="white" />
-              <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>
-                Admin Panel (Test)
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
 
         {isInitialized && !isConnected && (
           <View style={localStyles.offlineBanner}>
