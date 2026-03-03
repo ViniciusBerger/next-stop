@@ -59,18 +59,15 @@ async function handleLogin() {
 }
 
   return (
-    // KeyboardAvoidingView prevents the keyboard from hiding your inputs
     <KeyboardAvoidingView 
       behavior={Platform.OS === "ios" ? "padding" : "height"} 
       style={{ flex: 1 }}
     >
       <ScrollView 
-        // Use contentContainerStyle for layout logic inside the scroll area
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.headerWrapper}>
-          {/* The SVG stays full width via its own internal absolute styling */}
           <HeaderBackground height={420}/>
           <Text style={styles.headerText}>Welcome!</Text>
         </View>
@@ -78,7 +75,7 @@ async function handleLogin() {
         <View style={styles.form}>
           <Text style={styles.label}>Email</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { textAlignVertical: 'center', paddingVertical: 0 }]}
             placeholder="example@email.com"
             placeholderTextColor="#9CA3AF"
             value={email}
@@ -88,7 +85,7 @@ async function handleLogin() {
 
           <Text style={styles.label}>Password</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { textAlignVertical: 'center', paddingVertical: 0 }]}
             secureTextEntry
             value={password}
             onChangeText={setPassword}
@@ -100,12 +97,14 @@ async function handleLogin() {
             <Text style={styles.buttonText}>Sign In</Text>
           </TouchableOpacity>
 
-          <Text style={styles.link} onPress={() => router.replace("/forgot-password")}>
-            Forgot Password
-          </Text>
-          <Text style={styles.link} onPress={() => router.replace("/register")}>
-            Register
-          </Text>
+          <View style={styles.linkContainer}>
+            <Text style={styles.link} onPress={() => router.replace("/forgot-password")}>
+              Forgot Password
+            </Text>
+            <Text style={styles.link} onPress={() => router.replace("/register")}>
+              Register
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

@@ -1,5 +1,52 @@
 import { Stack } from "expo-router";
+import { useNavigationContainerRef } from "expo-router";
+import { useEffect } from "react";
+import { ToastManager } from "../components/ui/Toast";
 
-export default function Layout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+export default function RootLayout() {
+  const navigationRef = useNavigationContainerRef();
+
+  useEffect(() => {
+    if (__DEV__) {
+      // This automatically connects to Flipper if available
+    }
+  }, [navigationRef]);
+
+  return (
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        {/* Tab Navigation */}
+        <Stack.Screen name="(tabs)" />
+        
+        {/* Admin Navigation */}
+        <Stack.Screen name="(admin)" />
+        
+        {/* Auth Screens */}
+        <Stack.Screen name="login" />
+        <Stack.Screen name="register" />
+        <Stack.Screen name="forgot-password" />
+        <Stack.Screen name="emailverification" />
+        <Stack.Screen name="emailverified" />
+        
+        {/* Main App Screens */}
+        <Stack.Screen name="discover" />
+        <Stack.Screen name="locationdetails" />
+        <Stack.Screen name="locationreviews" />
+        <Stack.Screen name="createevent" />
+        <Stack.Screen name="createreview" />
+        <Stack.Screen name="myevents" />
+        <Stack.Screen name="myreviews" />
+        <Stack.Screen name="feedback" />
+        <Stack.Screen name="badges" />
+        
+        {/* Error Pages */}
+        <Stack.Screen name="404" options={{ title: 'Page Not Found' }} />
+        <Stack.Screen name="500" options={{ title: 'Server Error' }} />
+        
+        {/* Root */}
+        <Stack.Screen name="index" />
+      </Stack>
+      <ToastManager />
+    </>
+  );
 }
