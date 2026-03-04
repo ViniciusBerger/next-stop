@@ -15,8 +15,9 @@ import {
 import { ScreenLayout } from '@/components/screenLayout';
 import { PlaceCard } from '@/components/placeCard';
 import { Ionicons } from '@expo/vector-icons';
-import { useGeolocation } from '../hooks/useGeolocation';
+import { useGeolocation } from '../../hooks/useGeolocation';
 import { useRouter } from 'expo-router';
+import axios from "axios";
 import { LocationInputModal } from '@/components/ui/LocationInputModal';
 import { LocationBanner, SimpleLocationBanner } from '@/components/ui/LocationBanner';
 import { PermissionModal } from '@/components/ui/PermissionModal';
@@ -25,6 +26,16 @@ import { useLocationPermission } from '@/hooks/useLocationPermission';
 import { showToast } from '@/components/ui/Toast';
 
 const { width, height } = Dimensions.get('window');
+
+// Define the structure of a Place object - matching what PlaceCard expects
+interface Place {
+  id: string;
+  name: string;
+  type: string;
+  distance: string;
+  rating: number;
+  address?: string; // Make address optional if PlaceCard doesn't need it
+}
 
 // Filter categories
 const FILTERS = [
@@ -54,6 +65,8 @@ export default function DiscoverScreen() {
   const [manualLocation, setManualLocation] = useState<string | null>(null);
   const [locationType, setLocationType] = useState<'gps' | 'manual'>('gps');
   const [manualCoords, setManualCoords] = useState<{lat: number, lng: number} | null>(null);
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -85,40 +98,66 @@ export default function DiscoverScreen() {
     }
   }, [permissionStatus, manualLocation]);
 
-  const dummyPlaces = [
-    { id: '1', name: 'Central Coffee', type: 'cafe', address: '123 Main St', distance: '0.5 km', rating: 4.5 },
-    { id: '2', name: 'Green Park', type: 'park', address: '456 Park Ave', distance: '1.2 km', rating: 4.8 },
-    { id: '3', name: 'Urban Bistro', type: 'restaurant', address: '789 Metro Blvd', distance: '0.8 km', rating: 4.3 },
-    { id: '4', name: 'The Tech Hub', type: 'events', address: '101 Innovation Dr', distance: '2.5 km', rating: 4.9 },
-    { id: '5', name: 'Sunny Side Cafe', type: 'cafe', address: '202 Sunrise Terrace', distance: '1.1 km', rating: 4.6 },
-    { id: '6', name: 'Retro Records', type: 'shop', address: '55 Vinyl Way', distance: '1.5 km', rating: 4.2 },
-    { id: '7', name: 'Wildwood Trail', type: 'park', address: '99 Forest Rd', distance: '3.2 km', rating: 4.7 },
-    { id: '8', name: 'Blue Wave Sushi', type: 'restaurant', address: '303 Coastal Hwy', distance: '2.1 km', rating: 4.4 },
-    { id: '9', name: 'City Library', type: 'events', address: '12 Civic Center', distance: '0.9 km', rating: 4.8 },
-    { id: '10', name: 'The Corner Bakery', type: 'cafe', address: '14 Pastry Lane', distance: '0.4 km', rating: 4.1 },
-  ];
+  // Fetch places from backend
+  useEffect(() => {
+    const fetchPlaces = async () => {
+      try {
+        setIsLoading(true);
+        const response = await axios.get('http://localhost:3000/places');
+        
+        // Map the response to match the Place interface
+        const formattedPlaces = response.data.map((item: any) => ({
+          id: item._id || item.id,
+          name: item.name || '',
+          type: item.type || 'other',
+          distance: item.distance || '0.5 km',
+          rating: item.rating || 4.0,
+          address: item.address || '' // Keep address if needed elsewhere
+        }));
+        
+        setPlaces(formattedPlaces);
+      } catch (error) {
+        console.error("Failed to fetch places:", error);
+        showToast('Failed to load places', 'error');
+        // Set dummy data as fallback
+        setPlaces([
+          { id: '1', name: 'Central Coffee', type: 'cafe', distance: '0.5 km', rating: 4.5 },
+          { id: '2', name: 'Green Park', type: 'park', distance: '1.2 km', rating: 4.8 },
+          { id: '3', name: 'Urban Bistro', type: 'restaurant', distance: '0.8 km', rating: 4.3 },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  // Filter places based on selected filter
-  const filteredPlaces = selectedFilter === 'all'
-    ? dummyPlaces
-    : dummyPlaces.filter(place => place.type === selectedFilter);
+    fetchPlaces();
+  }, []);
 
-  // Filter places based on search
-  const searchedPlaces = searchQuery
-    ? filteredPlaces.filter(place =>
-        place.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : filteredPlaces;
+  // Filter places based on selected filter and search
+  const filteredPlaces = places.filter(place => {
+    const matchesFilter = selectedFilter === 'all' || place.type === selectedFilter;
+    const matchesSearch = place.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
 
-  const handlePlacePress = (place: any) => {
-    router.push("/locationdetails");
+  const handlePlacePress = (place: Place) => {
+    // Navigate to location details with the place data
+    router.push({
+      pathname: "/locationdetails",
+      params: { 
+        id: place.id,
+        name: place.name,
+        type: place.type,
+        rating: place.rating.toString(),
+        address: place.address || ''
+      }
+    });
   };
 
   const handleManualLocationSet = (city: string) => {
     setManualLocation(city);
     setLocationType('manual');
     
-    // Simulate geocoding - in real app, you'd call a geocoding API
     const mockLat = 40.7128 + (city.length * 0.01);
     const mockLng = -74.0060 + (city.length * 0.01);
     setManualCoords({ lat: mockLat, lng: mockLng });
@@ -302,12 +341,16 @@ export default function DiscoverScreen() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.placesList}
             >
-              {searchedPlaces.length > 0 ? (
-                searchedPlaces.map((item) => (
+              {isLoading ? (
+                <View style={styles.loadingContainer}>
+                  <Text>Loading places...</Text>
+                </View>
+              ) : filteredPlaces.length > 0 ? (
+                filteredPlaces.map((item) => (
                   <PlaceCard
                     key={item.id}
                     place={item}
-                    onPress={handlePlacePress}
+                    onPress={() => handlePlacePress(item)}
                   />
                 ))
               ) : (
@@ -488,6 +531,10 @@ const styles = StyleSheet.create({
   },
   placesList: {
     paddingBottom: 20,
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
   },
   noResultsContainer: {
     alignItems: 'center',
