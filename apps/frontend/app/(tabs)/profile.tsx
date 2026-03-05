@@ -3,669 +3,299 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
-  TouchableOpacity,
   ScrollView,
-  Modal,
-  TextInput,
-  Alert
+  TouchableOpacity,
+  Image,
+  FlatList
 } from 'react-native';
-import { ScreenLayout } from '@/components/screenLayout';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { showToast } from '@/components/ui/Toast';
+import { ScreenLayout } from '@/components/screenLayout';
 
 // Mock user data
-const MOCK_USER = {
-  id: '1',
-  name: 'Sarah Johnson',
-  username: '@sarahj',
-  email: 'sarah.johnson@example.com',
+const USER = {
+  username: 'Username',
   avatar: 'https://i.pravatar.cc/150?img=12',
-  bio: 'Food lover | Coffee addict | Always exploring new places ☕️',
-  location: 'New York, NY',
-  joinDate: 'January 2026',
-  stats: {
-    events: 23,
-    reviews: 42,
-    badges: 8,
-    friends: 156
+  friends: 128,
+  badges: [
+    { id: '1', name: 'Badge name' },
+    { id: '2', name: 'Badge name' }
+  ],
+  preferences: {
+    cuisine: 'Italian',
+    dietary: 'Vegan',
+    allergies: 'None'
   }
 };
 
-// Menu items
-const MENU_ITEMS = [
-  { id: 'profile', icon: 'person-outline', label: 'My Profile', screen: 'edit-profile' },
-  { id: 'events', icon: 'calendar-outline', label: 'My Events', screen: 'myevents', count: 23 },
-  { id: 'reviews', icon: 'star-outline', label: 'My Reviews', screen: 'myreviews', count: 42 },
-  { id: 'badges', icon: 'ribbon-outline', label: 'Badges', screen: 'badges', count: 8 },
-  { id: 'favorites', icon: 'heart-outline', label: 'Favorites', screen: 'favorites' },
-  { id: 'wishlist', icon: 'bookmark-outline', label: 'Wishlist', screen: 'wishlist' },
-  { id: 'friends', icon: 'people-outline', label: 'Friends', screen: 'friends', count: 156 },
-  { id: 'history', icon: 'time-outline', label: 'History', screen: 'history' },
-  { id: 'feedback', icon: 'chatbubble-outline', label: 'Feedback', screen: 'feedback' },
-  { id: 'settings', icon: 'settings-outline', label: 'Settings', screen: 'settings' },
+// Mock posts data
+const POSTS = [
+  {
+    id: '1',
+    placeName: "Place's name",
+    date: 'Month - year',
+    likes: 88,
+    description: 'Description of outing here'
+  },
+  {
+    id: '2',
+    placeName: "Place's name",
+    date: 'Month - year',
+    likes: 42,
+    description: 'Description of outing here'
+  }
 ];
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const [user, setUser] = useState(MOCK_USER);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editName, setEditName] = useState(user.name);
-  const [editBio, setEditBio] = useState(user.bio);
-  const [editLocation, setEditLocation] = useState(user.location);
 
-  const handleEditProfile = () => {
-    setEditModalVisible(true);
-    setEditName(user.name);
-    setEditBio(user.bio);
-    setEditLocation(user.location);
-  };
-
-  const handleSaveProfile = () => {
-    // Validate inputs
-    if (!editName.trim()) {
-      showToast('Name cannot be empty', 'error');
-      return;
-    }
-
-    // Update user data
-    setUser({
-      ...user,
-      name: editName,
-      bio: editBio,
-      location: editLocation
-    });
-
-    setEditModalVisible(false);
-    showToast('Profile updated successfully', 'success');
-  };
-
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: () => {
-            showToast('Logged out successfully', 'success');
-            router.replace('/login');
-          }
-        }
-      ]
-    );
-  };
-
-  const EditProfileModal = () => (
-    <Modal
-      visible={editModalVisible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={() => setEditModalVisible(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Edit Profile</Text>
-            <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-              <Ionicons name="close" size={24} color="#333" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalBody}>
-            {/* Avatar Preview */}
-            <View style={styles.avatarEditContainer}>
-              <Image source={{ uri: user.avatar }} style={styles.avatarEdit} />
-              <TouchableOpacity style={styles.changePhotoButton}>
-                <Ionicons name="camera" size={20} color="#FFF" />
-                <Text style={styles.changePhotoText}>Change Photo</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Name Field */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Display Name</Text>
-              <TextInput
-                style={styles.input}
-                value={editName}
-                onChangeText={setEditName}
-                placeholder="Enter your name"
-                placeholderTextColor="#999"
-              />
-            </View>
-
-            {/* Bio Field */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Bio</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={editBio}
-                onChangeText={setEditBio}
-                placeholder="Tell us about yourself"
-                placeholderTextColor="#999"
-                multiline
-                numberOfLines={3}
-                textAlignVertical="top"
-              />
-            </View>
-
-            {/* Location Field */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Location</Text>
-              <TextInput
-                style={styles.input}
-                value={editLocation}
-                onChangeText={setEditLocation}
-                placeholder="City, State"
-                placeholderTextColor="#999"
-              />
-            </View>
-          </ScrollView>
-
-          <View style={styles.modalFooter}>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.cancelButton]}
-              onPress={() => setEditModalVisible(false)}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.saveButton]}
-              onPress={handleSaveProfile}
-            >
-              <Text style={styles.saveButtonText}>Save Changes</Text>
-            </TouchableOpacity>
+  const renderPost = ({ item }: { item: typeof POSTS[0] }) => (
+    <View style={styles.postCard}>
+      <Text style={styles.postPlaceName}>{item.placeName}</Text>
+      <Text style={styles.postDate}>{item.date}</Text>
+      
+      <View style={styles.postContent}>
+        <View style={styles.postIcon}>
+          <Ionicons name="image-outline" size={40} color="#9CA3AF" />
+        </View>
+        <View style={styles.postDetails}>
+          <Text style={styles.postDescription}>{item.description}</Text>
+          <View style={styles.likesContainer}>
+            <Ionicons name="heart-outline" size={16} color="#EF4444" />
+            <Text style={styles.likesText}>{item.likes} likes</Text>
           </View>
         </View>
       </View>
-    </Modal>
+    </View>
   );
 
   return (
-    <ScreenLayout showBack={false}>
+    <ScreenLayout showBack={true}>
       <ScrollView 
-        contentContainerStyle={styles.container}
+        style={styles.container}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header with Edit Button */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
-          <TouchableOpacity onPress={handleEditProfile} style={styles.editButton}>
-            <Ionicons name="create-outline" size={22} color="#7E9AFF" />
-            <Text style={styles.editButtonText}>Edit</Text>
-          </TouchableOpacity>
+        {/* Profile Header */}
+        <View style={styles.profileHeader}>
+          <Image source={{ uri: USER.avatar }} style={styles.avatar} />
+          <Text style={styles.username}>{USER.username}</Text>
         </View>
 
-        {/* Profile Card */}
-        <View style={styles.profileCard}>
-          <View style={styles.avatarContainer}>
-            <Image source={{ uri: user.avatar }} style={styles.avatar} />
-            <View style={styles.onlineDot} />
+        {/* Friends Count */}
+        <View style={styles.friendsContainer}>
+          <Text style={styles.friendsCount}>{USER.friends} Friends</Text>
+        </View>
+
+        {/* Badges Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Badges</Text>
+          <View style={styles.badgesContainer}>
+            {USER.badges.map((badge, index) => (
+              <View key={badge.id} style={styles.badgeItem}>
+                <Text style={styles.badgeName}>{badge.name}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Preferences Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Preferences</Text>
+          
+          <View style={styles.preferenceItem}>
+            <Text style={styles.preferenceLabel}>Cuisine</Text>
+            <Text style={styles.preferenceValue}>{USER.preferences.cuisine}</Text>
           </View>
           
-          <Text style={styles.userName}>{user.name}</Text>
-          <Text style={styles.userUsername}>{user.username}</Text>
-          <Text style={styles.userEmail}>{user.email}</Text>
-          
-          <View style={styles.bioContainer}>
-            <Text style={styles.bioText}>{user.bio}</Text>
+          <View style={styles.preferenceItem}>
+            <Text style={styles.preferenceLabel}>Dietary labels</Text>
+            <Text style={styles.preferenceValue}>{USER.preferences.dietary}</Text>
           </View>
           
-          <View style={styles.locationJoinContainer}>
-            <View style={styles.locationItem}>
-              <Ionicons name="location-outline" size={16} color="#7E9AFF" />
-              <Text style={styles.locationText}>{user.location}</Text>
-            </View>
-            <View style={styles.joinItem}>
-              <Ionicons name="calendar-outline" size={16} color="#7E9AFF" />
-              <Text style={styles.joinText}>Joined {user.joinDate}</Text>
-            </View>
+          <View style={styles.preferenceItem}>
+            <Text style={styles.preferenceLabel}>Allergies</Text>
+            <Text style={styles.preferenceValue}>{USER.preferences.allergies}</Text>
           </View>
         </View>
 
-        {/* Stats Card */}
-        <View style={styles.statsCard}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{user.stats.events}</Text>
-            <Text style={styles.statLabel}>Events</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{user.stats.reviews}</Text>
-            <Text style={styles.statLabel}>Reviews</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{user.stats.badges}</Text>
-            <Text style={styles.statLabel}>Badges</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{user.stats.friends}</Text>
-            <Text style={styles.statLabel}>Friends</Text>
-          </View>
-        </View>
-
-        {/* Menu Items */}
-        <View style={styles.menuSection}>
-          <Text style={styles.menuSectionTitle}>Account</Text>
-          {MENU_ITEMS.slice(0, 5).map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.menuItem}
-              onPress={() => router.push(`/${item.screen}` as any)}
-            >
-              <View style={styles.menuItemLeft}>
-                <View style={[styles.menuIconContainer, { backgroundColor: '#F0F3FF' }]}>
-                  <Ionicons name={item.icon as any} size={20} color="#7E9AFF" />
-                </View>
-                <Text style={styles.menuItemText}>{item.label}</Text>
-              </View>
-              <View style={styles.menuItemRight}>
-                {item.count && (
-                  <View style={styles.menuItemBadge}>
-                    <Text style={styles.menuItemBadgeText}>{item.count}</Text>
-                  </View>
-                )}
-                <Ionicons name="chevron-forward" size={20} color="#999" />
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.menuSection}>
-          <Text style={styles.menuSectionTitle}>Social</Text>
-          {MENU_ITEMS.slice(5, 8).map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.menuItem}
-              onPress={() => router.push(`/${item.screen}` as any)}
-            >
-              <View style={styles.menuItemLeft}>
-                <View style={[styles.menuIconContainer, { backgroundColor: '#F0F3FF' }]}>
-                  <Ionicons name={item.icon as any} size={20} color="#7E9AFF" />
-                </View>
-                <Text style={styles.menuItemText}>{item.label}</Text>
-              </View>
-              <View style={styles.menuItemRight}>
-                {item.count && (
-                  <View style={styles.menuItemBadge}>
-                    <Text style={styles.menuItemBadgeText}>{item.count}</Text>
-                  </View>
-                )}
-                <Ionicons name="chevron-forward" size={20} color="#999" />
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.menuSection}>
-          <Text style={styles.menuSectionTitle}>Support</Text>
-          {MENU_ITEMS.slice(8, 10).map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.menuItem}
-              onPress={() => router.push(`/${item.screen}` as any)}
-            >
-              <View style={styles.menuItemLeft}>
-                <View style={[styles.menuIconContainer, { backgroundColor: '#F0F3FF' }]}>
-                  <Ionicons name={item.icon as any} size={20} color="#7E9AFF" />
-                </View>
-                <Text style={styles.menuItemText}>{item.label}</Text>
-              </View>
-              <View style={styles.menuItemRight}>
-                <Ionicons name="chevron-forward" size={20} color="#999" />
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#dc2626" />
-          <Text style={styles.logoutButtonText}>Logout</Text>
+        {/* Edit Profile Button */}
+        <TouchableOpacity style={styles.editButton}>
+          <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>
 
-        {/* App Version */}
-        <Text style={styles.versionText}>NextStop v1.0.0</Text>
+        {/* Posts Section */}
+        <View style={styles.postsSection}>
+          {POSTS.map((post) => (
+            <View key={post.id} style={styles.postCard}>
+              <Text style={styles.postPlaceName}>{post.placeName}</Text>
+              <Text style={styles.postDate}>{post.date}</Text>
+              
+              <View style={styles.postContent}>
+                <View style={styles.postIcon}>
+                  <Ionicons name="image-outline" size={40} color="#9CA3AF" />
+                </View>
+                <View style={styles.postDetails}>
+                  <Text style={styles.postDescription}>{post.description}</Text>
+                  <View style={styles.likesContainer}>
+                    <Ionicons name="heart-outline" size={16} color="#EF4444" />
+                    <Text style={styles.likesText}>{post.likes} likes</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
       </ScrollView>
-
-      {/* Edit Profile Modal */}
-      <EditProfileModal />
     </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 40,
+    flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  profileHeader: {
     alignItems: 'center',
-    marginBottom: 20,
-    marginTop: -10,
+    marginTop: 10,
+    marginBottom: 8,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 8,
+  },
+  username: {
+    fontSize: 20,
+    fontWeight: '600',
     color: '#FFFFFF',
   },
-  editButton: {
-    flexDirection: 'row',
+  friendsContainer: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 4,
+    marginBottom: 24,
   },
-  editButtonText: {
-    color: '#FFFFFF',
+  friendsCount: {
     fontSize: 14,
-    fontWeight: '500',
+    color: 'rgba(255,255,255,0.8)',
   },
-  profileCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 20,
-    padding: 20,
+  section: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#DEE4FF',
-    alignItems: 'center',
+    marginHorizontal: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 12,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
-    borderColor: '#7E9AFF',
-  },
-  onlineDot: {
-    position: 'absolute',
-    bottom: 5,
-    right: 5,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#4CAF50',
-    borderWidth: 2,
-    borderColor: '#FFF',
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 2,
-  },
-  userUsername: {
-    fontSize: 14,
-    color: '#7E9AFF',
-    marginBottom: 2,
-  },
-  userEmail: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 12,
-  },
-  bioContainer: {
-    backgroundColor: '#F8F9FA',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 12,
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#DEE4FF',
-  },
-  bioText: {
-    fontSize: 14,
-    color: '#333',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  locationJoinContainer: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  locationItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  locationText: {
-    fontSize: 12,
-    color: '#666',
-  },
-  joinItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  joinText: {
-    fontSize: 12,
-    color: '#666',
-  },
-  statsCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#DEE4FF',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#7E9AFF',
-    marginBottom: 2,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#666',
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: '#DEE4FF',
-  },
-  menuSection: {
-    marginBottom: 20,
-  },
-  menuSectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 8,
-    paddingHorizontal: 4,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFF',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#DEE4FF',
-  },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  menuIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuItemText: {
-    fontSize: 15,
-    color: '#333',
-  },
-  menuItemRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  menuItemBadge: {
-    backgroundColor: '#7E9AFF',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    minWidth: 24,
-    alignItems: 'center',
-  },
-  menuItemBadgeText: {
-    color: '#FFF',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#DEE4FF',
-    gap: 8,
-  },
-  logoutButtonText: {
-    color: '#dc2626',
+  sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
   },
-  versionText: {
-    textAlign: 'center',
-    fontSize: 11,
-    color: '#999',
-    fontStyle: 'italic',
+  badgesContainer: {
+    flexDirection: 'row',
+    gap: 12,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+  badgeItem: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
-  modalContent: {
-    backgroundColor: '#FFF',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    minHeight: '70%',
-    paddingBottom: 20,
+  badgeName: {
+    fontSize: 14,
+    color: '#374151',
   },
-  modalHeader: {
+  preferenceItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#DEE4FF',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  modalBody: {
-    padding: 20,
-  },
-  avatarEditContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  avatarEdit: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 10,
-    borderWidth: 2,
-    borderColor: '#7E9AFF',
-  },
-  changePhotoButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#7E9AFF',
-    paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-    gap: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
-  changePhotoText: {
-    color: '#FFF',
+  preferenceLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  preferenceValue: {
     fontSize: 14,
     fontWeight: '500',
+    color: '#111827',
   },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#DEE4FF',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 15,
-    color: '#333',
-    backgroundColor: '#F8F9FA',
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    gap: 12,
-  },
-  modalButton: {
-    flex: 1,
+  editButton: {
+    backgroundColor: '#7E9AFF',
+    marginHorizontal: 16,
+    marginBottom: 24,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: 100,
     alignItems: 'center',
   },
-  cancelButton: {
-    backgroundColor: '#F3F4F6',
-  },
-  cancelButtonText: {
-    color: '#666',
+  editButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
-  saveButton: {
-    backgroundColor: '#7E9AFF',
+  postsSection: {
+    paddingHorizontal: 16,
+    gap: 16,
+    marginBottom: 20,
   },
-  saveButtonText: {
-    color: '#FFF',
+  postCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  postPlaceName: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  postDate: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 12,
+  },
+  postContent: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  postIcon: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  postDetails: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  postDescription: {
+    fontSize: 14,
+    color: '#374151',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  likesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  likesText: {
+    fontSize: 12,
+    color: '#6B7280',
   },
 });
