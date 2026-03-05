@@ -1,207 +1,69 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
-  RefreshControl,
-  Dimensions
+  Dimensions,
+  RefreshControl
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { AdminScreenLayout } from '@/components/adminScreenLayout';
 import { showToast } from '@/components/ui/Toast';
-import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 const { width } = Dimensions.get('window');
 
-// Mock data for dashboard stats
-const MOCK_STATS = {
-  totalUsers: 12547,
-  totalPlaces: 3892,
-  totalEvents: 567,
-  totalReviews: 8234,
-  pendingReports: 78,
-  pendingFeedback: 134,
-  newToday: {
-    users: 42,
-    places: 15,
-    events: 8,
-    reviews: 67
-  }
+// Analytics data
+const ANALYTICS_DATA = {
+  users: { value: '1,254', change: '+12%', color: '#4CAF50' },
+  places: { value: '489', change: '+8%', color: '#4CAF50' },
+  reviews: { value: '2,341', change: '+15%', color: '#F44336' },
+  active: { value: '187', change: '-3%', color: '#F44336' }
 };
-
-// Define types for screen items
-interface ScreenItemWithCount {
-  name: string;
-  icon: string;
-  path: string;
-  count: number;
-}
-
-interface ScreenItemWithoutCount {
-  name: string;
-  icon: string;
-  path: string;
-}
-
-type ScreenItem = ScreenItemWithCount | ScreenItemWithoutCount;
-
-// Admin navigation sections
-const ADMIN_SECTIONS: {
-  id: string;
-  title: string;
-  icon: string;
-  color: string;
-  bgColor: string;
-  screens: ScreenItem[];
-}[] = [
-  {
-    id: 'users',
-    title: 'User Management',
-    icon: 'people',
-    color: '#3B82F6',
-    bgColor: '#DBEAFE',
-    screens: [
-      { name: 'All Users', icon: 'person', path: '/users', count: 12547 },
-      { name: 'Moderation', icon: 'shield', path: '/moderation', count: 78 },
-      { name: 'Banned Users', icon: 'ban', path: '/banned', count: 23 }
-    ]
-  },
-  {
-    id: 'content',
-    title: 'Content Management',
-    icon: 'document-text',
-    color: '#10B981',
-    bgColor: '#DCFCE7',
-    screens: [
-      { name: 'Places', icon: 'location', path: '/places', count: 3892 },
-      { name: 'Events', icon: 'calendar', path: '/events', count: 567 },
-      { name: 'Reviews', icon: 'star', path: '/reviews', count: 8234 }
-    ]
-  },
-  {
-    id: 'reports',
-    title: 'Reports & Feedback',
-    icon: 'flag',
-    color: '#EF4444',
-    bgColor: '#FEE2E2',
-    screens: [
-      { name: 'User Reports', icon: 'flag', path: '/reports', count: 78 },
-      { name: 'Feedback', icon: 'chatbubble', path: '/feedback', count: 134 },
-      { name: 'Moderation Log', icon: 'document-text', path: '/moderation-log', count: 2456 }
-    ]
-  },
-  {
-    id: 'analytics',
-    title: 'Analytics',
-    icon: 'bar-chart',
-    color: '#8B5CF6',
-    bgColor: '#EDE9FE',
-    screens: [
-      { name: 'Dashboard', icon: 'pie-chart', path: '/analytics' },
-      { name: 'Reports', icon: 'document', path: '/analytics/reports' },
-      { name: 'Export Data', icon: 'download', path: '/analytics/export' }
-    ]
-  },
-  {
-    id: 'system',
-    title: 'System',
-    icon: 'settings',
-    color: '#6B7280',
-    bgColor: '#F3F4F6',
-    screens: [
-      { name: 'Settings', icon: 'cog', path: '/adminsettings' },
-      { name: 'API Status', icon: 'cloud', path: '/api-status' },
-      { name: 'Logs', icon: 'document', path: '/logs' }
-    ]
-  }
-];
-
-// Quick action buttons
-const QUICK_ACTIONS = [
-  { name: 'Add Place', icon: 'add-circle', path: '/places/add', color: '#10B981' },
-  { name: 'New Admin', icon: 'person-add', path: '/users/add', color: '#3B82F6' },
-  { name: 'View Reports', icon: 'flag', path: '/reports', color: '#EF4444' },
-  { name: 'Analytics', icon: 'bar-chart', path: '/analytics', color: '#8B5CF6' }
-];
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
-  const [stats, setStats] = useState(MOCK_STATS);
-  const { isConnected, isInitialized } = useNetworkStatus();
 
   const onRefresh = () => {
     setRefreshing(true);
-    // Simulate refresh
     setTimeout(() => {
       setRefreshing(false);
       showToast('Dashboard updated', 'success');
     }, 1000);
   };
 
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num.toString();
-  };
-
-  const StatCard = ({ title, value, icon, color, onPress }: any) => (
-    <TouchableOpacity style={[styles.statCard, { borderLeftColor: color }]} onPress={onPress}>
-      <View style={styles.statHeader}>
-        <View style={[styles.statIcon, { backgroundColor: `${color}20` }]}>
-          <Ionicons name={icon as any} size={20} color={color} />
-        </View>
-        <Text style={styles.statValue}>{formatNumber(value)}</Text>
-      </View>
-      <Text style={styles.statTitle}>{title}</Text>
-    </TouchableOpacity>
-  );
-
-  const SectionCard = ({ section }: { section: typeof ADMIN_SECTIONS[0] }) => (
-    <View style={styles.sectionCard}>
-      <View style={styles.sectionHeader}>
-        <View style={[styles.sectionIcon, { backgroundColor: section.bgColor }]}>
-          <Ionicons name={section.icon as any} size={24} color={section.color} />
-        </View>
-        <Text style={styles.sectionHeaderTitle}>{section.title}</Text>
-      </View>
-      
-      <View style={styles.sectionItems}>
-        {section.screens.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.sectionItem}
-            onPress={() => router.push(`/(admin)${item.path}` as any)}
-          >
-            <View style={styles.sectionItemLeft}>
-              <Ionicons name={item.icon as any} size={18} color={section.color} />
-              <Text style={styles.sectionItemText}>{item.name}</Text>
+  const AnalyticsCard = ({ title, value, change, color }: any) => (
+    <View style={styles.analyticsCard}>
+      <Text style={styles.analyticsTitle}>{title}</Text>
+      <View style={styles.analyticsContent}>
+        <Text style={styles.analyticsValue}>{value}</Text>
+        <View style={styles.analyticsGraph}>
+          {/* Green line graph - solid line */}
+          <View style={[styles.graphLine, { backgroundColor: color === '#4CAF50' ? '#4CAF50' : '#F44336' }]} />
+          {/* Red dashed line graph */}
+          {color === '#F44336' && (
+            <View style={styles.dashedLine}>
+              <View style={[styles.dash, { backgroundColor: '#F44336' }]} />
+              <View style={[styles.dash, { backgroundColor: '#F44336' }]} />
+              <View style={[styles.dash, { backgroundColor: '#F44336' }]} />
             </View>
-            <View style={styles.sectionItemRight}>
-              {'count' in item && (
-                <View style={[styles.countBadge, { backgroundColor: `${section.color}20` }]}>
-                  <Text style={[styles.countText, { color: section.color }]}>{item.count}</Text>
-                </View>
-              )}
-              <Ionicons name="chevron-forward" size={18} color="#999" />
-            </View>
-          </TouchableOpacity>
-        ))}
+          )}
+        </View>
       </View>
+      <Text style={[styles.analyticsChange, { color }]}>{change}</Text>
     </View>
   );
 
-  const QuickActionButton = ({ action }: { action: typeof QUICK_ACTIONS[0] }) => (
-    <TouchableOpacity
-      style={[styles.quickAction, { backgroundColor: action.color }]}
-      onPress={() => router.push(`/(admin)${action.path}` as any)}
-    >
-      <Ionicons name={action.icon as any} size={24} color="#FFF" />
-      <Text style={styles.quickActionText}>{action.name}</Text>
+  const MenuCard = ({ icon, title, onPress, color = '#7E9AFF' }: any) => (
+    <TouchableOpacity style={styles.menuCard} onPress={onPress}>
+      <View style={[styles.menuIconContainer, { backgroundColor: `${color}20` }]}>
+        <Ionicons name={icon} size={24} color={color} />
+      </View>
+      <Text style={styles.menuTitle}>{title}</Text>
+      <Ionicons name="chevron-forward" size={20} color="#999" />
     </TouchableOpacity>
   );
 
@@ -214,169 +76,76 @@ export default function AdminDashboard() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor="#7E9AFF"
-            colors={["#7E9AFF"]}
           />
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+        {/* Welcome Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Welcome back,</Text>
-            <Text style={styles.adminName}>Admin</Text>
+            <Text style={styles.welcomeText}>Welcome,</Text>
+            <Text style={styles.username}>Admin</Text>
           </View>
-          <TouchableOpacity style={styles.notificationButton}>
-            <Ionicons name="notifications-outline" size={24} color="#FFF" />
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationBadgeText}>3</Text>
-            </View>
+          <TouchableOpacity style={styles.profileButton}>
+            <Ionicons name="person-circle-outline" size={40} color="#FFF" />
           </TouchableOpacity>
         </View>
 
-        {/* Offline Banner */}
-        {isInitialized && !isConnected && (
-          <View style={styles.offlineBanner}>
-            <Ionicons name="cloud-offline-outline" size={18} color="#D32F2F" />
-            <Text style={styles.offlineBannerText}>You're offline. Showing cached data.</Text>
-          </View>
-        )}
+        {/* Analytics Section Title */}
+        <Text style={styles.sectionTitle}>Analytics</Text>
 
-        {/* Date */}
-        <Text style={styles.dateText}>
-          {new Date().toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}
-        </Text>
-
-        {/* Stats Grid */}
-        <View style={styles.statsGrid}>
-          <StatCard
+        {/* Analytics Cards Grid */}
+        <View style={styles.analyticsGrid}>
+          <AnalyticsCard
             title="Total Users"
-            value={stats.totalUsers}
-            icon="people"
-            color="#3B82F6"
-            onPress={() => router.push('/(admin)/users' as any)}
+            value={ANALYTICS_DATA.users.value}
+            change={ANALYTICS_DATA.users.change}
+            color={ANALYTICS_DATA.users.color}
           />
-          <StatCard
+          <AnalyticsCard
             title="Total Places"
-            value={stats.totalPlaces}
-            icon="location"
-            color="#10B981"
-            onPress={() => router.push('/(admin)/places' as any)}
+            value={ANALYTICS_DATA.places.value}
+            change={ANALYTICS_DATA.places.change}
+            color={ANALYTICS_DATA.places.color}
           />
-          <StatCard
-            title="Total Events"
-            value={stats.totalEvents}
-            icon="calendar"
-            color="#FF9800"
-            onPress={() => router.push('/(admin)/events' as any)}
-          />
-          <StatCard
+          <AnalyticsCard
             title="Total Reviews"
-            value={stats.totalReviews}
-            icon="star"
-            color="#FFC107"
-            onPress={() => router.push('/(admin)/reviews' as any)}
+            value={ANALYTICS_DATA.reviews.value}
+            change={ANALYTICS_DATA.reviews.change}
+            color={ANALYTICS_DATA.reviews.color}
+          />
+          <AnalyticsCard
+            title="Active Today"
+            value={ANALYTICS_DATA.active.value}
+            change={ANALYTICS_DATA.active.change}
+            color={ANALYTICS_DATA.active.color}
           />
         </View>
 
-        {/* Today's Activity */}
-        <View style={styles.todaySection}>
-          <Text style={styles.sectionTitle}>Today's Activity</Text>
-          <View style={styles.todayGrid}>
-            <View style={styles.todayItem}>
-              <Text style={styles.todayValue}>{stats.newToday.users}</Text>
-              <Text style={styles.todayLabel}>New Users</Text>
-            </View>
-            <View style={styles.todayItem}>
-              <Text style={styles.todayValue}>{stats.newToday.places}</Text>
-              <Text style={styles.todayLabel}>New Places</Text>
-            </View>
-            <View style={styles.todayItem}>
-              <Text style={styles.todayValue}>{stats.newToday.events}</Text>
-              <Text style={styles.todayLabel}>New Events</Text>
-            </View>
-            <View style={styles.todayItem}>
-              <Text style={styles.todayValue}>{stats.newToday.reviews}</Text>
-              <Text style={styles.todayLabel}>New Reviews</Text>
-            </View>
-          </View>
+        {/* Menu Options */}
+        <View style={styles.menuSection}>
+          <MenuCard
+            icon="flag-outline"
+            title="Manage Reports"
+            onPress={() => router.push('/(admin)/reports' as any)}
+            color="#EF4444"
+          />
+          <MenuCard
+            icon="people-outline"
+            title="Manage Users"
+            onPress={() => router.push('/(admin)/moderation' as any)}
+            color="#3B82F6"
+          />
+          <MenuCard
+            icon="settings-outline"
+            title="System Settings"
+            onPress={() => router.push('/(admin)/adminsettings' as any)}
+            color="#8B5CF6"
+          />
         </View>
 
-        {/* Pending Items Card */}
-        <TouchableOpacity style={styles.pendingCard} onPress={() => router.push('/(admin)/reports' as any)}>
-          <View style={styles.pendingContent}>
-            <View style={styles.pendingLeft}>
-              <View style={[styles.pendingIcon, { backgroundColor: '#FEE2E2' }]}>
-                <Ionicons name="alert-circle" size={24} color="#EF4444" />
-              </View>
-              <View>
-                <Text style={styles.pendingTitle}>Pending Actions</Text>
-                <Text style={styles.pendingSubtitle}>Reports & feedback need attention</Text>
-              </View>
-            </View>
-            <View style={styles.pendingRight}>
-              <View style={styles.pendingBadge}>
-                <Text style={styles.pendingBadgeText}>{stats.pendingReports + stats.pendingFeedback}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#999" />
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        {/* Quick Actions */}
-        <View style={styles.quickActionsSection}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActionsGrid}>
-            {QUICK_ACTIONS.map((action, index) => (
-              <QuickActionButton key={index} action={action} />
-            ))}
-          </View>
-        </View>
-
-        {/* Admin Sections */}
-        <View style={styles.sectionsContainer}>
-          {ADMIN_SECTIONS.map((section) => (
-            <SectionCard key={section.id} section={section} />
-          ))}
-        </View>
-
-        {/* System Status */}
-        <View style={styles.statusCard}>
-          <Text style={styles.statusTitle}>System Status</Text>
-          <View style={styles.statusRow}>
-            <View style={styles.statusItem}>
-              <View style={[styles.statusDot, { backgroundColor: '#4CAF50' }]} />
-              <Text style={styles.statusLabel}>API Server</Text>
-              <Text style={styles.statusValue}>Healthy</Text>
-            </View>
-            <View style={styles.statusItem}>
-              <View style={[styles.statusDot, { backgroundColor: '#4CAF50' }]} />
-              <Text style={styles.statusLabel}>Database</Text>
-              <Text style={styles.statusValue}>Connected</Text>
-            </View>
-          </View>
-          <View style={styles.statusRow}>
-            <View style={styles.statusItem}>
-              <View style={[styles.statusDot, { backgroundColor: '#FF9800' }]} />
-              <Text style={styles.statusLabel}>Cache</Text>
-              <Text style={styles.statusValue}>85% used</Text>
-            </View>
-            <View style={styles.statusItem}>
-              <View style={[styles.statusDot, { backgroundColor: '#4CAF50' }]} />
-              <Text style={styles.statusLabel}>Storage</Text>
-              <Text style={styles.statusValue}>42% used</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Last Updated */}
-        <Text style={styles.lastUpdated}>
-          Last updated: {new Date().toLocaleTimeString()}
-        </Text>
+        {/* Version Info */}
+        <Text style={styles.versionText}>NextStop Admin v1.0.0</Text>
       </ScrollView>
     </AdminScreenLayout>
   );
@@ -390,307 +159,125 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 30,
     marginTop: -5,
   },
-  greeting: {
-    fontSize: 14,
+  welcomeText: {
+    fontSize: 16,
     color: 'rgba(255,255,255,0.8)',
   },
-  adminName: {
-    fontSize: 24,
+  username: {
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  notificationButton: {
-    position: 'relative',
-    padding: 8,
+  profileButton: {
+    padding: 4,
   },
-  notificationBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: '#EF4444',
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 16,
   },
-  notificationBadgeText: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  offlineBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFE5E5',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 15,
-    gap: 8,
-  },
-  offlineBannerText: {
-    color: '#D32F2F',
-    fontSize: 12,
-    flex: 1,
-  },
-  dateText: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-    marginBottom: 20,
-  },
-  statsGrid: {
+  analyticsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 30,
   },
-  statCard: {
+  analyticsCard: {
     flex: 1,
     minWidth: '45%',
     backgroundColor: '#FFF',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    borderLeftWidth: 4,
+    borderWidth: 1,
+    borderColor: '#DEE4FF',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
-  statHeader: {
+  analyticsTitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  analyticsContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
   },
-  statIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statValue: {
+  analyticsValue: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
   },
-  statTitle: {
-    fontSize: 13,
-    color: '#666',
+  analyticsGraph: {
+    flex: 1,
+    height: 24,
+    marginLeft: 8,
+    justifyContent: 'center',
   },
-  todaySection: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#DEE4FF',
+  graphLine: {
+    height: 2,
+    width: '100%',
+    borderRadius: 1,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
-  },
-  todayGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  todayItem: {
-    alignItems: 'center',
-  },
-  todayValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#7E9AFF',
-    marginBottom: 4,
-  },
-  todayLabel: {
-    fontSize: 11,
-    color: '#666',
-  },
-  pendingCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#DEE4FF',
-  },
-  pendingContent: {
+  dashedLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    width: '100%',
   },
-  pendingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  dash: {
+    width: 6,
+    height: 2,
+    borderRadius: 1,
   },
-  pendingIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  pendingTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  pendingSubtitle: {
-    fontSize: 12,
-    color: '#666',
-  },
-  pendingRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  pendingBadge: {
-    backgroundColor: '#EF4444',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    minWidth: 24,
-    alignItems: 'center',
-  },
-  pendingBadgeText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  quickActionsSection: {
-    marginBottom: 16,
-  },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  quickAction: {
-    flex: 1,
-    minWidth: '45%',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    gap: 8,
-  },
-  quickActionText: {
-    color: '#FFF',
+  analyticsChange: {
     fontSize: 14,
     fontWeight: '600',
+    textAlign: 'right',
   },
-  sectionsContainer: {
-    gap: 16,
-    marginBottom: 16,
+  menuSection: {
+    gap: 12,
+    marginBottom: 30,
   },
-  sectionCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#DEE4FF',
-  },
-  sectionHeader: {
+  menuCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
+    backgroundColor: '#FFF',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DEE4FF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  sectionIcon: {
+  menuIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 12,
   },
-  sectionHeaderTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  sectionItems: {
-    gap: 12,
-  },
-  sectionItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  sectionItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  sectionItemText: {
-    fontSize: 15,
-    color: '#333',
-  },
-  sectionItemRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  countBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  countText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#DEE4FF',
-  },
-  statusTitle: {
+  menuTitle: {
+    flex: 1,
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 12,
   },
-  statusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  statusItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusLabel: {
-    fontSize: 13,
-    color: '#666',
-    flex: 1,
-  },
-  statusValue: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#333',
-  },
-  lastUpdated: {
+  versionText: {
     textAlign: 'center',
-    fontSize: 11,
-    color: '#999',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.5)',
     fontStyle: 'italic',
-    marginTop: 10,
   },
 });

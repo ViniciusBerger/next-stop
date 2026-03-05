@@ -6,8 +6,7 @@ export default function Index() {
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
 
-  // Set this to true to test admin screens, false for normal flow
-  const TEST_ADMIN_MODE = false; // Change to true to test admin screens
+  const TEST_ADMIN_MODE = false; 
 
   useEffect(() => {
     // Check if router is ready
