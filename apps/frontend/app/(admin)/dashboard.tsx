@@ -6,21 +6,66 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
-  RefreshControl
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { AdminScreenLayout } from '@/components/adminScreenLayout';
 import { showToast } from '@/components/ui/Toast';
+import Svg_SVG, { Polyline as SVGPolyline } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
 
-// Analytics data
-const ANALYTICS_DATA = {
-  users: { value: '1,254', change: '+12%', color: '#4CAF50' },
-  places: { value: '489', change: '+8%', color: '#4CAF50' },
-  reviews: { value: '2,341', change: '+15%', color: '#F44336' },
-  active: { value: '187', change: '-3%', color: '#F44336' }
+const ANALYTICS_DATA = [
+  { title: 'Analitics', trend: 'up', points: '0,30 20,20 40,25 60,10 80,5' },
+  { title: 'Analitics', trend: 'down', points: '0,5 20,15 40,10 60,25 80,30' },
+  { title: 'Analitics', trend: 'up', points: '0,30 20,18 40,22 60,8 80,2' },
+];
+
+// Simple SVG line graph component
+const MiniGraph = ({ trend }: { trend: 'up' | 'down' }) => {
+  const color = trend === 'up' ? '#22C55E' : '#EF4444';
+  const points =
+    trend === 'up'
+      ? '0,32 18,22 36,26 54,12 72,6 90,2'
+      : '0,2 18,12 36,8 54,22 72,26 90,32';
+
+  return (
+    <Svg_SVG width={90} height={36} viewBox="0 0 90 36">
+      <SVGPolyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Arrow head */}
+      {trend === 'up' ? (
+        <>
+          <SVGPolyline
+            points="82,8 90,2 84,10"
+            fill="none"
+            stroke={color}
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </>
+      ) : (
+        <>
+          <SVGPolyline
+            points="82,26 90,32 84,24"
+            fill="none"
+            stroke={color}
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </>
+      )}
+    </Svg_SVG>
+  );
 };
 
 export default function AdminDashboard() {
@@ -35,38 +80,6 @@ export default function AdminDashboard() {
     }, 1000);
   };
 
-  const AnalyticsCard = ({ title, value, change, color }: any) => (
-    <View style={styles.analyticsCard}>
-      <Text style={styles.analyticsTitle}>{title}</Text>
-      <View style={styles.analyticsContent}>
-        <Text style={styles.analyticsValue}>{value}</Text>
-        <View style={styles.analyticsGraph}>
-          {/* Green line graph - solid line */}
-          <View style={[styles.graphLine, { backgroundColor: color === '#4CAF50' ? '#4CAF50' : '#F44336' }]} />
-          {/* Red dashed line graph */}
-          {color === '#F44336' && (
-            <View style={styles.dashedLine}>
-              <View style={[styles.dash, { backgroundColor: '#F44336' }]} />
-              <View style={[styles.dash, { backgroundColor: '#F44336' }]} />
-              <View style={[styles.dash, { backgroundColor: '#F44336' }]} />
-            </View>
-          )}
-        </View>
-      </View>
-      <Text style={[styles.analyticsChange, { color }]}>{change}</Text>
-    </View>
-  );
-
-  const MenuCard = ({ icon, title, onPress, color = '#7E9AFF' }: any) => (
-    <TouchableOpacity style={styles.menuCard} onPress={onPress}>
-      <View style={[styles.menuIconContainer, { backgroundColor: `${color}20` }]}>
-        <Ionicons name={icon} size={24} color={color} />
-      </View>
-      <Text style={styles.menuTitle}>{title}</Text>
-      <Ionicons name="chevron-forward" size={20} color="#999" />
-    </TouchableOpacity>
-  );
-
   return (
     <AdminScreenLayout showBack={false}>
       <ScrollView
@@ -75,7 +88,7 @@ export default function AdminDashboard() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#7E9AFF"
+            tintColor="#7FFFD4"
           />
         }
         showsVerticalScrollIndicator={false}
@@ -84,68 +97,48 @@ export default function AdminDashboard() {
         <View style={styles.header}>
           <View>
             <Text style={styles.welcomeText}>Welcome,</Text>
-            <Text style={styles.username}>Admin</Text>
+            <Text style={styles.username}>Username</Text>
           </View>
-          <TouchableOpacity style={styles.profileButton}>
-            <Ionicons name="person-circle-outline" size={40} color="#FFF" />
+          <View style={styles.avatarContainer}>
+            <Ionicons name="person" size={28} color="#888" />
+          </View>
+        </View>
+
+        {/* Analytics Cards Container — with cyan glow border */}
+        <View style={styles.analyticsContainer}>
+          {ANALYTICS_DATA.map((item, index) => (
+            <View key={index} style={styles.analyticsCard}>
+              <Text style={styles.analyticsTitle}>{item.title}</Text>
+              <View style={styles.graphWrapper}>
+                <MiniGraph trend={item.trend as 'up' | 'down'} />
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.buttonsSection}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push('/(admin)/reports' as any)}
+          >
+            <Text style={styles.actionButtonText}>Manage Reports</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push('/(admin)/moderation' as any)}
+          >
+            <Text style={styles.actionButtonText}>Manage Users</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push('/(admin)/adminsettings' as any)}
+          >
+            <Text style={styles.actionButtonText}>System Settings</Text>
           </TouchableOpacity>
         </View>
-
-        {/* Analytics Section Title */}
-        <Text style={styles.sectionTitle}>Analytics</Text>
-
-        {/* Analytics Cards Grid */}
-        <View style={styles.analyticsGrid}>
-          <AnalyticsCard
-            title="Total Users"
-            value={ANALYTICS_DATA.users.value}
-            change={ANALYTICS_DATA.users.change}
-            color={ANALYTICS_DATA.users.color}
-          />
-          <AnalyticsCard
-            title="Total Places"
-            value={ANALYTICS_DATA.places.value}
-            change={ANALYTICS_DATA.places.change}
-            color={ANALYTICS_DATA.places.color}
-          />
-          <AnalyticsCard
-            title="Total Reviews"
-            value={ANALYTICS_DATA.reviews.value}
-            change={ANALYTICS_DATA.reviews.change}
-            color={ANALYTICS_DATA.reviews.color}
-          />
-          <AnalyticsCard
-            title="Active Today"
-            value={ANALYTICS_DATA.active.value}
-            change={ANALYTICS_DATA.active.change}
-            color={ANALYTICS_DATA.active.color}
-          />
-        </View>
-
-        {/* Menu Options */}
-        <View style={styles.menuSection}>
-          <MenuCard
-            icon="flag-outline"
-            title="Manage Reports"
-            onPress={() => router.push('/(admin)/reports' as any)}
-            color="#EF4444"
-          />
-          <MenuCard
-            icon="people-outline"
-            title="Manage Users"
-            onPress={() => router.push('/(admin)/moderation' as any)}
-            color="#3B82F6"
-          />
-          <MenuCard
-            icon="settings-outline"
-            title="System Settings"
-            onPress={() => router.push('/(admin)/adminsettings' as any)}
-            color="#8B5CF6"
-          />
-        </View>
-
-        {/* Version Info */}
-        <Text style={styles.versionText}>NextStop Admin v1.0.0</Text>
       </ScrollView>
     </AdminScreenLayout>
   );
@@ -153,131 +146,97 @@ export default function AdminDashboard() {
 
 const styles = StyleSheet.create({
   container: {
+    paddingHorizontal: 20,
     paddingBottom: 40,
+    paddingTop: 10,
   },
+
+  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 30,
-    marginTop: -5,
+    marginBottom: 24,
   },
   welcomeText: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    lineHeight: 32,
   },
   username: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 26,
+    fontWeight: '700',
     color: '#FFFFFF',
+    lineHeight: 32,
   },
-  profileButton: {
-    padding: 4,
+  avatarContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#D1D5DB',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 16,
+
+  // Analytics outer container with cyan glow border
+  analyticsContainer: {
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#22D3EE', // cyan/teal glow border
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    overflow: 'hidden',
+    marginBottom: 24,
+    // Glow effect via shadow
+    shadowColor: '#22D3EE',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
+    elevation: 8,
   },
-  analyticsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 30,
-  },
+
   analyticsCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#DEE4FF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: '#E8E8E8',
+    marginHorizontal: 12,
+    marginVertical: 10,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
   },
   analyticsTitle: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 10,
+    alignSelf: 'center',
   },
-  analyticsContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  graphWrapper: {
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  analyticsValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  analyticsGraph: {
-    flex: 1,
-    height: 24,
-    marginLeft: 8,
     justifyContent: 'center',
   },
-  graphLine: {
-    height: 2,
-    width: '100%',
-    borderRadius: 1,
-  },
-  dashedLine: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  dash: {
-    width: 6,
-    height: 2,
-    borderRadius: 1,
-  },
-  analyticsChange: {
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'right',
-  },
-  menuSection: {
+
+  // Buttons
+  buttonsSection: {
     gap: 12,
-    marginBottom: 30,
   },
-  menuCard: {
-    flexDirection: 'row',
+  actionButton: {
+    backgroundColor: '#C8D8F0',
+    borderRadius: 30,
+    paddingVertical: 18,
     alignItems: 'center',
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#DEE4FF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  menuIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
     justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
+    // Soft shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  menuTitle: {
-    flex: 1,
+  actionButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  versionText: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.5)',
-    fontStyle: 'italic',
+    fontWeight: '700',
+    color: '#1A1A2E',
+    letterSpacing: 0.2,
   },
 });
