@@ -58,4 +58,28 @@ export class CreatePlaceDTO {
   @IsOptional()
   @IsString()
   createdBy?: string;
+
+  @IsOptional()
+  @IsNumber()
+  googleRating?: number;
+
+  @IsOptional()
+  @IsNumber()
+  googleReviewCount?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  googlePhotos?: string[];
+
+  @IsOptional()
+  openingHours?: any;
+
+  @IsOptional()
+  @IsString()
+  phoneNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  website?: string;
 }

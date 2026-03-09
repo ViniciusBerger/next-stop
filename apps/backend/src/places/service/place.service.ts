@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PlaceRepository } from '../repository/place.repository';
@@ -11,58 +11,35 @@ import { GetPlaceDTO } from '../DTOs/get.place.DTO';
 export class PlaceService {
   constructor(
     private readonly placeRepository: PlaceRepository,
-    @InjectModel(Place.name) private readonly placeModel: Model<Place>
+    @InjectModel(Place.name) private readonly placeModel: Model<Place>,
   ) {}
 
   /**
-   * Creates a new place
+   * Creates a new place or returns existing one
    */
   async createPlace(dto: CreatePlaceDTO): Promise<Place> {
-    const existingPlace = await this.placeRepository.findOne({
-      googlePlaceId: dto.googlePlaceId,
-    });
-
-    if (existingPlace) {
-      throw new ConflictException('Place with this Google Place ID already exists');
+    // Check if place already exists
+    if (dto.googlePlaceId) {
+      const existing = await this.placeRepository.findOne({ googlePlaceId: dto.googlePlaceId });
+      if (existing) {
+        return existing;
+      }
     }
 
-    return await this.placeRepository.create(dto as any);
+    const newPlace = await this.placeRepository.create(dto as any);
+    return newPlace;
   }
 
   /**
    * Retrieves all places with optional filters
    */
   async getAllPlaces(dto?: GetPlaceDTO): Promise<Place[]> {
-    // LOCATION FILTER (proximity)
-    if (dto?.latitude && dto?.longitude) {
-      const radiusMeters = dto.radiusMeters || 5000; // Default 5km
-
-      const additionalFilters: any = {};
-      if (dto.category) additionalFilters.category = dto.category;
-      if (dto.maxPriceLevel !== undefined) {
-        additionalFilters.priceLevel = { $lte: dto.maxPriceLevel };
-      }
-
-      return await this.placeRepository.findNearby(
-        dto.latitude,
-        dto.longitude,
-        radiusMeters,
-        additionalFilters
-      );
-    }
-
-    // STANDARD FILTERS
     const filter: any = {};
 
     if (dto) {
-      if (dto.googlePlaceId) filter.googlePlaceId = dto.googlePlaceId;
       if (dto.category) filter.category = dto.category;
-      if (dto.name) filter.name = { $regex: dto.name, $options: 'i' };
-      
-      // PRICE FILTER
-      if (dto.maxPriceLevel !== undefined) {
-        filter.priceLevel = { $lte: dto.maxPriceLevel };
-      }
+      if (dto.priceLevel !== undefined) filter.priceLevel = dto.priceLevel;
+      if (dto.googlePlaceId) filter.googlePlaceId = dto.googlePlaceId;
     }
 
     return await this.placeRepository.findMany(filter);
@@ -71,60 +48,81 @@ export class PlaceService {
   /**
    * Retrieves a specific place
    */
-  async getPlace(dto: GetPlaceDTO): Promise<Place> {
-    let place: Place | null = null;
+  async getPlace(dto: GetPlaceDTO): Promise<Place | null> {
+    const filter: any = {};
 
-    if (dto.id) {
-      place = await this.placeRepository.findById(dto.id);
-    } else if (dto.googlePlaceId) {
-      place = await this.placeRepository.findOne({ googlePlaceId: dto.googlePlaceId });
+    if (dto.googlePlaceId) {
+      filter.googlePlaceId = dto.googlePlaceId;
+    } else if (dto._id) {
+      filter._id = dto._id;
     }
 
-    if (!place) {
-      throw new NotFoundException('Place not found');
-    }
-
-    return place;
+    return await this.placeRepository.findOne(filter);
   }
 
   /**
    * Updates a place
    */
-  async updatePlace(getDto: GetPlaceDTO, updateDto: UpdatePlaceDTO): Promise<Place> {
+  async updatePlace(dto: UpdatePlaceDTO): Promise<Place> {
     const filter: any = {};
 
-    if (getDto.id) filter._id = getDto.id;
-    if (getDto.googlePlaceId) filter.googlePlaceId = getDto.googlePlaceId;
+    if (dto.googlePlaceId) {
+      filter.googlePlaceId = dto.googlePlaceId;
+    } else if (dto._id) {
+      filter._id = dto._id;
+    } else {
+      throw new NotFoundException('Place identifier required');
+    }
 
-    const updateData: any = { ...updateDto, updatedAt: new Date() };
-
-    const updatedPlace = await this.placeRepository.update(filter, { $set: updateData });
-
-    if (!updatedPlace) {
+    const place = await this.placeRepository.findOne(filter);
+    if (!place) {
       throw new NotFoundException('Place not found');
     }
 
-    return updatedPlace;
+    // Remove identifier fields from update
+    const { googlePlaceId, _id, ...updateData } = dto;
+
+    const updated = await this.placeRepository.update(filter, { $set: updateData });
+    
+    if (!updated) {
+      throw new NotFoundException('Place not found');
+    }
+
+    return updated;
   }
 
   /**
    * Deletes a place
    */
-  async deletePlace(dto: GetPlaceDTO): Promise<{ deleted: boolean; message: string }> {
-    const filter: any = {};
+  async deletePlace(googlePlaceId: string): Promise<{ deleted: boolean; message: string }> {
+    const place = await this.placeRepository.findOne({ googlePlaceId });
 
-    if (dto.id) filter._id = dto.id;
-    if (dto.googlePlaceId) filter.googlePlaceId = dto.googlePlaceId;
-
-    const deletedPlace = await this.placeRepository.delete(filter);
-
-    if (!deletedPlace) {
+    if (!place) {
       throw new NotFoundException('Place not found');
     }
 
+    await this.placeRepository.delete({ googlePlaceId });
+
     return {
       deleted: true,
-      message: `Place "${deletedPlace.name}" deleted successfully`,
+      message: `Place "${place.name}" deleted successfully`,
     };
+  }
+
+  /**
+   * Search places near a location
+   */
+  async searchNearby(
+    latitude: number,
+    longitude: number,
+    radius: number = 5000,
+    category?: string,
+  ): Promise<Place[]> {
+    const filter: any = {};
+    if (category) {
+      filter.category = category;
+    }
+
+    return await this.placeRepository.findNearby(latitude, longitude, radius, filter);
   }
 }
