@@ -5,7 +5,7 @@ export class GetPlaceDTO {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
-  id?: string; // MongoDB _id
+  _id?: string; // MongoDB _id
 
   @IsOptional()
   @IsString()
@@ -21,6 +21,13 @@ export class GetPlaceDTO {
   @IsString()
   @IsNotEmpty()
   category?: string; // Filter by category
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(4)
+  priceLevel?: number;
 
   @IsOptional()
   @Type(() => Number)
