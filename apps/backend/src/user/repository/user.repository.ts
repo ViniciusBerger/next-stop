@@ -20,6 +20,11 @@ export class UserRepository {
         return await this.userModel.findOne(filter).exec();
     }
 
+    // Generic find; logic for which field to query belongs in the Service.
+    async findAll(): Promise<User[]> {
+        return await this.userModel.find({}).lean().exec();
+    }
+
     // Atomic update using Mongoose $operators; returns null if not found. */
     async update(filter: IuserData, update: UpdateQuery<User>): Promise<User | null> {
         return await this.userModel.findOneAndUpdate(filter, update, { new: true }).exec();

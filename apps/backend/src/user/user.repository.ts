@@ -43,4 +43,5 @@ export class UserRepository {
     async populate(user: User, options: any): Promise<User> {
         return await user.populate(options);
     }
+
 }

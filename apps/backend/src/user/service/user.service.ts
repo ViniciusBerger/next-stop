@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { User } from "../user.schema";
 import { GetUserDTO } from "../DTOs/get.user.DTO";
 import { CreateUserDTO } from "../DTOs/create.user.DTO";
@@ -15,6 +15,10 @@ export class UserService {
     // Persists a new user; delegate the data to generic repository.
     async createUser(dto: CreateUserDTO): Promise<User> {
         return await this.userRepository.create(dto);
+    }
+
+    async getAll():Promise<User[]> {
+        return await this.userRepository.findAll();
     }
 
     // Translates GetUserDTO into a search filter, searching by firebaseUid.
@@ -78,5 +82,22 @@ export class UserService {
         }
 
         return { success: true, message: "Friendship removed" };
+    }
+
+
+    async banUser(id: string){
+        const userBanned = await this.updateUser(id, {isBanned: true}) 
+
+        if(!userBanned.isBanned) throw new InternalServerErrorException("error banning user.")
+        
+        return userBanned
+    }
+
+    async unbanUser(id: string){
+        const user = await this.updateUser(id, {isBanned: false}) 
+
+        if(user.isBanned) throw new InternalServerErrorException("error unbanning user.")
+        
+        return user
     }
 }
