@@ -7,6 +7,7 @@ import axios from "axios";
 import { setItemAsync} from "expo-secure-store";
 import { auth } from "../src/config/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { API_URL } from "@/src/config/api";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -37,7 +38,7 @@ async function handleLogin() {
     const idToken = await userCredential.user.getIdToken();
 
     // 3. Call the NestJS backend directly
-    const response = await axios.post("http://localhost:3000/auth/validate", {
+    const response = await axios.post(`${API_URL}/auth/validate`, {
       token: idToken,
     });
 

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Alert, Platform } from "react-native";
 import axios from "axios";
 import { auth } from "@/src/config/firebase";
+import { API_URL } from "@/src/config/api";
 
 export default function FeedbackReportScreen() {
   const [type, setType] = useState<"feedback" | "issue" | null>(null);
@@ -53,7 +54,7 @@ export default function FeedbackReportScreen() {
           reportedBy: auth.currentUser?.uid, 
         };
 
-        const response = await axios.post('http://localhost:3000/reports', payload);
+        const response = await axios.post(`${API_URL}/reports`, payload);
 
         if (response.status === 201 || response.status === 200) {
           // Success logic for platforms

@@ -136,8 +136,7 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    borderTopWidth: 3,
-    borderTopColor: "#2EE6A8",
+    borderTopWidth: 0.5,
   },
 
   tabButton: {

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
-import { User } from "../user.schema";
+import { User } from "../schemas/user.schema";
 import { GetUserDTO } from "../DTOs/get.user.DTO";
 import { CreateUserDTO } from "../DTOs/create.user.DTO";
 import { UpdateUserDTO } from "../DTOs/update.user.DTO";

@@ -2,28 +2,27 @@ import React, { use, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Platform } from "react-native";
 import { ScreenLayout } from "@/components/screenLayout";
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from "@react-navigation/native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 export default function LocationDetailsScreen() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const navigation = useNavigation<any>(); // Replace 'any' with your typed navigation prop
   const router = useRouter();
   // This would come from Firestore user visit history
   const [hasVisited, setHasVisited] = useState(true);
+  const params = useLocalSearchParams();
 
-  const locationData = {
-    name: "Golden Gate Park",
-    address: "San Francisco, CA 94122, United States", // Kept in data for the URL
-    rating: 4.8,
-    reviewCount: 124,    
-    type: "Park / Recreational",
-  };
+  const place = typeof params.place === 'string' ? JSON.parse(params.place) : null;
+
+  const placeId = place?._id ?? place?.id;
+  const placeName = place?.name ?? "Unknown Location";
+  const placeAddress = place?.address ?? "";
+  const placeRating = place?.googleRating ?? place?.averageUserRating ?? 0;
+  const placeType = place?.category ?? place?.type ?? "Place";
+  const placeReviewCount = place?.googleReviewCount ?? place?.totalUserReviews ?? 0;
 
   const openInMaps = () => {
-    const destination = encodeURIComponent(`${locationData.name}, ${locationData.address}`);
-    const provider = Platform.OS === 'ios' ? 'maps' : 'geo';
+    const destination = encodeURIComponent(`${placeName}, ${placeAddress}`);
     const url = Platform.select({
       ios: `maps://0,0?q=${destination}`,
       android: `geo:0,0?q=${destination}`,
@@ -52,13 +51,13 @@ export default function LocationDetailsScreen() {
     return stars;
   };
 
-const handleCreateEvent = () => {
-    // Navigate and pass the location data to the next screen
-    navigation.navigate("createevent", {
-      selectedLocation: {
-        name: locationData.name,
-        address: locationData.address,
-        type: locationData.type
+  const handleCreateEvent = () => {
+    router.push({
+      pathname: "/createevent",
+      params: { 
+        placeId: placeId,
+        name: placeName,
+        address: placeAddress,
       }
     });
   };
@@ -87,10 +86,10 @@ const handleCreateEvent = () => {
               activeOpacity={0.7}
             >
               <View style={styles.nameHeaderRow}>
-                <Text style={styles.locationName}>{locationData.name}</Text>
+                <Text style={styles.locationName}>{placeName}</Text>
                 <Ionicons name="open-outline" size={16} color="#5679f9" style={{marginLeft: 5}} />
               </View>
-              <Text style={styles.locationType}>{locationData.type} • Tap to Navigate</Text>
+              <Text style={styles.locationType}>{placeType} • Tap to Navigate</Text>
             </TouchableOpacity>
           </View>
 
@@ -101,10 +100,10 @@ const handleCreateEvent = () => {
             <Ionicons name="star-half-outline" size={20} color="#888" />
             <View style={styles.ratingContainer}>
               <View style={styles.starRow}>
-                {renderStars(locationData.rating)}
+                {renderStars(placeRating)}
               </View>
-              <Text style={styles.ratingScore}>{locationData.rating}</Text>
-              <Text style={styles.reviewCount}>({locationData.reviewCount} reviews)</Text>
+              <Text style={styles.ratingScore}>{placeRating}</Text>
+              <Text style={styles.reviewCount}>({placeReviewCount} reviews)</Text>
             </View>
           </View>
 
@@ -112,7 +111,13 @@ const handleCreateEvent = () => {
         {hasVisited && (
           <TouchableOpacity 
             style={styles.reviewPromptCard}
-            onPress={() => router.push('/createreview')}
+            onPress={() => router.push({
+              pathname: "/createreview",
+              params: { 
+                placeId: placeId, // MongoDB ID
+                placeName: placeName // Place name so it is showed on create review
+              }}
+            )}
           >
             <View style={styles.reviewPromptContent}>
               <Ionicons name="chatbubble-ellipses-outline" size={24} color="#5962ff" />
