@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 
 interface ReviewProps {
@@ -9,20 +9,21 @@ interface ReviewProps {
   rating: number;
   likes: string | number;
   hasImage?: boolean;
+  imageUrl?: string | null;
   text: string;
   isOwnReview?: boolean;
   onDelete?: () => void;
 }
 
 export function ReviewCard({ 
-  userName, date, placeName, rating, likes, hasImage, text, onDelete, isOwnReview 
+  userName, date, placeName, rating, likes, hasImage, imageUrl, text, onDelete, isOwnReview 
 }: ReviewProps) {
   
   const renderStars = (val: number) => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
       let name: any = i <= val ? "star" : i - 0.5 === val ? "star-half" : "star-outline";
-      stars.push(<Ionicons key={i} name={name} size={22} color="black" />);
+      stars.push(<Ionicons key={i} name={name} size={22} color="#FFD700" />);
     }
     return stars;
   };
@@ -39,10 +40,12 @@ export function ReviewCard({
 
       <Text style={styles.placeNameText}>{placeName}</Text>
 
-      {hasImage && (
-        <View style={styles.imageBox}>
-          <Ionicons name="image-outline" size={40} color="#ccc" />
-        </View>
+      {hasImage && imageUrl && (
+        <Image 
+          source={{ uri: imageUrl }} 
+          style={styles.imageBox}
+          resizeMode="cover"
+        />
       )}
 
       <View style={styles.ratingRow}>
@@ -71,7 +74,7 @@ const styles = StyleSheet.create({
   userNameText: { fontSize: 16, fontWeight: 'bold' },
   dateText: { fontSize: 13, color: '#666' },
   placeNameText: { fontSize: 18, fontWeight: 'bold', marginVertical: 4 },
-  imageBox: { width: '70%', height: 130, backgroundColor: '#F5F5F5', borderWidth: 1, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
+  imageBox: { width: '70%', height: 130, borderRadius: 8,marginBottom: 10 },
   ratingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   starsContainer: { flexDirection: 'row' },
   likesContainer: { flexDirection: 'row', alignItems: 'center' },

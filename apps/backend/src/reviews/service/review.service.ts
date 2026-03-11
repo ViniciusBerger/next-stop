@@ -5,21 +5,34 @@ import { CreateReviewDTO } from '../DTOs/create.review.DTO';
 import { GetReviewDTO } from '../DTOs/get.review.DTO';
 import { LikeReviewDTO } from '../DTOs/like.review.DTO';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
+import { User } from '../../user/schemas/user.schema';
 
 @Injectable()
 export class ReviewService {
   constructor(
     private readonly reviewRepository: ReviewRepository,
-    @InjectModel(Review.name) private readonly reviewModel: Model<Review>
+    @InjectModel(Review.name) private readonly reviewModel: Model<Review>,
+    @InjectModel(User.name) private readonly userModel: Model<User>
   ) {}
 
   /**
    * Creates a new review
    * After creation, updates Place's rating
    */
-  async createReview(dto: CreateReviewDTO): Promise<Review> {
-    const newReview = await this.reviewRepository.create(dto as any);
+  async createReview(dto: any): Promise<Review> {
+    // Translate Firebase UID (dto.author) to MongoDB _id
+    const user = await this.userModel.findOne({ firebaseUid: dto.author }).exec();
+    if (!user) throw new NotFoundException('User not found');
+
+    // Swap the Firebase string with the real ObjectId
+    const reviewData = {
+      ...dto,
+      author: user._id, // MongoDB ObjectId
+      place: new Types.ObjectId(dto.place), // Ensure place is stored as ObjectId
+    };
+
+    const newReview = await this.reviewRepository.create(reviewData as any);
 
     // After creating review, update Place's rating
     await this.updatePlaceRating(dto.place);
@@ -100,8 +113,12 @@ export class ReviewService {
    * Retrieves all reviews by a specific user (History)
    */
   async getUserReviews(userId: string): Promise<Review[]> {
+    const user = await this.userModel.findOne({ firebaseUid: userId }).exec();
+    if (!user) throw new NotFoundException('User not found');
+
     return await this.reviewModel
-      .find({ author: userId })
+      .find({ author: user._id }) // matches the stored ObjectId
+      .populate('author', 'username profilePicture')
       .populate('place', 'name address category customImages')
       .populate('event', 'name date')
       .sort({ createdAt: -1 })
@@ -146,28 +163,29 @@ async deleteReview(
    * Toggles like on a review
    */
   async toggleLike(dto: LikeReviewDTO): Promise<Review> {
-    const { reviewId, userId } = dto;
+  const { reviewId, userId } = dto;
 
-    const review = await this.reviewRepository.findById(reviewId);
+  // Find the MongoDB user ID from the Firebase UID provided
+  const user = await this.userModel.findOne({ firebaseUid: userId }).exec();
+  if (!user) throw new NotFoundException('User not found');
 
-    if (!review) {
-      throw new NotFoundException('Review not found');
-    }
+  const review = await this.reviewRepository.findById(reviewId);
+  if (!review) throw new NotFoundException('Review not found');
 
-    // Check if user already liked
-    const userIndex = review.likedBy.findIndex(
-      (id) => id.toString() === userId.toString(),
-    );
+  // Use the MongoDB _id for the comparison
+  const userIndex = review.likedBy.findIndex(
+    (id) => id.toString() === user._id.toString(),
+  );
 
-    if (userIndex > -1) {
-      review.likedBy.splice(userIndex, 1);
-      review.likes = Math.max(0, review.likes - 1);
-    } else {
-      review.likedBy.push(userId as any);
-      review.likes += 1;
-    }
+  if (userIndex > -1) {
+    review.likedBy.splice(userIndex, 1);
+    review.likes = Math.max(0, review.likes - 1);
+  } else {
+    review.likedBy.push(user._id as any);
+    review.likes += 1;
+  }
 
-    const saved = await this.reviewRepository.save(review);
+  const saved = await this.reviewRepository.save(review);
 
     // Populate before returning
     return await this.reviewModel

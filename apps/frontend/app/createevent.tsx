@@ -1,24 +1,31 @@
 import React, { useState } from "react";
+import { auth } from "@/src/config/firebase";
+import axios from "axios";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Platform } from "react-native";
-import { useRoute, useNavigation } from "@react-navigation/native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenLayout } from "@/components/screenLayout";
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { API_URL } from "@/src/config/api";
 
 export default function CreateEventScreen() {
-  const route = useRoute<any>();
-  const navigation = useNavigation();
+  const router = useRouter();
+  const { placeId, placeName, placeAddress } = useLocalSearchParams<{
+    placeId: string;
+    placeName: string;
+    placeAddress: string;
+  }>();
   
-  const passedLocation = route.params?.selectedLocation;
 
   // Form State
   const [eventName, setEventName] = useState("");
   const [description, setDescription] = useState("");
-  const [locationName, setLocationName] = useState(passedLocation?.name || "");
+  const [locationName, setLocationName] = useState(placeName || "");
+  const [locationId] = useState(placeId || null);
   const [isPublic, setIsPublic] = useState(true);
 
   // Future logic: This would hold an array of User IDs
-//   const [invitedFriends, setInvitedFriends] = useState([]);
+  //   const [invitedFriends, setInvitedFriends] = useState([]);
 
 // Date State
   const [date, setDate] = useState(new Date());
@@ -53,14 +60,53 @@ export default function CreateEventScreen() {
     Alert.alert("Friends List", "This will open your friends list once the feature is ready!");
   };
 
-  const handleCreate = () => {
-    console.log("Publishing:", { 
-      eventName, 
-      description, 
-      locationName, 
-      privacy: isPublic ? 'Public' : 'Private' 
+const handleCreate = async () => {
+  // Validation
+  if (!eventName.trim()) {
+    Alert.alert("Missing Info", "Please enter an event name.");
+    return;
+  }
+  if (!hasPickedDate) {
+    Alert.alert("Missing Info", "Please select a date and time.");
+    return;
+  }
+  if (!locationId) {
+    Alert.alert("Missing Info", "No location selected. Please go back and select a place.");
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("userToken");
+    const user = auth.currentUser;
+
+    if (!user) {
+      Alert.alert("Not Logged In", "You must be logged in to create an event.");
+      return;
+    }
+
+    const payload = {
+      name: eventName.trim(),
+      description: description.trim(),
+      place: locationId,
+      date: date.toISOString(),
+      isPublic,
+      createdBy: user.uid,
+    };
+
+    console.log("Publishing:", payload);
+    const response = await axios.post(`${API_URL}/events`, payload, {
+      headers: { Authorization: `Bearer ${token}` }
     });
-  };
+    if (response.status === 201) {
+      Alert.alert("Success", "Event created!");
+      router.back();
+    }
+
+  } catch (error: any) {
+    console.error("❌ Create event error:", error.response?.data || error.message);
+    Alert.alert("Error", "Failed to create event. Please try again.");
+  }
+};
 
   return (
     <ScreenLayout showBack={true}>
@@ -167,8 +213,8 @@ export default function CreateEventScreen() {
               onChangeText={setLocationName}
             />
           </View>
-          {passedLocation && (
-            <Text style={styles.addressHint}>{passedLocation.address}</Text>
+          {placeAddress && (
+            <Text style={styles.addressHint}>{placeAddress}</Text>
           )}
         </View>
 

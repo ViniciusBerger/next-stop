@@ -22,6 +22,7 @@ import { SimpleFeedSkeleton } from "@/components/ActivityFeedSkeleton";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { showToast } from "@/components/ui/Toast";
 import { Ionicons } from '@expo/vector-icons';
+import { API_URL } from "@/src/config/api";
 
 // Mock posts data for when offline or no real data
 const MOCK_POSTS = [
@@ -78,46 +79,36 @@ export default function Home() {
   
   const { isConnected, isInitialized } = useNetworkStatus();
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        console.log("HOME: Auth state changed. User exists: true");
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    console.log("onAuthStateChanged launched. User:", user?.uid ?? "NULL");
+    console.log("auth.currentUser:", auth.currentUser?.uid ?? "NULL");
+
+    if (user) {
+      const token = localStorage.getItem("userToken");
+      console.log("Token in localStorage:", token ? "EXISTS" : "MISSING");
+
+      if (token) {
         try {
-          let token = null;
-          try {
-            token = await getItemAsync("userToken");
-          } catch (e) {
-            console.log("SecureStore skipped, checking localStorage");
+          const response = await axios.get(`${API_URL}/profile?firebaseUid=${user.uid}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          console.log("Profile response:", response.data);
+          if (response.data?.username) {
+            setUsername(response.data.username);
           }
-
-          if (!token) {
-            token = localStorage.getItem("userToken");
-          }
-
-          console.log("HOME: Token found:", !!token);
-          
-          if (token) {
-            try {
-              const response = await axios.get(`http://localhost:3000/profile?firebaseUid=${user.uid}`, {
-                headers: { Authorization: `Bearer ${token}` }
-              });
-
-              if (response.data?.username) {
-                setUsername(response.data.username);
-              }
-            } catch (apiError) {
-              console.error("HOME: API Error:", apiError);
-            }
-          }
-        } catch (error: any) {
-          console.error("HOME: Fetch Error:", error.message);
+        } catch (apiError: any) {
+          console.error("API Error:", apiError.response?.status, apiError.response?.data);
         }
       }
-      loadPosts();
-    });
+    } else {
+      console.log("No user in auth state");
+    }
+    loadPosts();
+  });
 
-    return () => unsubscribe();
-  }, []);
+  return () => unsubscribe();
+}, []);
 
   useEffect(() => {
     if (isInitialized && !isConnected) {

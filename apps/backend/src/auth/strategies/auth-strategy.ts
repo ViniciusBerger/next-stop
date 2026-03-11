@@ -1,6 +1,6 @@
 import { IAuthStrategy } from "./auth-strategy.interface";
 import { RegisterUserDTO } from "../DTOs/register.user.DTO";
-import { User } from "../../user/user.schema";
+import { User } from "../../user/schemas/user.schema";
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import admin from 'firebase-admin'
 import { UserService } from "../../user/service/user.service";

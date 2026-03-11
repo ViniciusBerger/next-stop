@@ -1,23 +1,93 @@
-import React from "react";
-import { View, Text, StyleSheet, FlatList } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
 import { ScreenLayout } from "@/components/screenLayout";
 import { ReviewCard } from "@/components/reviewCard";
 import { Ionicons } from '@expo/vector-icons';
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/src/config/firebase";
+import axios from "axios";
+import { API_URL } from "@/src/config/api";
 
 export default function MyReviewsScreen() {
-  const reviews = [
-    { id: "1", userName: "User's name", date: "Month-year", placeName: "Place's name", rating: 4.5, likes: 12, hasImage: true, text: "Review text..." },
-    { id: "2", userName: "User's name", date: "Month-year", placeName: "Place's name", rating: 4, likes: 5, hasImage: false, text: "Another review..." },
-    { id: "3", userName: "User's name", date: "Month-year", placeName: "Place's name", rating: 5, likes: 20, hasImage: true, text: "Yet another review..." }  
-];
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-const EmptyState = () => (
+useEffect(() => {
+  // Avoids waiting for async auth restore
+  const currentUser = auth.currentUser;
+  if (currentUser) {
+    console.log("Immediate user found:", currentUser.uid);
+    fetchReviews(currentUser.uid);
+    setLoading(false);
+    return;
+  }
+
+  // Fallback, wait for Firebase to restore session
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    console.log("MyReviews auth user:", user?.uid ?? "NULL");
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    fetchReviews(user.uid);
+  });
+
+  return () => unsubscribe();
+}, []);
+
+const fetchReviews = async (uid: string) => {
+  try {
+    const token = localStorage.getItem("userToken");
+    console.log("Fetching reviews for:", uid);
+    
+    const response = await axios.get(`${API_URL}/reviews/user/${uid}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const mapped = response.data.map((review: any) => ({
+      id: review._id,
+      mongoAuthorId: review.author?._id ?? review.author,
+      userName: review.author?.username ?? "Unknown",
+      date: review.date
+        ? new Date(review.date).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+        : "Unknown date",
+      placeName: review.place?.name ?? review.place ?? "Unknown place",
+      rating: review.rating,
+      likes: review.likes ?? 0,
+      hasImage: review.images?.length > 0,
+      imageUrl: review.images?.[0] ?? null,
+      text: review.reviewText,
+    }));
+
+    console.log("Mapped reviews:", mapped.length);
+    setReviews(mapped);
+  } catch (err: any) {
+    console.error("Reviews fetch error:", err.response?.status, err.response?.data);
+    setError("Failed to load reviews.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const EmptyState = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="chatbubbles-outline" size={50} color="#ccc" />
       <Text style={styles.emptyTitle}>No reviews yet</Text>
       <Text style={styles.emptySubtitle}>
         Your thoughts on the places you've visited will appear here.
       </Text>
+    </View>
+  );
+
+  const ErrorState = () => (
+    <View style={styles.emptyContainer}>
+      <Ionicons name="alert-circle-outline" size={50} color="#dc2626" />
+      <Text style={styles.emptyTitle}>Something went wrong</Text>
+      <Text style={styles.emptySubtitle}>{error}</Text>
+      <TouchableOpacity onPress={() => setLoading(true)} style={styles.retryButton}>
+        <Text style={styles.retryText}>Try Again</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -32,9 +102,18 @@ const EmptyState = () => (
   );
 
   // 2. The Bottom of the Card
-  const Footer = () => (
-    <View style={styles.cardBottom} />
-  );
+  const Footer = () => <View style={styles.cardBottom} />;
+
+  if (loading) {
+    return (
+      <ScreenLayout showBack={true}>
+        <Header />
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptySubtitle}>Loading your reviews...</Text>
+        </View>
+      </ScreenLayout>
+    );
+  }
 
   return (
     <ScreenLayout showBack={true}>
@@ -43,13 +122,35 @@ const EmptyState = () => (
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.cardBody}>
-            <ReviewCard {...item} onDelete={() => {}} />
+            <ReviewCard
+              {...item}
+              isOwnReview={true}
+              onDelete={async () => {
+                try {
+                  const token = localStorage.getItem("userToken");
+                  await axios.delete(`${API_URL}/reviews/${item.id}`, {
+                    headers: {
+                      "user-id": item.mongoAuthorId,
+                      Authorization: `Bearer ${token}`
+                    }
+                  });
+                  // Remove from local state instantly without refetching
+                  setReviews(prev => prev.filter(r => r.id !== item.id));
+                } catch (err) {
+                  console.error("Delete failed:", err);
+                }
+              }}
+            />
           </View>
         )}
         ListHeaderComponent={Header}
         ListFooterComponent={Footer}
-        ListEmptyComponent={EmptyState}
-        ItemSeparatorComponent={() => <View style={styles.cardBody}><View style={styles.divider} /></View>}
+        ListEmptyComponent={error ? ErrorState : EmptyState}
+        ItemSeparatorComponent={() => (
+          <View style={styles.cardBody}>
+            <View style={styles.divider} />
+          </View>
+        )}
         contentContainerStyle={styles.listPadding}
         showsVerticalScrollIndicator={false}
       />
@@ -127,5 +228,16 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginTop: 8,
-  }
+  },
+  retryButton: {
+    marginTop: 16,
+    backgroundColor: '#7d77f0',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
 });

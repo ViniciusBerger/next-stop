@@ -5,13 +5,14 @@ import { UserResponseDTO } from "../DTOs/user.response.DTO";
 import { UpdateUserDTO } from "../DTOs/update.user.DTO";
 import { DeleteUserDTO } from "../DTOs/delete.user.DTO";
 import { GetUserDTO } from "../DTOs/get.user.DTO";
+import { plainToInstance } from "class-transformer";
 
 @UseGuards(FirebaseAuthGuard)
 @Controller("user")
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  /**
+    /**
    * Retrieves a single user. 
    * Maps :firebaseUid from URL to GetUserDTO and extracts it for the service.
    * 
@@ -19,14 +20,16 @@ export class UserController {
    */
   @Get(':firebaseUid')
   async findOne(@Param() params: GetUserDTO) {
-    const {firebaseUid, username} = params
-    let user
+    const {firebaseUid, username} = params;
+    let user;
 
     if (firebaseUid) user = await this.userService.findById(firebaseUid as GetUserDTO);
-    if (username) user = await this.userService.findByUsername(username as GetUserDTO) 
-    
+    if (username) user = await this.userService.findByUsername(username as GetUserDTO);
+
     if (!user) throw new NotFoundException(`User with ${params} was not found`);
-    return new UserResponseDTO(user);
+    return plainToInstance(UserResponseDTO, user.toObject(), {
+      excludeExtraneousValues: true,
+    });
   }
 
   
@@ -40,7 +43,9 @@ export class UserController {
   @Patch()
   async updateUser(@Req() req, @Body() updateUserDTO: UpdateUserDTO) {
     const updatedUser = await this.userService.updateUser(req.user.uid, updateUserDTO);
-    return new UserResponseDTO(updatedUser);
+    return plainToInstance(UserResponseDTO, updatedUser.toObject(), { // ✅ fixed
+      excludeExtraneousValues: true,
+    });
   }
 
   /**
@@ -49,9 +54,12 @@ export class UserController {
    * 
    * @return userResponseDTO
    */
+
   @Delete(':firebaseUid')
   async deleteUser(@Param() params: DeleteUserDTO) {
     const deletedUser = await this.userService.deleteUser(params);
-    return new UserResponseDTO(deletedUser);
+    return plainToInstance(UserResponseDTO, deletedUser.toObject(), { // ✅ fixed
+      excludeExtraneousValues: true,
+    });
   }
 }

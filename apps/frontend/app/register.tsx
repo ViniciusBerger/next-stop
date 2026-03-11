@@ -18,6 +18,7 @@ import { BackButton } from "@/components/backButton";
 import { auth } from "@/src/config/firebase";
 import { signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import axios from "axios";
+import { API_URL } from "@/src/config/api";
 import { 
   ValidationMessage, 
   FieldValidation, 
@@ -210,7 +211,7 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:3000/auth/register", {
+      const response = await axios.post(`${API_URL}/auth/register`, {
         email: email.toLowerCase().trim(),
         password: password,
         displayName: name,

@@ -71,25 +71,42 @@ export class PlaceController {
 
   @Get('nearby')
   async searchNearby(@Query() dto: SearchNearbyDTO) {
-    const googleResults = await this.googlePlacesService.searchNearby(
-      { lat: dto.latitude, lng: dto.longitude },
-      dto.type,
-      dto.radius,
-    );
+    const location = { lat: dto.latitude, lng: dto.longitude };
+    const radius = dto.radius ?? 10000;
 
-    const savedPlaces: Place[] = []; // ← ADICIONAR TIPO
-    for (const result of googleResults) {
-      const existing = await this.placeService.getPlace({ googlePlaceId: result.googlePlaceId });
+    // Prevents API overuse for now
+    const cached = await this.placeService.searchNearby(dto.latitude, dto.longitude, radius);
+    if (cached.length > 10) {
+      return cached;
+    }
 
-      if (!existing) {
-        const saved = await this.placeService.createPlace(result);
-        savedPlaces.push(saved);
-      } else {
-        savedPlaces.push(existing);
+    // General call + targeted calls for categories that get buried
+    const [general, cinemas, parks, museums, gyms] = await Promise.all([
+      this.googlePlacesService.searchNearby(location, undefined, radius),
+      this.googlePlacesService.searchNearby(location, 'movie_theater', radius),
+      this.googlePlacesService.searchNearby(location, 'park', radius),
+      this.googlePlacesService.searchNearby(location, 'museum', radius),
+      this.googlePlacesService.searchNearby(location, 'gym', radius),
+    ]);
+
+    // Deduplicate by googlePlaceId
+    const seen = new Set<string>();
+    const allResults = [...general, ...cinemas, ...parks, ...museums, ...gyms]
+      .filter(place => {
+        if (seen.has(place.googlePlaceId)) return false;
+        seen.add(place.googlePlaceId);
+        return true;
+      });
+
+    // Save only NEW places to MongoDB
+    for (const result of allResults) {
+      const exists = await this.placeService.getPlace({ googlePlaceId: result.googlePlaceId });
+      if (!exists) {
+        await this.placeService.createPlace(result);
       }
     }
 
-    return savedPlaces;
+    return await this.placeService.searchNearby(dto.latitude, dto.longitude, radius);
   }
 
   @Get('google/:placeId')

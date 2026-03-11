@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadgeCheckerService } from './badge-checker.service';
 import { getModelToken } from '@nestjs/mongoose';
-import { User } from '../../user/user.schema';
+import { User } from '../../user/schemas/user.schema';
 import { Badge } from '../schemas/badges.schema';
 import { Review } from '../../reviews/schema/review.schema';
 import { Event } from '../../events/schema/event.schema';
