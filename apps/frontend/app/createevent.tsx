@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { auth } from "@/src/config/firebase";
 import axios from "axios";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Platform } from "react-native";
@@ -20,17 +20,27 @@ export default function CreateEventScreen() {
   // Form State
   const [eventName, setEventName] = useState("");
   const [description, setDescription] = useState("");
-  const [locationName, setLocationName] = useState(placeName || "");
-  const [locationId] = useState(placeId || null);
   const [isPublic, setIsPublic] = useState(true);
 
   // Future logic: This would hold an array of User IDs
-  //   const [invitedFriends, setInvitedFriends] = useState([]);
+  // const [invitedFriends, setInvitedFriends] = useState([]);
 
-// Date State
+  // Date State
   const [date, setDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
   const [hasPickedDate, setHasPickedDate] = useState(false);
+
+  // ✅ Fix - normalize the param and use useEffect to sync it
+  const rawPlaceName = Array.isArray(placeName) ? placeName[0] : placeName;
+  const rawPlaceAddress = Array.isArray(placeAddress) ? placeAddress[0] : placeAddress;
+  const rawPlaceId = Array.isArray(placeId) ? placeId[0] : placeId;
+
+  const [locationName, setLocationName] = useState(rawPlaceName || "");
+  const [locationId] = useState(rawPlaceId || null);
+
+  useEffect(() => {
+    if (rawPlaceName) setLocationName(rawPlaceName);
+  }, [rawPlaceName]);
 
   // Helper to format the date for the UI
   const formatDisplayDate = (date: Date) => {
@@ -74,36 +84,43 @@ const handleCreate = async () => {
     Alert.alert("Missing Info", "No location selected. Please go back and select a place.");
     return;
   }
+  if (description.trim().length < 10) {
+  Alert.alert("Missing Info", "Description must be at least 10 characters.");
+  return;
+}
 
   try {
     const token = localStorage.getItem("userToken");
     const user = auth.currentUser;
+    if (!user) { Alert.alert("Not Logged In", "You must be logged in."); return; }
 
-    if (!user) {
-      Alert.alert("Not Logged In", "You must be logged in to create an event.");
-      return;
-    }
+    // Resolve Firebase UID → MongoDB _id
+    const profileResponse = await axios.get(`${API_URL}/profile?firebaseUid=${user.uid}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    console.log("Profile data:", profileResponse.data);
+    const mongoUserId = profileResponse.data._id;
 
     const payload = {
       name: eventName.trim(),
       description: description.trim(),
       place: locationId,
+      location: locationName.trim(), // ← text location field
       date: date.toISOString(),
-      isPublic,
-      createdBy: user.uid,
+      privacy: isPublic ? "Public Event" : "Private Event", // ← enum value
+      host: mongoUserId, // ← MongoDB _id
     };
 
-    console.log("Publishing:", payload);
     const response = await axios.post(`${API_URL}/events`, payload, {
       headers: { Authorization: `Bearer ${token}` }
     });
+
     if (response.status === 201) {
       Alert.alert("Success", "Event created!");
-      router.back();
+      router.replace("/home");
     }
-
   } catch (error: any) {
-    console.error("❌ Create event error:", error.response?.data || error.message);
+    console.error("Create event error:", JSON.stringify(error.response?.data, null, 2));
     Alert.alert("Error", "Failed to create event. Please try again.");
   }
 };
@@ -161,13 +178,32 @@ const handleCreate = async () => {
           </TouchableOpacity>
 
           {showPicker && (
-            <DateTimePicker
-              value={date}
-              mode="datetime" // Combines date and time selection
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={onChange}
-              minimumDate={new Date()} // Prevent picking past dates
-            />
+            Platform.OS === 'web' ? (
+              <input
+                type="datetime-local"
+                min={new Date().toISOString().slice(0, 16)}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setHasPickedDate(true);
+                    setDate(new Date(e.target.value));
+                    setShowPicker(false);
+                  }
+                }}
+                style={{ 
+                  width: '100%', padding: 12, fontSize: 16, 
+                  borderRadius: 12, border: '1px solid #ddd',
+                  marginTop: 8 
+                }}
+              />
+            ) : (
+              <DateTimePicker
+                value={date}
+                mode="datetime"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={onChange}
+                minimumDate={new Date()}
+              />
+            )
           )}
         </View>
 
@@ -213,8 +249,8 @@ const handleCreate = async () => {
               onChangeText={setLocationName}
             />
           </View>
-          {placeAddress && (
-            <Text style={styles.addressHint}>{placeAddress}</Text>
+          {rawPlaceAddress && (
+            <Text style={styles.addressHint}>{rawPlaceAddress}</Text>
           )}
         </View>
 

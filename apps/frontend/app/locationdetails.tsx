@@ -3,13 +3,17 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Platform } fr
 import { ScreenLayout } from "@/components/screenLayout";
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect } from "react";
+import { auth } from "@/src/config/firebase";
+import axios from "axios";
+import { API_URL } from "@/src/config/api";
 
 export default function LocationDetailsScreen() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const router = useRouter();
   // This would come from Firestore user visit history
-  const [hasVisited, setHasVisited] = useState(true);
+  const [hasVisited, setHasVisited] = useState(false);
   const params = useLocalSearchParams();
 
   const place = typeof params.place === 'string' ? JSON.parse(params.place) : null;
@@ -56,11 +60,50 @@ export default function LocationDetailsScreen() {
       pathname: "/createevent",
       params: { 
         placeId: placeId,
-        name: placeName,
-        address: placeAddress,
+        placeName: placeName,
+        placeAddress: placeAddress,
       }
     });
   };
+
+  useEffect(() => {
+    const checkVisit = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const token = localStorage.getItem("userToken");
+
+        // Get MongoDB _id
+        const profileRes = await axios.get(`${API_URL}/profile?firebaseUid=${user.uid}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const mongoId = profileRes.data._id;
+
+        // Get user's events
+        const eventsRes = await axios.get(`${API_URL}/events/user/${mongoId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const now = new Date();
+        const pastAttended = [
+          ...eventsRes.data.created.filter((e: any) => new Date(e.date) <= now),
+          ...eventsRes.data.attending.filter((e: any) => new Date(e.date) <= now),
+        ];
+
+        // Check if any past event was at this place
+        const visited = pastAttended.some(
+          (e: any) => e.place?._id === placeId || e.place === placeId
+        );
+
+        setHasVisited(visited);
+      } catch (err) {
+        console.error("Failed to check visit history:", err);
+      }
+    };
+
+    if (placeId) checkVisit();
+  }, [placeId]);
 
   return (
     <ScreenLayout showBack={true}>
@@ -103,7 +146,7 @@ export default function LocationDetailsScreen() {
                 {renderStars(placeRating)}
               </View>
               <Text style={styles.ratingScore}>{placeRating}</Text>
-              <Text style={styles.reviewCount}>({placeReviewCount} reviews)</Text>
+              <Text style={styles.reviewCount}>({placeReviewCount} Google reviews)</Text>
             </View>
           </View>
 
@@ -170,7 +213,10 @@ export default function LocationDetailsScreen() {
             <Text style={styles.primaryButtonText}>Create an Event</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push('/locationreviews')}>
+          <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push({
+            pathname: '/locationreviews',
+            params: { placeId, placeName }
+          })}>
             <Text style={styles.secondaryButtonText}>See in-app Reviews</Text>
           </TouchableOpacity>
         </View>

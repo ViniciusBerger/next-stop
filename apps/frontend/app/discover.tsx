@@ -145,6 +145,15 @@ export default function DiscoverScreen() {
       });
     };
 
+    const handleRandomPlace = () => {
+      if (filteredPlaces.length === 0) return;
+      const random = filteredPlaces[Math.floor(Math.random() * filteredPlaces.length)];
+      router.push({
+        pathname: '/locationdetails',
+        params: { place: JSON.stringify(random) }
+      });
+    };
+
   return (
       <ScreenLayout showBack={true}>      
         <StatusBar barStyle="light-content" />
@@ -154,7 +163,7 @@ export default function DiscoverScreen() {
           <Text style={styles.headerTitle}>Discover</Text>
           <View style={styles.controlsRow}>
             <View style={styles.searchBar}>
-              <Ionicons name="sparkles" size={18} color="#555" style={styles.searchIcon} />
+              <Ionicons name="sparkles" size={18} color="#555" style={styles.searchIcon} onPress={handleRandomPlace} />
               <TextInput
                 style={styles.input}
                 placeholder="Search nearby..."
