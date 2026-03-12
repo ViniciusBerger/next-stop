@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Post, Query } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Post, Query, Get } from "@nestjs/common";
 import { AuthService } from "../service/auth.service";
 import { UserResponseDTO } from "src/user/DTOs/user.response.DTO";
 import { RegisterUserDTO } from "../DTOs/register.user.DTO";
@@ -26,5 +26,17 @@ export class AuthController {
     return plainToInstance(UserResponseDTO, user.toObject(), {
         excludeExtraneousValues: true,
     });
+    }
+
+    @Get('/check-username')
+    async checkUsername(@Query('username') username: string) {
+    const existing = await this.authService.checkUsername(username);
+    return { taken: !!existing };
+    }
+
+    @Get('/check-email')
+    async checkEmail(@Query('email') email: string) {
+    const existing = await this.authService.checkEmail(email);
+    return { taken: !!existing };
     }
 }

@@ -1,57 +1,74 @@
-import { View, Text, StyleSheet, FlatList } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { ScreenLayout } from "@/components/screenLayout";
 import { EventCard } from "@/components/eventCard";
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from "react";
-// import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { useCallback, useState } from "react";
+import { auth } from "@/src/config/firebase";
+import axios from "axios";
+import { API_URL } from "@/src/config/api";
+import { useFocusEffect } from "expo-router";
 
 export default function MyEvents() {
+  const [createdEvents, setCreatedEvents] = useState<any[]>([]);
+  const [attendingEvents, setAttendingEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [mongoUserId, setMongoUserId] = useState<string | null>(null);
 
-  // const [events, setEvents] = useState<any[]>([]);
-  // const [loading, setLoading] = useState(true);
+  const formatEvent = (event: any) => ({
+    id: event._id,
+    title: event.name,
+    date: new Date(event.date).toLocaleDateString([], { 
+      month: 'short', day: 'numeric', year: 'numeric' 
+    }),
+    location: event.location ?? event.place?.address ?? 'Unknown location',
+  });
 
-  // useEffect(() => {
-  //   const user = auth.currentUser;
-  //   if (!user) return;
+  useFocusEffect(
+    useCallback(() => {
+      const fetchEvents = async () => {
+        try {
+          const user = auth.currentUser;
+          if (!user) return;
 
-  //   // 1. Point to your 'events' collection
-  //   // 2. Filter where 'organizerId' matches the current user
-  //   const q = query(
-  //     collection(db, "events"), 
-  //     where("organizerId", "==", user.uid)
-  //   );
+          const token = localStorage.getItem("userToken");
 
-  //   // 3. Listen for real-time updates
-  //   const unsubscribe = onSnapshot(q, (querySnapshot) => {
-  //     const eventsData: any[] = [];
-  //     querySnapshot.forEach((doc) => {
-  //       eventsData.push({ id: doc.id, ...doc.data() });
-  //     });
-      
-  //     setEvents(eventsData);
-  //     setLoading(false);
-  //   }, (error) => {
-  //     console.error("Firestore Error:", error);
-  //     setLoading(false);
-  //   });
+          const profileRes = await axios.get(`${API_URL}/profile?firebaseUid=${user.uid}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const mongoId = profileRes.data._id;
+          if (!mongoId) return;
+          setMongoUserId(mongoId);
 
-  //   return () => unsubscribe(); // Cleanup listener on unmount
-  // }, []);
+          const eventsRes = await axios.get(`${API_URL}/events/user/${mongoId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
 
-  // // Use the real 'events' state for filtering
-  // const upcomingEvents = events.filter(e => e.status === 'upcoming');
-  // const pastEvents = events.filter(e => e.status === 'past' || e.status === 'completed');
+          setCreatedEvents(eventsRes.data.created ?? []);
+          setAttendingEvents(eventsRes.data.attending ?? []);
+        } catch (error: any) {
+          console.error("Failed to fetch events:", error.response?.data || error.message);
+        } finally {
+          setLoading(false);
+        }
+      };
 
-  // Mock data for demonstration
-  const MOCK_EVENTS = [
-  { id: '1', title: 'Beach Cleanup', date: 'Oct 12, 2026', location: 'Santa Monica', status: 'upcoming' },
-  { id: '2', title: 'Tech Talk', date: 'Jan 15, 2026', location: 'Online', status: 'past' },
-  { id: '3', title: 'Charity Run', date: 'Dec 01, 2026', location: 'Central Park', status: 'upcoming' },
-  { id: '4', title: 'Coffee Meetup', date: 'Jan 01, 2026', location: 'Starbucks', status: 'past' },
-];
-  //Separate data
-  const upcomingEvents = MOCK_EVENTS.filter(e => e.status === 'upcoming');
-  const pastEvents = MOCK_EVENTS.filter(e => e.status === 'past' || e.status === 'completed');
+      fetchEvents();
+    }, [])
+  );
+
+  const hasNoEvents = createdEvents.length === 0 && attendingEvents.length === 0;
+  const now = new Date();
+
+  const upcomingCreated = createdEvents.filter(e => new Date(e.date) > now);
+  const upcomingAttending = attendingEvents.filter(
+    e => new Date(e.date) > now &&
+    e.host?._id?.toString() !== mongoUserId &&
+    e.host?.toString() !== mongoUserId
+  );
+  const pastEvents = [
+    ...createdEvents.filter(e => new Date(e.date) <= now),
+    ...attendingEvents.filter(e => new Date(e.date) <= now),
+  ];
 
   return (
     <ScreenLayout showBack={true}>
@@ -61,30 +78,40 @@ export default function MyEvents() {
         <View style={styles.iconContainer}>
           <Ionicons name="calendar-outline" size={80} color="#ffffff" />
         </View>
-        {MOCK_EVENTS.length === 0 ? (
-          <View style={styles.placeholder}>
-            <Text style={styles.placeholder}>No events scheduled yet.</Text>
+
+        {loading ? (
+          <Text style={styles.loadingText}>Loading events...</Text>
+        ) : hasNoEvents ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No events scheduled yet.</Text>
           </View>
         ) : (
           <View>
-            {/*Upcoming Section*/}
-            {upcomingEvents.length > 0 && (
+            {upcomingCreated.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionHeaderDark}>Upcoming</Text>
-                {upcomingEvents.map(event => (
-                  <EventCard key={event.id} {...event} />
+                <Text style={styles.sectionHeaderDark}>Upcoming (Hosting)</Text>
+                {upcomingCreated.map(event => (
+                  <EventCard key={event._id} {...formatEvent(event)} />
                 ))}
               </View>
             )}
 
-            {/*Past Section*/}
-            {pastEvents.length > 0 && (
-              <View style={[styles.section, { marginTop: 20 }]}>
-                <Text style={styles.sectionHeader}>Past Events</Text>
-                {pastEvents.map(event => (
-                  <EventCard key={event.id} {...event} />
+            {upcomingAttending.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionHeader}>Upcoming (Attending)</Text>
+                {upcomingAttending.map(event => (
+                  <EventCard key={event._id} {...formatEvent(event)} />
                 ))}
               </View>
+            )}
+
+            {pastEvents.length > 0 && (
+            <View style={[styles.section, { marginTop: 20 }]}>
+              <Text style={styles.sectionHeader}>Past Events</Text>
+              {pastEvents.map(event => (
+                <EventCard key={event._id} {...formatEvent(event)} />
+              ))}
+            </View>
             )}
           </View>
         )}
@@ -92,10 +119,11 @@ export default function MyEvents() {
     </ScreenLayout>
   );
 }
+
 const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: 20,
-    marginTop: 10, 
+    marginTop: 10,
   },
   titleText: {
     marginTop: -10,
@@ -105,15 +133,23 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     textAlign: 'center',
   },
-  placeholder: {
-    marginTop: 20,
-    alignItems: 'center',
-    fontSize: 16,
-    color: '#ffffff',
-  },
   iconContainer: {
     alignItems: 'center',
     marginBottom: 20,
+  },
+  loadingText: {
+    color: '#ffffff',
+    textAlign: 'center',
+    fontSize: 16,
+    marginTop: 20,
+  },
+  emptyContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#ffffff',
   },
   section: {
     marginBottom: 10,
@@ -125,7 +161,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     marginLeft: 5,
   },
-    sectionHeaderDark: {
+  sectionHeaderDark: {
     fontSize: 20,
     fontWeight: '700',
     color: '#ffffff',

@@ -77,11 +77,8 @@ export class AdminController {
      */
     @Patch('ban')
     async banUser(@Body() updateUserDTO: UpdateUserDTO) {
-        // Fallback to empty string if id is missing to avoid service crashes
         const bannedUser = await this.userService.updateUser(updateUserDTO.id ?? "", updateUserDTO);
-        
-        // Note: This uses a constructor approach instead of plainToInstance used above
-        return new UserResponseDTO(bannedUser);
+        return plainToInstance(UserResponseDTO, bannedUser.toObject(), { excludeExtraneousValues: true });
     }
 
     /**
@@ -90,6 +87,6 @@ export class AdminController {
     @Patch('unban')
     async unbanUser(@Body() updateUserDTO: UpdateUserDTO) {
         const returnedUser = await this.userService.updateUser(updateUserDTO.id ?? "", updateUserDTO);
-        return new UserResponseDTO(returnedUser);
+        return plainToInstance(UserResponseDTO, returnedUser.toObject(), { excludeExtraneousValues: true });
     }
 }

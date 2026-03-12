@@ -53,22 +53,6 @@ export class EventController {
   }
 
   /**
-   * Retrieves a specific event
-   * GET /events/:id
-   */
-  @Get(':id')
-  async getEvent(
-    @Param('id') id: string,
-    @Headers('user-id') userId?: string,
-  ) {
-    const event = await this.eventService.getEvent(id, userId);
-
-    return plainToInstance(EventResponseDTO, event.toObject(), {
-      excludeExtraneousValues: true,
-    });
-  }
-
-  /**
    * Retrieves events created by or attended by user
    * GET /events/user/:userId
    */
@@ -88,6 +72,23 @@ export class EventController {
         }),
       ),
     };
+  }
+
+
+  /**
+   * Retrieves a specific event
+   * GET /events/:id
+   */
+  @Get(':id')
+  async getEvent(
+    @Param('id') id: string,
+    @Headers('user-id') userId?: string,
+  ) {
+    const event = await this.eventService.getEvent(id, userId);
+
+    return plainToInstance(EventResponseDTO, event.toObject(), {
+      excludeExtraneousValues: true,
+    });
   }
 
   /**

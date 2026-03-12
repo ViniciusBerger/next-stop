@@ -38,5 +38,13 @@ export class AuthService {
         return user;
     }
 
+    async checkUsername(username: string) {
+        return await this.strategy.checkUsername(username);
+    }
+
+    async checkEmail(email: string) {
+        return await this.strategy.checkEmail(email);
+    }
+
 
 }

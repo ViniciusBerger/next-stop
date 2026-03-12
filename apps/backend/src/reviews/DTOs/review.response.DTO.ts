@@ -1,5 +1,5 @@
 // review.response.DTO.ts
-import { Expose, Type } from 'class-transformer';
+import { Expose, Transform, Type } from 'class-transformer';
 
 
 /**
@@ -20,9 +20,14 @@ import { Expose, Type } from 'class-transformer';
  *
  */
 class AuthorDTO {
-  @Expose() _id: string;
-  @Expose() username: string;
-  @Expose() profilePicture: string;
+  @Expose()
+  _id: string;
+
+  @Expose()
+  username: string;
+
+  @Expose()
+  profilePicture:string;
 }
 
 class PlaceDTO {
@@ -32,7 +37,7 @@ class PlaceDTO {
 }
 
 export class ReviewResponseDTO {
-  @Expose() 
+  @Expose()
   _id: string;
   
   @Expose()

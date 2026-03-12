@@ -100,4 +100,17 @@ export class UserService {
         
         return user
     }
+
+    async findByEmail(email: string): Promise<User | null> {
+        return await this.userRepository.findOne({ email });
+    }
+
+    async findByEmailString(email: string): Promise<User | null> {
+        return await this.userRepository.findOne({ email });
+    }
+
+    async findByUsernameString(username: string): Promise<User | null> {
+        return await this.userRepository.findOne({ username });
+    }
+
 }
