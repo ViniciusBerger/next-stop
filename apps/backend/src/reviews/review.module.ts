@@ -4,6 +4,7 @@ import { ReviewController } from './controller/review.controller';
 import { ReviewService } from './service/review.service';
 import { ReviewRepository } from './repository/review.repository';
 import { Review, reviewSchema } from './schema/review.schema';
+import { User, userSchema } from 'src/user/schemas/user.schema';
 
 /**
  * Review Module
@@ -11,7 +12,10 @@ import { Review, reviewSchema } from './schema/review.schema';
  */
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Review.name, schema: reviewSchema }]),
+    MongooseModule.forFeature([
+      { name: Review.name, schema: reviewSchema },
+      { name: User.name, schema: userSchema }
+    ]),
   ],
   controllers: [ReviewController],
   providers: [ReviewService, ReviewRepository],

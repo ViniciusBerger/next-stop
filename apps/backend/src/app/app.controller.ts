@@ -13,10 +13,7 @@ export class AppController {
     return this.appService.getHello();
   }
 
-
   @Get("/health")
-  @UseGuards(FirebaseAuthGuard)
-  @Roles('admin')
   getHealth(): string {
     return this.appService.getHealth();
   }

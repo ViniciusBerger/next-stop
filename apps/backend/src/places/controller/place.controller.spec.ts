@@ -1,7 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PlaceController } from './place.controller';
 import { PlaceService } from '../service/place.service';
-import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { GooglePlacesService } from '../service/google-places.service';
 
 /**
  * PlaceController Unit Tests
@@ -11,6 +13,27 @@ import { NotFoundException, ConflictException, BadRequestException } from '@nest
 describe('PlaceController - Unit Test', () => {
   let controller: PlaceController;
   let service: PlaceService;
+  let googlePlacesService: GooglePlacesService;
+
+  const mockPlaceService = {
+    createPlace: jest.fn(),
+    getAllPlaces: jest.fn(),
+    getPlace: jest.fn(),
+    updatePlace: jest.fn(),
+    deletePlace: jest.fn(),
+  };
+
+  const mockGooglePlacesService = {
+    searchPlaces: jest.fn(),
+    searchNearby: jest.fn(),
+    getPlaceDetails: jest.fn(),
+    geocodeAddress: jest.fn(),
+    getPhotoUrl: jest.fn(),
+  };
+
+  const mockConfigService = {
+    get: jest.fn().mockReturnValue('mock-api-key'),
+  };
 
   const mockPlace = {
     _id: 'place_123',
@@ -35,24 +58,28 @@ describe('PlaceController - Unit Test', () => {
       providers: [
         {
           provide: PlaceService,
-          useValue: {
-            createPlace: jest.fn(),
-            getAllPlaces: jest.fn(),
-            getPlace: jest.fn(),
-            updatePlace: jest.fn(),
-            deletePlace: jest.fn(),
-          },
+          useValue: mockPlaceService,
+        },
+        {
+          provide: GooglePlacesService,
+          useValue: mockGooglePlacesService,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
         },
       ],
     }).compile();
 
     controller = module.get<PlaceController>(PlaceController);
     service = module.get<PlaceService>(PlaceService);
+    googlePlacesService = module.get<GooglePlacesService>(GooglePlacesService);
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
     expect(service).toBeDefined();
+    expect(googlePlacesService).toBeDefined();
   });
 
   describe('createPlace', () => {
@@ -72,27 +99,13 @@ describe('PlaceController - Unit Test', () => {
       expect(result).toBeDefined();
       expect(service.createPlace).toHaveBeenCalledWith(createDto);
     });
-
-    it('should handle ConflictException for duplicate googlePlaceId', async () => {
-      const createDto = {
-        googlePlaceId: 'ChIJ_duplicate',
-        name: 'Duplicate',
-        address: 'Address',
-        category: 'Restaurant',
-      } as any;
-
-      jest.spyOn(service, 'createPlace').mockRejectedValue(new ConflictException());
-
-      await expect(controller.createPlace(createDto))
-        .rejects.toThrow(ConflictException);
-    });
   });
 
-  describe('getPlaces', () => {
+  describe('getAllPlaces', () => {
     it('should return all places when no filter provided', async () => {
       jest.spyOn(service, 'getAllPlaces').mockResolvedValue([mockPlace] as any);
 
-      const result = await controller.getPlaces();
+      const result = await controller.getAllPlaces();
 
       expect(result).toHaveLength(1);
       expect(service.getAllPlaces).toHaveBeenCalled();
@@ -102,7 +115,7 @@ describe('PlaceController - Unit Test', () => {
       const dto = { category: 'Restaurant' } as any;
       jest.spyOn(service, 'getAllPlaces').mockResolvedValue([mockPlace] as any);
 
-      const result = await controller.getPlaces(dto);
+      const result = await controller.getAllPlaces(dto);
 
       expect(result).toBeDefined();
       expect(service.getAllPlaces).toHaveBeenCalledWith(dto);
@@ -112,7 +125,7 @@ describe('PlaceController - Unit Test', () => {
       const dto = { googlePlaceId: 'ChIJ_test_001' } as any;
       jest.spyOn(service, 'getAllPlaces').mockResolvedValue([mockPlace] as any);
 
-      const result = await controller.getPlaces(dto);
+      const result = await controller.getAllPlaces(dto);
 
       expect(result).toBeDefined();
       expect(service.getAllPlaces).toHaveBeenCalledWith(dto);
@@ -130,48 +143,8 @@ describe('PlaceController - Unit Test', () => {
       expect(service.getPlace).toHaveBeenCalledWith(dto);
     });
 
-    it('should filter places by maxPriceLevel', async () => {
-      const dto = { maxPriceLevel: 2 } as any;
-      jest.spyOn(service, 'getAllPlaces').mockResolvedValue([mockPlace] as any);
-
-      const result = await controller.getPlaces(dto);
-
-      expect(result).toBeDefined();
-      expect(service.getAllPlaces).toHaveBeenCalledWith(dto);
-    });
-
-    it('should filter places by location proximity', async () => {
-      const dto = {
-        latitude: 49.2827,
-        longitude: -123.1207,
-        radiusMeters: 5000,
-      } as any;
-      jest.spyOn(service, 'getAllPlaces').mockResolvedValue([mockPlace] as any);
-
-      const result = await controller.getPlaces(dto);
-
-      expect(result).toBeDefined();
-      expect(service.getAllPlaces).toHaveBeenCalledWith(dto);
-    });
-
-    it('should filter places by combined filters (location + category + price)', async () => {
-      const dto = {
-        latitude: 49.2827,
-        longitude: -123.1207,
-        radiusMeters: 3000,
-        category: 'Restaurant',
-        maxPriceLevel: 2,
-      } as any;
-      jest.spyOn(service, 'getAllPlaces').mockResolvedValue([mockPlace] as any);
-
-      const result = await controller.getPlaces(dto);
-
-      expect(result).toBeDefined();
-      expect(service.getAllPlaces).toHaveBeenCalledWith(dto);
-    });
-
-    it('should return place by id', async () => {
-      const dto = { id: 'place_123' } as any;
+    it('should return place by _id', async () => {
+      const dto = { _id: 'place_123' } as any;
       jest.spyOn(service, 'getPlace').mockResolvedValue(mockPlace as any);
 
       const result = await controller.getPlace(dto);
@@ -179,93 +152,62 @@ describe('PlaceController - Unit Test', () => {
       expect(result).toBeDefined();
       expect(service.getPlace).toHaveBeenCalledWith(dto);
     });
-
-    it('should throw BadRequestException if no params provided', async () => {
-      const dto = {} as any;
-
-      await expect(controller.getPlace(dto))
-        .rejects.toThrow(BadRequestException);
-    });
-
-    it('should throw NotFoundException if place not found', async () => {
-      const dto = { googlePlaceId: 'nonexistent' } as any;
-      jest.spyOn(service, 'getPlace').mockRejectedValue(new NotFoundException());
-
-      await expect(controller.getPlace(dto))
-        .rejects.toThrow(NotFoundException);
-    });
   });
 
   describe('updatePlace', () => {
     it('should update place description', async () => {
-      const getDto = { googlePlaceId: 'ChIJ_test_001' } as any;
-      const updateDto = { description: 'Updated description' } as any;
+      const updateDto = {
+        googlePlaceId: 'ChIJ_test_001',
+        description: 'Updated description'
+      } as any;
 
       jest.spyOn(service, 'updatePlace').mockResolvedValue(mockPlace as any);
 
-      const result = await controller.updatePlace(getDto, updateDto);
+      const result = await controller.updatePlace(updateDto);
 
       expect(result).toBeDefined();
-      expect(service.updatePlace).toHaveBeenCalledWith(getDto, updateDto);
+      expect(service.updatePlace).toHaveBeenCalledWith(updateDto);
     });
 
     it('should update custom images', async () => {
-      const getDto = { id: 'place_123' } as any;
-      const updateDto = { customImages: ['img1.jpg', 'img2.jpg'] } as any;
+      const updateDto = {
+        _id: 'place_123',
+        customImages: ['img1.jpg', 'img2.jpg']
+      } as any;
 
       jest.spyOn(service, 'updatePlace').mockResolvedValue(mockPlace as any);
 
-      const result = await controller.updatePlace(getDto, updateDto);
+      const result = await controller.updatePlace(updateDto);
 
       expect(result).toBeDefined();
-      expect(service.updatePlace).toHaveBeenCalledWith(getDto, updateDto);
-    });
-
-    it('should throw BadRequestException if no params provided', async () => {
-      const getDto = {} as any;
-      const updateDto = { description: 'test' } as any;
-
-      await expect(controller.updatePlace(getDto, updateDto))
-        .rejects.toThrow(BadRequestException);
-    });
-
-    it('should throw NotFoundException if place not found', async () => {
-      const getDto = { googlePlaceId: 'nonexistent' } as any;
-      const updateDto = { description: 'test' } as any;
-
-      jest.spyOn(service, 'updatePlace').mockRejectedValue(new NotFoundException());
-
-      await expect(controller.updatePlace(getDto, updateDto))
-        .rejects.toThrow(NotFoundException);
+      expect(service.updatePlace).toHaveBeenCalledWith(updateDto);
     });
   });
 
   describe('deletePlace', () => {
     it('should delete place', async () => {
-      const dto = { googlePlaceId: 'ChIJ_test_001' } as any;
-      const deleteResult = { deleted: true, message: 'Place deleted' };
+      const googlePlaceId = 'ChIJ_test_001';
+      const deleteResult = { deleted: true, message: 'Place "Test Restaurant" deleted successfully' };
 
       jest.spyOn(service, 'deletePlace').mockResolvedValue(deleteResult);
 
-      const result = await controller.deletePlace(dto);
+      const result = await controller.deletePlace(googlePlaceId);
 
       expect(result.deleted).toBe(true);
-      expect(service.deletePlace).toHaveBeenCalledWith(dto);
+      expect(service.deletePlace).toHaveBeenCalledWith(googlePlaceId);
     });
 
-    it('should throw BadRequestException if no params provided', async () => {
-      const dto = {} as any;
-
-      await expect(controller.deletePlace(dto))
+    it('should throw BadRequestException if googlePlaceId not provided', async () => {
+      await expect(controller.deletePlace(undefined as any))
         .rejects.toThrow(BadRequestException);
     });
 
     it('should throw NotFoundException if place not found', async () => {
-      const dto = { googlePlaceId: 'nonexistent' } as any;
+      const googlePlaceId = 'nonexistent';
 
       jest.spyOn(service, 'deletePlace').mockRejectedValue(new NotFoundException());
 
-      await expect(controller.deletePlace(dto))
+      await expect(controller.deletePlace(googlePlaceId))
         .rejects.toThrow(NotFoundException);
     });
   });

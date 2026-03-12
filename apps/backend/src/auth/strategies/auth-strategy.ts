@@ -1,6 +1,6 @@
 import { IAuthStrategy } from "./auth-strategy.interface";
 import { RegisterUserDTO } from "../DTOs/register.user.DTO";
-import { User } from "../../user/user.schema";
+import { User } from "../../user/schemas/user.schema";
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import admin from 'firebase-admin'
 import { UserService } from "../../user/service/user.service";
@@ -52,6 +52,13 @@ export class AuthStrategy implements IAuthStrategy {
 
     // should register user and return user Object
     async register(credentials: RegisterUserDTO): Promise<User | null> {
+        // Check for existing email and username before creating anything
+        const existingEmail = await this.userService.findByEmailString(credentials.email);
+        if (existingEmail) throw new BadRequestException('Email already in use');
+
+        const existingUsername = await this.userService.findByUsernameString(credentials.username);
+        if (existingUsername) throw new BadRequestException('Username already taken');
+
         const firebaseUser = await this.firebase.auth().createUser({email: credentials.email, password: credentials.password, displayName: credentials.displayName})
         
         const {password, ...userData} = credentials
@@ -59,6 +66,14 @@ export class AuthStrategy implements IAuthStrategy {
         const newUser = await this.userService.createUser(createUserDTO)
 
         return newUser
+    }
+
+    async checkUsername(username: string): Promise<User | null> {
+        return await this.userService.findByUsernameString(username);
+    }
+
+    async checkEmail(email: string): Promise<User | null> {
+        return await this.userService.findByEmailString(email);
     }
 
 

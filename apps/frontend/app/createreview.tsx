@@ -1,18 +1,95 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, Platform } from "react-native";
 import { ScreenLayout } from "@/components/screenLayout";
 import { Ionicons } from '@expo/vector-icons';
+import { auth } from "@/src/config/firebase";
+import { onAuthStateChanged, User } from "firebase/auth";
+import axios from "axios";
 import * as ImagePicker from 'expo-image-picker'; // Import picker
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { API_URL } from "@/src/config/api";
 
 export default function CreateReviewScreen() {
+  const { placeId, placeName: initialPlaceName } = useLocalSearchParams(); // Catch the ID from navigation
   const [rating, setRating] = useState(0);
-  const [placeName, setPlaceName] = useState("");
+  const [placeName, setPlaceName] = useState((initialPlaceName as string) || "");
   const [reviewText, setReviewText] = useState("");
   const [image, setImage] = useState<string | null>(null); // State for the image URI
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const router = useRouter();
 
-  const handlePost = () => {
-    // UI Only for now
-    console.log("Posting Review:", { placeName, rating, reviewText });
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log("CreateReview auth user:", user?.uid ?? "NULL");
+      setCurrentUser(user);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handlePost = async () => {
+    if (!currentUser) {
+      const msg = authLoading 
+        ? "Verifying login, please wait..." 
+        : "You must be logged in to post a review.";
+      Platform.OS === 'web' ? window.alert(msg) : Alert.alert("Not Logged In", msg);
+      return;
+    }
+
+    if (reviewText.length < 10) {
+      const msg = "Review must be at least 10 characters long.";
+      Platform.OS === 'web' ? window.alert(msg) : Alert.alert("Too Short", msg);
+      return;
+    }
+
+    if (rating < 1) {
+      const msg = "Please select a star rating.";
+      Platform.OS === 'web' ? window.alert(msg) : Alert.alert("Rating Required", msg);
+      return;
+    }
+
+    try {
+      const payload = {
+      // author must be string and not empty
+      author: String(currentUser.uid), 
+      // place must be string and not empty
+      place: String(placeId),          
+      // rating must be a number
+      rating: Number(rating),         
+      // reviewText must be string (min 10)
+      reviewText: String(reviewText), 
+      // date must be a valid ISO Date String
+      date: new Date().toISOString(), 
+      // images must be an array of strings (even if empty)
+      images: image ? [image] : [],   
+    };
+
+      const response = await axios.post(`${API_URL}/reviews`, payload);
+
+      if (response.status === 201) {
+        const successMsg = "Review successfully posted!";
+        Platform.OS === 'web' ? window.alert(successMsg) : Alert.alert("Success", successMsg);
+        
+        // Reset form state
+        setPlaceName("");
+        setReviewText("");
+        setRating(0);
+        setImage(null);
+
+        router.push("/home"); // Navigate back to the home screen
+      }
+    } catch (error: any) {
+      // NestJS usually sends an array of error messages
+      const serverMessage = error.response?.data?.message;
+      console.error("SERVER SAYS:", serverMessage);
+
+      const finalMsg = Array.isArray(serverMessage) 
+        ? serverMessage.join("\n") 
+        : serverMessage || "Unknown Error";
+
+      Platform.OS === 'web' ? window.alert(finalMsg) : Alert.alert("Validation Failed", finalMsg);
+    }
   };
 
   const pickImage = async () => {
@@ -65,7 +142,7 @@ export default function CreateReviewScreen() {
             <Text style={styles.label}>Place Name</Text>
             <TextInput 
               style={styles.input}
-              placeholder="Where did you go?"
+              placeholder={placeName || "Where did you go?"}
               value={placeName}
               onChangeText={setPlaceName}
             />

@@ -5,7 +5,7 @@ import { BadgeService } from './service/badge.service';
 import { BadgeRepository } from './repository/badge.repository';
 import { BadgeCheckerService } from './checker/badge-checker.service';
 import { Badge, badgeSchema } from './schemas/badges.schema';
-import { User, userSchema } from '../user/user.schema';
+import { User, userSchema } from '../user/schemas/user.schema';
 import { Review, reviewSchema } from '../reviews/schema/review.schema';
 import { Event, eventSchema } from '../events/schema/event.schema';
 

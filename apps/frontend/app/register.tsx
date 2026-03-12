@@ -18,6 +18,7 @@ import { BackButton } from "@/components/backButton";
 import { auth } from "@/src/config/firebase";
 import { signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import axios from "axios";
+import { API_URL } from "@/src/config/api";
 import { 
   ValidationMessage, 
   FieldValidation, 
@@ -154,19 +155,15 @@ export default function RegisterScreen() {
   };
 
   const handleChange = (field: string, value: string) => {
-    // Update field value
     switch (field) {
       case 'name': setName(value); break;
       case 'email': setEmail(value); break;
       case 'password': setPassword(value); break;
       case 'confirmPassword': setConfirmPassword(value); break;
     }
-
-    // Clear field error when user starts typing
     setFieldErrors(prev => ({ ...prev, [field]: "" }));
     setGeneralError("");
 
-    // Real-time validation for confirm password when password changes
     if (field === 'password' && touched.confirmPassword && confirmPassword) {
       const confirmError = validateField('confirmPassword', confirmPassword);
       setFieldErrors(prev => ({ ...prev, confirmPassword: confirmError }));
@@ -210,7 +207,7 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:3000/auth/register", {
+      const response = await axios.post(`${API_URL}/auth/register`, {
         email: email.toLowerCase().trim(),
         password: password,
         displayName: name,
@@ -228,13 +225,65 @@ export default function RegisterScreen() {
         }, 2000);
       }
     } catch (err: any) {
-      console.error("Registration error:", err.response?.data || err.message);
-      setGeneralError(err.response?.data?.message || "Registration failed");
-      showToast('Registration failed', 'error');
+      const message = err.response?.data?.message || "Registration failed";
+      
+      // Map backend errors to specific fields
+      if (message.includes('Email already in use')) {
+        setFieldErrors(prev => ({ ...prev, email: 'Email already in use' }));
+        setTouched(prev => ({ ...prev, email: true }));
+      } else if (message.includes('Username already taken')) {
+        setFieldErrors(prev => ({ ...prev, name: 'Username already taken' }));
+        setTouched(prev => ({ ...prev, name: true }));
+      } else {
+        setGeneralError(message);
+        showToast(message, 'error');
+      }
     } finally {
       setLoading(false);
     }
   }
+
+  // Username availability check
+  useEffect(() => {
+    if (!touched.name || name.length < 3 || validateField('name', name)) return;
+
+    const checkUsername = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/auth/check-username?username=${name.toLowerCase().trim()}`);
+        if (res.data.taken) {
+          setFieldErrors(prev => ({ ...prev, name: "Username already taken" }));
+        } else {
+          setFieldErrors(prev => ({ ...prev, name: "" }));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    const timeoutId = setTimeout(checkUsername, 500);
+    return () => clearTimeout(timeoutId);
+  }, [name, touched.name]);
+
+  // Email availability check
+  useEffect(() => {
+    if (!touched.email || !EMAIL_REGEX.test(email)) return;
+
+    const checkEmail = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/auth/check-email?email=${email.toLowerCase().trim()}`);
+        if (res.data.taken) {
+          setFieldErrors(prev => ({ ...prev, email: "Email already in use" }));
+        } else {
+          setFieldErrors(prev => ({ ...prev, email: "" }));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    const timeoutId = setTimeout(checkEmail, 500);
+    return () => clearTimeout(timeoutId);
+  }, [email, touched.email]);
 
   // Responsive sizing
   const headerHeight = screenDimensions.height * 0.3;
@@ -282,7 +331,6 @@ export default function RegisterScreen() {
             styles.inputWrapper,
             { height: inputHeight },
             touched.name && fieldErrors.name ? styles.inputError : null,
-            touched.name && !fieldErrors.name && name.length > 0 ? styles.inputSuccess : null
           ]}>
             <TextInput
               style={[styles.input, { fontSize, height: inputHeight, flex: 1 }]}
@@ -293,9 +341,6 @@ export default function RegisterScreen() {
               onBlur={() => handleBlur('name')}
               editable={!loading}
             />
-            {touched.name && !fieldErrors.name && name.length > 0 && (
-              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" style={styles.inputRightIcon} />
-            )}
           </View>
           <FieldValidation error={fieldErrors.name} touched={touched.name} />
 
@@ -305,7 +350,6 @@ export default function RegisterScreen() {
             styles.inputWrapper,
             { height: inputHeight },
             touched.email && fieldErrors.email ? styles.inputError : null,
-            touched.email && !fieldErrors.email && email.length > 0 ? styles.inputSuccess : null
           ]}>
             <TextInput
               style={[styles.input, { fontSize, height: inputHeight, flex: 1 }]}
@@ -318,9 +362,6 @@ export default function RegisterScreen() {
               autoCapitalize="none"
               editable={!loading}
             />
-            {touched.email && !fieldErrors.email && email.length > 0 && (
-              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" style={styles.inputRightIcon} />
-            )}
           </View>
           <FieldValidation error={fieldErrors.email} touched={touched.email} />
 
@@ -330,7 +371,6 @@ export default function RegisterScreen() {
             styles.inputWrapper,
             { height: inputHeight },
             touched.password && fieldErrors.password ? styles.inputError : null,
-            touched.password && !fieldErrors.password && password.length > 0 ? styles.inputSuccess : null
           ]}>
             <TextInput
               style={[styles.input, { fontSize, height: inputHeight, flex: 1 }]}
@@ -353,13 +393,13 @@ export default function RegisterScreen() {
           </View>
           
           {/* Password Strength Indicator */}
-          {password.length > 0 && !fieldErrors.password && (
+          {touched.password && password.length > 0 && (
             <PasswordStrengthIndicator password={password} />
           )}
           
           <FieldValidation error={fieldErrors.password} touched={touched.password} />
           
-          {!fieldErrors.password && (
+          {touched.password && !fieldErrors.password && (
             <Text style={[styles.passwordHint, { fontSize: tinyFontSize }]}>
               Min. 8 characters, 1 uppercase, 1 lowercase, and a number.
             </Text>
@@ -371,7 +411,6 @@ export default function RegisterScreen() {
             styles.inputWrapper,
             { height: inputHeight },
             touched.confirmPassword && fieldErrors.confirmPassword ? styles.inputError : null,
-            touched.confirmPassword && !fieldErrors.confirmPassword && confirmPassword.length > 0 ? styles.inputSuccess : null
           ]}>
             <TextInput
               style={[styles.input, { fontSize, height: inputHeight, flex: 1 }]}
@@ -483,22 +522,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#DEE4FF',
     borderRadius: 5,
     marginBottom: 5,
-    paddingHorizontal: 15,
   },
   input: {
     paddingVertical: 0,
     color: '#333',
+    paddingHorizontal: 15,
   },
   inputError: {
     borderColor: '#dc2626',
     backgroundColor: '#FEE2E2',
-  },
-  inputSuccess: {
-    borderColor: '#4CAF50',
-    backgroundColor: '#E8F5E9',
-  },
-  inputRightIcon: {
-    marginLeft: 10,
   },
   passwordHint: {
     color: '#666',

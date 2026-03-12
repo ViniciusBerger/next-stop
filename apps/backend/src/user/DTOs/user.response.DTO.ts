@@ -9,11 +9,23 @@ import { Badge } from "../../badges/schemas/badges.schema";
 @Exclude() //excludes any field not marked with @Expose
 export class UserResponseDTO {
 
-     //Partial constructor allows for manual instantiation if needed
-    constructor(partial: Partial<UserResponseDTO>) {
-        Object.assign(this, partial);
-    }
-    
+/**
+ * Removed constructor here intentionally.
+ *
+ * Previously we used Object.assign() in a manual constructor to map
+ * incoming data. However, Object.assign() is a plain JS operation that
+ * completely bypasses class-transformer's decorator system — meaning @Expose(),
+ * @Exclude(), and @Type() decorators were never actually applied. Sensitive
+ * fields were leaking to the client despite being marked @Exclude().
+ *
+ * The fix was to remove the constructor entirely and use plainToInstance()
+ * in the controller instead, which lets class-transformer handle instantiation
+ * and correctly apply all decorators before returning the response.
+ *
+ * See user.controller.ts for the updated controller code that uses plainToInstance()
+ * to create UserResponseDTO instances from the User entity.
+ */
+
     @Expose()
     username: string; 
 
@@ -21,8 +33,8 @@ export class UserResponseDTO {
     email: string;
 
     @Expose()
-    @Type(() => Profile) // Ensure nested transformation
-    profile: Profile;
+    @Type(() => Object) // ← was Type(() => Profile), causing the crash
+    profile: any;
 
     @Expose()
     bio: string;
@@ -31,8 +43,8 @@ export class UserResponseDTO {
     profilePictureUrl: string; 
 
     @Expose()
-    @Type(() => Badge)
-    badges: Badge[];
+    @Type(() => Object) // ← was Type(() => Badge)
+    badges: any[];
 
     @Expose()
     friends: string[];

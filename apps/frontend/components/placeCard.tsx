@@ -17,11 +17,23 @@ interface PlaceCardProps {
 
 export const PlaceCard = React.memo(({ place, onPress }: PlaceCardProps) => {
   const getEmoji = (type: string) => {
-    switch (type.toLowerCase()) {
+    switch (type?.toLowerCase()) {
       case 'cafe': return '☕';
       case 'restaurant': return '🍽️';
       case 'park': return '🌳';
       case 'shop': return '🛍️';
+      case 'museum': return '🏛️';
+      case 'bar': return '🍸';
+      case 'gym': return '🏋️';
+      case 'spa': return '💆';
+      case 'theater': return '🎭';
+      case 'library': return '📚';
+      case 'beach': return '🏖️';
+      case 'mountain': return '⛰️';
+      case 'lake': return '🏞️';
+      case 'zoo': return '🦁';
+      case 'stadium': return '🏟️';
+      case 'point of interest': return '📍';
       default: return '🎪';
     }
   };
@@ -37,11 +49,11 @@ export const PlaceCard = React.memo(({ place, onPress }: PlaceCardProps) => {
       <View style={styles.placeInfo}>
         <Text style={styles.placeName}>{place.name}</Text>
         <Text style={styles.placeType}>
-          {place.type.charAt(0).toUpperCase() + place.type.slice(1)}
+          {place.type ? place.type.charAt(0).toUpperCase() + place.type.slice(1) : 'Place'}
         </Text>
         <View style={styles.placeDetails}>
           <Text style={styles.placeDistance}>📏 {place.distance}</Text>
-          <Text style={styles.placeRating}>⭐ {place.rating}</Text>
+          <Text style={styles.placeRating}>⭐ {place.rating > 0 ? place.rating.toFixed(1) : 'No ratings yet'}</Text>
         </View>
       </View>
     </TouchableOpacity>
