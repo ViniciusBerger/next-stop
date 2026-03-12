@@ -100,8 +100,12 @@ export class ReviewService {
    * Retrieves all reviews for a specific place
    */
   async getPlaceReviews(placeId: string): Promise<Review[]> {
+    const query = Types.ObjectId.isValid(placeId) 
+    ? { place: new Types.ObjectId(placeId) }
+    : { place: placeId }; //For tests
+
     return await this.reviewModel
-      .find({ place: new Types.ObjectId(placeId) }) // Cast to ObjectId for querying
+      .find(query) // Cast to ObjectId for querying
       .populate('author', 'username profilePicture')
       .populate('event', 'name date')
       .populate('likedBy', 'username profilePicture')
