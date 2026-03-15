@@ -13,14 +13,24 @@ import { UpdateProfileDTO } from './DTOs/update.profile.DTO';
 import { plainToInstance } from 'class-transformer';
 import { ProfileResponseDTO } from './DTOs/profile.response.DTO';
 
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+
+@ApiTags('Profile')
+
 @Controller('profile')
+
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
-  // GET /profile?firebaseUid=xxx or /profile?username=xxx
+  // GET /profile
   @Get()
+
+  @ApiOperation({ summary: 'Get user profile' })
+
+  @ApiResponse({ status: 200, description: 'Profile returned successfully' })
+
   async getProfile(@Query() getProfileDTO: GetProfileDTO) {
-    // Validate if at least one parameter was provided
+
     const hasValues = Object.values(getProfileDTO).some(
       (value) => value !== undefined && value !== '',
     );
@@ -31,26 +41,30 @@ export class ProfileController {
       );
     }
 
-    // Search profile
     const user = await this.profileService.getProfile(getProfileDTO);
 
     if (!user) {
       throw new NotFoundException('Profile not found');
     }
 
-    // Return using ResponseDTO (without sensitive data)
     return plainToInstance(ProfileResponseDTO, user.toObject(), {
       excludeExtraneousValues: true,
     });
+
   }
 
-  // PUT /profile?firebaseUid=xxx or /profile?username=xxx
+  // PUT /profile
   @Put()
+
+  @ApiOperation({ summary: 'Update user profile' })
+
+  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+
   async updateProfile(
     @Query() getProfileDTO: GetProfileDTO,
     @Body() updateProfileDTO: UpdateProfileDTO,
   ) {
-    // Validate if at least one identification parameter was provided
+
     const hasIdentifier = Object.values(getProfileDTO).some(
       (value) => value !== undefined && value !== '',
     );
@@ -61,8 +75,7 @@ export class ProfileController {
       );
     }
 
-    // Validate if there is any data to update
-    const hasUpdateData = 
+    const hasUpdateData =
       updateProfileDTO.preferences !== undefined ||
       updateProfileDTO.privacy !== undefined;
 
@@ -72,7 +85,6 @@ export class ProfileController {
       );
     }
 
-    // Update profile
     const updatedUser = await this.profileService.updateProfile(
       getProfileDTO,
       updateProfileDTO,
@@ -82,9 +94,9 @@ export class ProfileController {
       throw new NotFoundException('Profile not found');
     }
 
-    // Return using ResponseDTO
     return plainToInstance(ProfileResponseDTO, updatedUser.toObject(), {
       excludeExtraneousValues: true,
     });
+
   }
 }

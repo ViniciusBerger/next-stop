@@ -1,14 +1,4 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Delete,
-  Get,
-  NotFoundException,
-  Post,
-  Put,
-  Query,
-} from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, Post, Put, Query } from '@nestjs/common';
 import { PlaceService } from './place.service';
 import { CreatePlaceDTO } from './DTOs/create.place.DTO';
 import { UpdatePlaceDTO } from './DTOs/update.place.DTO';
@@ -16,94 +6,132 @@ import { GetPlaceDTO } from './DTOs/get.place.DTO';
 import { plainToInstance } from 'class-transformer';
 import { PlaceResponseDTO } from './DTOs/place.response.DTO';
 
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+
+@ApiTags('Places')
+
 @Controller('places')
+
 export class PlaceController {
-  constructor(private readonly placeService: PlaceService) {}
 
-  // POST /places - Create a new place
-  @Post()
-  async createPlace(@Body() createPlaceDTO: CreatePlaceDTO) {
-    const newPlace = await this.placeService.createPlace(createPlaceDTO);
+constructor(private readonly placeService: PlaceService) {}
 
-    return plainToInstance(PlaceResponseDTO, newPlace.toObject(), {
-      excludeExtraneousValues: true,
-    });
-  }
+// POST /places
+@Post()
 
-  // GET /places - Get all places (with optional filters)
-  @Get()
-  async getPlaces(@Query() getPlaceDTO?: GetPlaceDTO) {
-    const places = await this.placeService.getAllPlaces(getPlaceDTO);
+@ApiOperation({ summary: 'Create a new place' })
 
-    return places.map((place) =>
-      plainToInstance(PlaceResponseDTO, place.toObject(), {
-        excludeExtraneousValues: true,
-      }),
-    );
-  }
+@ApiResponse({ status: 201, description: 'Place created successfully' })
 
-  // GET /places/details - Get a specific place by id or googlePlaceId
-  @Get('details')
-  async getPlace(@Query() getPlaceDTO: GetPlaceDTO) {
-    // Validate that at least one parameter is provided
-    const hasIdentifier =
-      getPlaceDTO.id !== undefined || getPlaceDTO.googlePlaceId !== undefined;
+async createPlace(@Body() createPlaceDTO: CreatePlaceDTO) {
 
-    if (!hasIdentifier) {
-      throw new BadRequestException('Please provide id or googlePlaceId');
-    }
+const newPlace = await this.placeService.createPlace(createPlaceDTO);
 
-    const place = await this.placeService.getPlace(getPlaceDTO);
+return plainToInstance(PlaceResponseDTO, newPlace.toObject(), {
+excludeExtraneousValues: true,
+});
 
-    if (!place) {
-      throw new NotFoundException('Place not found');
-    }
+}
 
-    return plainToInstance(PlaceResponseDTO, place.toObject(), {
-      excludeExtraneousValues: true,
-    });
-  }
+// GET /places
+@Get()
 
-  // PUT /places - Update a place
-  @Put()
-  async updatePlace(@Query() getPlaceDTO: GetPlaceDTO, @Body() updatePlaceDTO: UpdatePlaceDTO) {
-    // Validate identifier
-    const hasIdentifier =
-      getPlaceDTO.id !== undefined || getPlaceDTO.googlePlaceId !== undefined;
+@ApiOperation({ summary: 'Get all places' })
 
-    if (!hasIdentifier) {
-      throw new BadRequestException('Please provide id or googlePlaceId');
-    }
+@ApiResponse({ status: 200, description: 'Places returned successfully' })
 
-    // Validate update data
-    const hasUpdateData = Object.keys(updatePlaceDTO).length > 0;
+async getPlaces(@Query() getPlaceDTO?: GetPlaceDTO) {
 
-    if (!hasUpdateData) {
-      throw new BadRequestException('Please provide data to update');
-    }
+const places = await this.placeService.getAllPlaces(getPlaceDTO);
 
-    const updatedPlace = await this.placeService.updatePlace(getPlaceDTO, updatePlaceDTO);
+return places.map((place) =>
+plainToInstance(PlaceResponseDTO, place.toObject(), {
+excludeExtraneousValues: true,
+}),
+);
 
-    if (!updatedPlace) {
-      throw new NotFoundException('Place not found');
-    }
+}
 
-    return plainToInstance(PlaceResponseDTO, updatedPlace.toObject(), {
-      excludeExtraneousValues: true,
-    });
-  }
+// GET /places/details
+@Get('details')
 
-  // DELETE /places - Delete a place
-  @Delete()
-  async deletePlace(@Query() getPlaceDTO: GetPlaceDTO) {
-    // Validate identifier
-    const hasIdentifier =
-      getPlaceDTO.id !== undefined || getPlaceDTO.googlePlaceId !== undefined;
+@ApiOperation({ summary: 'Get place details' })
 
-    if (!hasIdentifier) {
-      throw new BadRequestException('Please provide id or googlePlaceId');
-    }
+@ApiResponse({ status: 200, description: 'Place details returned' })
 
-    return await this.placeService.deletePlace(getPlaceDTO);
-  }
+async getPlace(@Query() getPlaceDTO: GetPlaceDTO) {
+
+const hasIdentifier =
+getPlaceDTO.id !== undefined || getPlaceDTO.googlePlaceId !== undefined;
+
+if (!hasIdentifier) {
+throw new BadRequestException('Please provide id or googlePlaceId');
+}
+
+const place = await this.placeService.getPlace(getPlaceDTO);
+
+if (!place) {
+throw new NotFoundException('Place not found');
+}
+
+return plainToInstance(PlaceResponseDTO, place.toObject(), {
+excludeExtraneousValues: true,
+});
+
+}
+
+// PUT /places
+@Put()
+
+@ApiOperation({ summary: 'Update a place' })
+
+@ApiResponse({ status: 200, description: 'Place updated successfully' })
+
+async updatePlace(@Query() getPlaceDTO: GetPlaceDTO, @Body() updatePlaceDTO: UpdatePlaceDTO) {
+
+const hasIdentifier =
+getPlaceDTO.id !== undefined || getPlaceDTO.googlePlaceId !== undefined;
+
+if (!hasIdentifier) {
+throw new BadRequestException('Please provide id or googlePlaceId');
+}
+
+const hasUpdateData = Object.keys(updatePlaceDTO).length > 0;
+
+if (!hasUpdateData) {
+throw new BadRequestException('Please provide data to update');
+}
+
+const updatedPlace = await this.placeService.updatePlace(getPlaceDTO, updatePlaceDTO);
+
+if (!updatedPlace) {
+throw new NotFoundException('Place not found');
+}
+
+return plainToInstance(PlaceResponseDTO, updatedPlace.toObject(), {
+excludeExtraneousValues: true,
+});
+
+}
+
+// DELETE /places
+@Delete()
+
+@ApiOperation({ summary: 'Delete a place' })
+
+@ApiResponse({ status: 200, description: 'Place deleted successfully' })
+
+async deletePlace(@Query() getPlaceDTO: GetPlaceDTO) {
+
+const hasIdentifier =
+getPlaceDTO.id !== undefined || getPlaceDTO.googlePlaceId !== undefined;
+
+if (!hasIdentifier) {
+throw new BadRequestException('Please provide id or googlePlaceId');
+}
+
+return await this.placeService.deletePlace(getPlaceDTO);
+
+}
+
 }

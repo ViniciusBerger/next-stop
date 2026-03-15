@@ -4,27 +4,35 @@ import { FeedbackDto } from './dto/feedback.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @ApiTags('Feedback')
+
 @Controller('feedback')
+
 export class FeedbackController {
 
-  constructor(private readonly feedbackService: FeedbackService) {}
+constructor(private readonly feedbackService: FeedbackService) {}
 
-  @Post()
-  @ApiOperation({ summary: 'Add user feedback on recommendation' })
-  @ApiResponse({ status: 201, description: 'Feedback recorded' })
-  addFeedback(@Body() data: FeedbackDto) {
+@Post()
 
-    return this.feedbackService.addFeedback(data);
+@ApiOperation({ summary: 'Add user feedback on recommendation' })
 
-  }
+@ApiResponse({ status: 201, description: 'Feedback recorded successfully' })
 
-  @Get()
-  @ApiOperation({ summary: 'Get all feedback' })
-  @ApiResponse({ status: 200, description: 'All feedback returned' })
-  getFeedback() {
+addFeedback(@Body() data: FeedbackDto) {
 
-    return this.feedbackService.getFeedback();
+return this.feedbackService.addFeedback(data);
 
-  }
+}
+
+@Get()
+
+@ApiOperation({ summary: 'Get all feedback' })
+
+@ApiResponse({ status: 200, description: 'All feedback returned successfully' })
+
+getFeedback() {
+
+return this.feedbackService.getFeedback();
+
+}
 
 }
