@@ -7,7 +7,9 @@ import { FirebaseAdmin } from './common/firebase';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
+
   const app = await NestFactory.create(AppModule);
+
   const configService = app.get(ConfigService);
 
   const firebaseConfig = {
@@ -17,10 +19,18 @@ async function bootstrap() {
   };
 
   // initialize firebase only if config exists
-  if (firebaseConfig.projectId && firebaseConfig.clientEmail && firebaseConfig.privateKey) {
+  if (
+    firebaseConfig.projectId &&
+    firebaseConfig.clientEmail &&
+    firebaseConfig.privateKey
+  ) {
+
     FirebaseAdmin.init(firebaseConfig);
+
   } else {
-    console.warn('⚠ Firebase not configured. Skipping Firebase initialization.');
+
+    console.warn('⚠ Firebase not configured. Skipping Firebase initialization');
+
   }
 
   app.useGlobalPipes(GlobalValidationPipe);
@@ -39,9 +49,11 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
+
   SwaggerModule.setup('api-docs', app, document);
 
   await app.listen(process.env.PORT ?? 3000);
+
 }
 
 bootstrap();

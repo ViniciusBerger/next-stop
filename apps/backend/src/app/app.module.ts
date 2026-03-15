@@ -7,7 +7,9 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { UserModule } from 'src/user/user.module';
 import { PlaceModule } from 'src/places/place.module';
 import { SystemModule } from 'src/system/system.module';
-import { FriendsModule } from 'src/friends/friends.module';  
+import { FriendsModule } from 'src/friends/friends.module'; 
+import { RecommendationModule } from '../recommendations/recommendation.module';
+import { FeedbackModule } from '../feedback/feedback.module';   // ← ADDED
 
 @Module({
   imports: [
@@ -27,7 +29,9 @@ import { FriendsModule } from 'src/friends/friends.module';
     UserModule,
     PlaceModule,
     SystemModule,
-    FriendsModule, 
+    FriendsModule,
+    RecommendationModule,
+    FeedbackModule   
   ],
 
   controllers: [AppController],
