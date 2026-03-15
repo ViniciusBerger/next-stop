@@ -14,6 +14,7 @@ async function seed() {
     const Reviews = mongoose.connection.collection("reviews");
     const Favorites = mongoose.connection.collection("favorites");
     const Friends = mongoose.connection.collection("friendships");
+    const Badges = mongoose.connection.collection("badges");
 
     // USERS
     await Users.insertMany([
@@ -108,9 +109,95 @@ async function seed() {
 
     console.log("Friendships created");
 
-    console.log("DATABASE SEEDED SUCCESSFULLY 🚀");
+    // BADGES
+await Badges.insertMany([
+
+{
+name: "Fresh Perspective",
+description: "First review",
+iconUrl: "https://nooqsabykmeoajdgefhg.supabase.co/storage/v1/object/public/badges/badge_fresh_perspective.svg"
+},
+
+{
+name: "Inner Circle",
+description: "Friends badge",
+iconUrl: "https://nooqsabykmeoajdgefhg.supabase.co/storage/v1/object/public/badges/badge_inner_circle.svg"
+},
+
+{
+name: "Local Legend",
+description: "Local explorer",
+iconUrl: "https://nooqsabykmeoajdgefhg.supabase.co/storage/v1/object/public/badges/badge_local_legend.svg"
+},
+
+{
+name: "Monthly Streak",
+description: "Monthly activity",
+iconUrl: "https://nooqsabykmeoajdgefhg.supabase.co/storage/v1/object/public/badges/badge_monthly_streak.svg"
+},
+
+{
+name: "Night Owl",
+description: "Late activity",
+iconUrl: "https://nooqsabykmeoajdgefhg.supabase.co/storage/v1/object/public/badges/badge_night_owl.svg"
+},
+
+{
+name: "Paparazzi",
+description: "Photo uploads",
+iconUrl: "https://nooqsabykmeoajdgefhg.supabase.co/storage/v1/object/public/badges/badge_paparazzi.svg"
+},
+
+{
+name: "Social Butterfly",
+description: "Social interactions",
+iconUrl: "https://nooqsabykmeoajdgefhg.supabase.co/storage/v1/object/public/badges/badge_social_butterfly.svg"
+},
+
+{
+name: "The Critic",
+description: "Many reviews",
+iconUrl: "https://nooqsabykmeoajdgefhg.supabase.co/storage/v1/object/public/badges/badge_the_critic.svg"
+},
+
+{
+name: "The Regular",
+description: "Frequent visits",
+iconUrl: "https://nooqsabykmeoajdgefhg.supabase.co/storage/v1/object/public/badges/badge_the_regular.svg"
+},
+
+{
+name: "Trendsetter",
+description: "Popular user",
+iconUrl: "https://nooqsabykmeoajdgefhg.supabase.co/storage/v1/object/public/badges/badge_trendsetter.svg"
+},
+
+{
+name: "Vibe Check",
+description: "Community feedback",
+iconUrl: "https://nooqsabykmeoajdgefhg.supabase.co/storage/v1/object/public/badges/badge_vibe_check.svg"
+},
+
+{
+name: "Weekend Warrior v2",
+description: "Weekend activity",
+iconUrl: "https://nooqsabykmeoajdgefhg.supabase.co/storage/v1/object/public/badges/badge_weekend_warrior_v2.svg"
+},
+
+{
+name: "First Step",
+description: "Getting started",
+iconUrl: "https://nooqsabykmeoajdgefhg.supabase.co/storage/v1/object/public/badges/firststep15.png"
+}
+
+]);
+
+console.log("Badges created");
+
+    console.log("DATABASE SEEDED SUCCESSFULLY ");
 
     process.exit();
+
   } catch (error) {
     console.error(error);
   }

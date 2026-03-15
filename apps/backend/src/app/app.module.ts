@@ -9,7 +9,8 @@ import { PlaceModule } from 'src/places/place.module';
 import { SystemModule } from 'src/system/system.module';
 import { FriendsModule } from 'src/friends/friends.module'; 
 import { RecommendationModule } from '../recommendations/recommendation.module';
-import { FeedbackModule } from '../feedback/feedback.module';   // ← ADDED
+import { FeedbackModule } from '../feedback/feedback.module';
+import { BadgesModule } from '../badges/badges.module';   // ← ADD THIS
 
 @Module({
   imports: [
@@ -31,7 +32,8 @@ import { FeedbackModule } from '../feedback/feedback.module';   // ← ADDED
     SystemModule,
     FriendsModule,
     RecommendationModule,
-    FeedbackModule   
+    FeedbackModule,
+    BadgesModule   
   ],
 
   controllers: [AppController],
