@@ -18,7 +18,7 @@ async function bootstrap() {
       //   /^https:\/\/.*\.expo\.dev$/,           // any Expo hosted URL
       //   /^exp:\/\/.*/,                         // Expo Go app
       // ], // Only allow select origins
-      origin: ['*'], // Allow all origins (for development)
+      origin: '*', // Allow all origins (for development)
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     });
 
