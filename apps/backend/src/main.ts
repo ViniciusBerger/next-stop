@@ -10,7 +10,15 @@ async function bootstrap() {
   app.useGlobalPipes(GlobalValidationPipe);
 
   app.enableCors({
-      origin: ['http://localhost:8081'], // Only allow our specific Expo app
+      // origin: [
+      //   'http://localhost:8081',
+      //   'https://localhost:8081',
+      //   'http://localhost:19006',
+      //   'https://next-stop-11pg.onrender.com', // Backend (for same-origin calls)
+      //   /^https:\/\/.*\.expo\.dev$/,           // any Expo hosted URL
+      //   /^exp:\/\/.*/,                         // Expo Go app
+      // ], // Only allow select origins
+      origin: ['*'], // Allow all origins (for development)
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     });
 

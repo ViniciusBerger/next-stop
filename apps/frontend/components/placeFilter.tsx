@@ -13,7 +13,7 @@ interface PlaceFilterProps {
   onFilterChange: (filters: FilterState) => void;
 }
 
-const CATEGORIES = ['Restaurant', 'Cafe', 'Bar', 'Park', 'Museum', 'Gym', 'Spa', 'Cinema', 'Bakery'];
+const CATEGORIES = ['Restaurant', 'Cafe', 'Bar', 'Park', 'Museum', 'Gym', 'Cinema',];
 const DISTANCES = [{ label: '1km', value: 1000 }, { label: '5km', value: 5000 }, { label: '10km', value: 10000 }];
 const RATINGS = [{ label: '3+', value: 3 }, { label: '4+', value: 4 }, { label: '4.5+', value: 4.5 }];
 const PRICES = [{ label: '$', value: 1 }, { label: '$$', value: 2 }, { label: '$$$', value: 3 }, { label: '$$$$', value: 4 }];
