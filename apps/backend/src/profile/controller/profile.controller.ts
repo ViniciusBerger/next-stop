@@ -13,7 +13,6 @@ import { UpdateProfileDTO } from '../DTOs/update.profile.DTO';
 import { ProfileResponseDTO } from '../DTOs/profile.response.DTO';
 import { plainToInstance } from 'class-transformer';
 
-
 @Controller('profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
@@ -21,6 +20,7 @@ export class ProfileController {
   // GET /profile?firebaseUid=xxx or /profile?username=xxx
   @Get()
   async getProfile(@Query() getProfileDTO: GetProfileDTO) {
+    console.log('GET /profile hit', getProfileDTO);
     // Validate if at least one parameter was provided
     const hasValues = Object.values(getProfileDTO).some(
       (value) => value !== undefined && value !== '',
