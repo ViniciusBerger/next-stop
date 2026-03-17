@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 28,
     padding: 16,
     marginBottom: 16,
     marginHorizontal: 16,
