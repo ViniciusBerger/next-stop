@@ -1,7 +1,17 @@
-import { Exclude, Expose } from 'class-transformer';
+import { Exclude, Expose, Transform, Type } from 'class-transformer';
+
+  class EventPlaceDTO {
+    @Expose()
+    @Transform(({ obj }) => obj._id?.toString())
+    _id: string;
+
+    @Expose() name: string;
+    @Expose() address: string;
+  }
 
 export class EventResponseDTO {
   @Expose()
+  @Transform(({ obj }) => obj._id?.toString())
   _id: string;
 
   @Expose()
@@ -17,12 +27,21 @@ export class EventResponseDTO {
   location: string;
 
   @Expose()
+  @Type(() => EventPlaceDTO)
   place: any; // Can be populated with Place details
 
   @Expose()
   privacy: string;
 
   @Expose()
+  @Transform(({ obj }) => {
+    const host = obj.host;
+    if (!host) return null;
+    return {
+      ...host,
+      _id: host._id?.toString(),
+    };
+  })
   host: any; // Can be populated with User details
 
   @Expose()

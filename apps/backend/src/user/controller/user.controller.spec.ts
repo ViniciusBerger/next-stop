@@ -38,6 +38,17 @@ describe('UserController - Unit Test', () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     lastLogin: new Date(),
+    toObject: jest.fn().mockReturnValue({
+      _id: 'user_123',
+      firebaseUid: '1234567890123456789012345678',
+      username: 'testuser',
+      email: 'test@example.com',
+      role: 'member',
+      profile: {},
+      badges: [],
+      friends: [],
+      isBanned: false,
+    }),
   };
 
   const mockRequest = {

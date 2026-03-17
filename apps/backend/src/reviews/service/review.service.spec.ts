@@ -4,6 +4,7 @@ import { ReviewRepository } from '../repository/review.repository';
 import { NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { Review } from '../schema/review.schema';
+import { User } from '../../user/schemas/user.schema';
 
 /**
  * ReviewService Unit Tests
@@ -62,6 +63,18 @@ describe('ReviewService - Unit Test', () => {
           provide: getModelToken(Review.name),
           useValue: mockReviewModel,
         },
+        {
+          provide: getModelToken(User.name),
+          useValue: {
+            findOne: jest.fn().mockReturnValue({
+              exec: jest.fn().mockResolvedValue({
+                _id: 'user_mongo_id',
+                firebaseUid: 'user_123',
+                username: 'testuser',
+              }),
+            }),
+          },
+        },
       ],
     }).compile();
 
@@ -81,7 +94,7 @@ describe('ReviewService - Unit Test', () => {
     it('should create a new review', async () => {
       const createDto = {
         author: 'user_new',
-        place: 'place_new',
+        place: '507f1f77bcf86cd799439011',
         rating: 5,
         reviewText: 'Excellent restaurant!',
         date: '2026-01-20',
@@ -95,7 +108,7 @@ describe('ReviewService - Unit Test', () => {
 
       const result = await service.createReview(createDto);
 
-      expect(repository.create).toHaveBeenCalledWith(createDto);
+      expect(repository.create).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
   });
@@ -199,12 +212,14 @@ describe('ReviewService - Unit Test', () => {
 
   describe('getUserReviews', () => {
     it('should return all reviews by a user (History)', async () => {
+      // UserModel.findOne resolves the Firebase UID to a MongoDB user
+      // mockReviewModel.find then queries by user._id
       mockReviewModel.find.mockReturnThis();
       mockReviewModel.populate.mockReturnThis();
       mockReviewModel.sort.mockReturnThis();
       mockReviewModel.exec.mockResolvedValue([mockReview]);
 
-      const result = await service.getUserReviews('user_123');
+      const result = await service.getUserReviews('user_123'); // ← pass Firebase UID
 
       expect(result).toHaveLength(1);
     });

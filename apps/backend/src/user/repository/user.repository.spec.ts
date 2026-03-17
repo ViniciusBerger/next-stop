@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { MongooseModule, getModelToken } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UserRepository } from './user.repository';
-import { User, userSchema } from '../user.schema';
+import { User, userSchema } from '../schemas/user.schema';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
 describe('UserRepository - Full CRUD Integration', () => {

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, IsNumber, Min, Max, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsArray, Min, Max, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class LocationDTO {
@@ -11,6 +11,14 @@ class LocationDTO {
 }
 
 export class UpdatePlaceDTO {
+  @IsOptional()
+  @IsString()
+  _id?: string;
+
+  @IsOptional()
+  @IsString()
+  googlePlaceId?: string;
+
   @IsOptional()
   @IsString()
   name?: string;
@@ -27,14 +35,12 @@ export class UpdatePlaceDTO {
   @IsString()
   description?: string;
 
-  // PRICE LEVEL
   @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(4)
   priceLevel?: number;
 
-  // LOCATION
   @IsOptional()
   @ValidateNested()
   @Type(() => LocationDTO)
@@ -46,7 +52,26 @@ export class UpdatePlaceDTO {
   customImages?: string[];
 
   @IsOptional()
+  @IsNumber()
+  googleRating?: number;
+
+  @IsOptional()
+  @IsNumber()
+  googleReviewCount?: number;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  customTags?: string[];
+  googlePhotos?: string[];
+
+  @IsOptional()
+  openingHours?: any;
+
+  @IsOptional()
+  @IsString()
+  phoneNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  website?: string;
 }

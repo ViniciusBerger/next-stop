@@ -24,11 +24,13 @@ import { MongooseModule } from "@nestjs/mongoose";
 export class MongooseConnectionModule {
 
     static init(): DynamicModule {
+        console.log("Mongoose connected")
         return MongooseModule.forRootAsync({
         imports: [ConfigModule],
         inject: [ConfigService],
         useFactory: async (config: ConfigService) => ({
             uri: config.get<string>('MONGO_DB_STRING_CONNECTION'),
+            
         }),
         });
     }

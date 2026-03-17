@@ -134,7 +134,7 @@ export default function AdminDashboard() {
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => router.push('/(admin)/adminsettings' as any)}
+            onPress={() => router.push('../adminsettings')}
           >
             <Text style={styles.actionButtonText}>System Settings</Text>
           </TouchableOpacity>

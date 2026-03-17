@@ -4,6 +4,7 @@ import { ReportRepository } from '../repository/report.repository';
 import { NotFoundException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { Report, ReportType, ReportStatus } from '../schema/report.schema';
+import { User } from '../../user/schemas/user.schema'; // ✅ correct path from yours
 
 /**
  * ReportService Unit Tests
@@ -13,6 +14,8 @@ import { Report, ReportType, ReportStatus } from '../schema/report.schema';
 describe('ReportService - Unit Test', () => {
   let service: ReportService;
   let repository: ReportRepository;
+  let mockReportModel: any;
+  let mockUserModel: any;   
 
   const mockReport = {
     _id: 'report_123',
@@ -25,17 +28,42 @@ describe('ReportService - Unit Test', () => {
     toObject: function() { return this; }
   };
 
-  // Mock do ReportModel
-  const mockReportModel = {
-    find: jest.fn().mockReturnThis(),
-    findById: jest.fn().mockReturnThis(),
-    findOne: jest.fn().mockReturnThis(),
-    populate: jest.fn().mockReturnThis(),
-    sort: jest.fn().mockReturnThis(),
-    exec: jest.fn(),
+  const mockUser = {
+    _id: 'user_mongo_id_123',
+    firebaseUid: 'firebase_uid_123',
+    username: 'testuser',
+    email: 'test@example.com',
   };
 
   beforeEach(async () => {
+    mockReportModel = jest.fn().mockImplementation((data) => ({
+      ...data,
+      save: jest.fn().mockResolvedValue({
+        ...data,
+        _id: 'report_123',
+        createdAt: new Date(),
+      }),
+    }));
+
+    mockReportModel.findById = jest.fn().mockReturnValue({
+      populate: jest.fn().mockReturnThis(),
+      exec: jest.fn().mockResolvedValue(mockReport),
+    });
+
+    mockReportModel.find = jest.fn().mockReturnValue({
+      populate: jest.fn().mockReturnThis(),
+      sort: jest.fn().mockReturnThis(),
+      exec: jest.fn().mockResolvedValue([mockReport]),
+    });
+
+    mockReportModel.countDocuments = jest.fn().mockResolvedValue(5);
+
+    mockUserModel = {
+      findOne: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockUser),
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ReportService,
@@ -56,6 +84,10 @@ describe('ReportService - Unit Test', () => {
           provide: getModelToken(Report.name),
           useValue: mockReportModel,
         },
+        {
+          provide: getModelToken(User.name),
+          useValue: mockUserModel,
+        },
       ],
     }).compile();
 
@@ -73,31 +105,22 @@ describe('ReportService - Unit Test', () => {
   describe('createReport', () => {
     it('should create a new report', async () => {
       const createDto = {
+        reportedBy: 'firebase_uid_123',
         type: ReportType.FEEDBACK,
         title: 'New Feedback',
         description: 'This is great!',
-        reportedBy: 'user_new',
       };
 
-      jest.spyOn(repository, 'create').mockResolvedValue(mockReport as any);
-      mockReportModel.findById.mockReturnThis();
-      mockReportModel.populate.mockReturnThis();
-      mockReportModel.exec.mockResolvedValue(mockReport);
-
-      const result = await service.createReport(createDto);
+      const result = await service.createReport(createDto as any);
 
       expect(result).toBeDefined();
-      expect(repository.create).toHaveBeenCalledWith(createDto);
+      expect(mockUserModel.findOne).toHaveBeenCalledWith({ firebaseUid: createDto.reportedBy });
     });
   });
 
   describe('getAllReports', () => {
     it('should return all reports when no filter provided', async () => {
       jest.spyOn(repository, 'findMany').mockResolvedValue([mockReport] as any);
-      mockReportModel.find.mockReturnThis();
-      mockReportModel.populate.mockReturnThis();
-      mockReportModel.sort.mockReturnThis();
-      mockReportModel.exec.mockResolvedValue([mockReport]);
 
       const result = await service.getAllReports();
 
@@ -108,10 +131,6 @@ describe('ReportService - Unit Test', () => {
     it('should filter by status', async () => {
       const dto = { status: ReportStatus.PENDING };
       jest.spyOn(repository, 'findMany').mockResolvedValue([mockReport] as any);
-      mockReportModel.find.mockReturnThis();
-      mockReportModel.populate.mockReturnThis();
-      mockReportModel.sort.mockReturnThis();
-      mockReportModel.exec.mockResolvedValue([mockReport]);
 
       await service.getAllReports(dto);
 
@@ -121,10 +140,6 @@ describe('ReportService - Unit Test', () => {
     it('should filter by type', async () => {
       const dto = { type: ReportType.ISSUE };
       jest.spyOn(repository, 'findMany').mockResolvedValue([mockReport] as any);
-      mockReportModel.find.mockReturnThis();
-      mockReportModel.populate.mockReturnThis();
-      mockReportModel.sort.mockReturnThis();
-      mockReportModel.exec.mockResolvedValue([mockReport]);
 
       await service.getAllReports(dto);
 
@@ -134,10 +149,6 @@ describe('ReportService - Unit Test', () => {
     it('should filter by reportedBy', async () => {
       const dto = { reportedBy: 'user_specific' };
       jest.spyOn(repository, 'findMany').mockResolvedValue([mockReport] as any);
-      mockReportModel.find.mockReturnThis();
-      mockReportModel.populate.mockReturnThis();
-      mockReportModel.sort.mockReturnThis();
-      mockReportModel.exec.mockResolvedValue([mockReport]);
 
       await service.getAllReports(dto);
 
@@ -147,19 +158,16 @@ describe('ReportService - Unit Test', () => {
 
   describe('getReport', () => {
     it('should return report by ID', async () => {
-      mockReportModel.findById.mockReturnThis();
-      mockReportModel.populate.mockReturnThis();
-      mockReportModel.exec.mockResolvedValue(mockReport);
-
       const result = await service.getReport('report_123');
 
       expect(result).toEqual(mockReport);
     });
 
     it('should throw NotFoundException if report not found', async () => {
-      mockReportModel.findById.mockReturnThis();
-      mockReportModel.populate.mockReturnThis();
-      mockReportModel.exec.mockResolvedValue(null);
+      mockReportModel.findById.mockReturnValue({
+        populate: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(null),
+      });
 
       await expect(service.getReport('ghost_report'))
         .rejects.toThrow(NotFoundException);
@@ -177,11 +185,13 @@ describe('ReportService - Unit Test', () => {
         completedAt: new Date(),
         _id: 'report_123',
       } as any);
-      mockReportModel.findById.mockReturnThis();
-      mockReportModel.populate.mockReturnThis();
-      mockReportModel.exec.mockResolvedValue({
-        ...reportToComplete,
-        status: ReportStatus.COMPLETED,
+
+      mockReportModel.findById.mockReturnValue({
+        populate: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue({
+          ...reportToComplete,
+          status: ReportStatus.COMPLETED,
+        }),
       });
 
       const result = await service.completeReport('report_123');
@@ -229,10 +239,11 @@ describe('ReportService - Unit Test', () => {
 
   describe('getReportsByStatus', () => {
     it('should return reports filtered by status', async () => {
-      mockReportModel.find.mockReturnThis();
-      mockReportModel.populate.mockReturnThis();
-      mockReportModel.sort.mockReturnThis();
-      mockReportModel.exec.mockResolvedValue([mockReport, mockReport]);
+      mockReportModel.find.mockReturnValue({
+        populate: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue([mockReport, mockReport]),
+      });
 
       const result = await service.getReportsByStatus(ReportStatus.PENDING);
 

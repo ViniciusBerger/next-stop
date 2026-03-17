@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { User } from "../user.schema";
+import { User } from "../schemas/user.schema";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, UpdateQuery} from "mongoose";
 import { IuserData } from "./IuserData";
@@ -18,6 +18,11 @@ export class UserRepository {
     // Generic find; logic for which field to query belongs in the Service.
     async findOne(filter: IuserData): Promise<User | null> {
         return await this.userModel.findOne(filter).exec();
+    }
+
+    // Generic find; logic for which field to query belongs in the Service.
+    async findAll(): Promise<User[]> {
+        return await this.userModel.find({}).lean().exec();
     }
 
     // Atomic update using Mongoose $operators; returns null if not found. */

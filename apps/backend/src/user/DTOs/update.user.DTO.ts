@@ -1,4 +1,4 @@
-import { IsString, MinLength, MaxLength, IsOptional } from 'class-validator';
+import { IsString, MinLength, MaxLength, IsOptional, IsBoolean } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 /**
@@ -11,5 +11,13 @@ export class UpdateUserDTO {
     @MinLength(3)
     @MaxLength(30) // decent maximum username size
     username?: string;
+
+    @IsString()
+    @IsOptional() // decent maximum username size
+    id?: string;
+
+    @IsBoolean()
+    @IsOptional()
+    isBanned?: boolean
     
 }

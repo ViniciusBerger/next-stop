@@ -99,7 +99,7 @@ export class EventService {
     const created = await this.eventModel
       .find({ host: userId })
       .populate('host', 'username profilePicture')
-      .populate('place', 'name address')
+      .populate('place', 'name address _id')
       .populate('attendees', 'username profilePicture')
       .populate('invitedFriends', 'username profilePicture')
       .sort({ date: -1 })
@@ -108,7 +108,7 @@ export class EventService {
     const attending = await this.eventModel
       .find({ attendees: userId })
       .populate('host', 'username profilePicture')
-      .populate('place', 'name address')
+      .populate('place', 'name address _id')
       .populate('attendees', 'username profilePicture')
       .populate('invitedFriends', 'username profilePicture')
       .sort({ date: -1 })

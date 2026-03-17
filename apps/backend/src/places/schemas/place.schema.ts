@@ -3,7 +3,6 @@ import { Document, Types } from 'mongoose';
 
 @Schema({ collection: 'Place' })
 export class Place extends Document {
-  // FROM GOOGLE PLACES
   @Prop({ type: String, required: true, unique: true })
   googlePlaceId: string;
 
@@ -19,11 +18,9 @@ export class Place extends Document {
   @Prop({ type: String })
   description?: string;
 
-  // ============== PRICE LEVEL ==============
   @Prop({ type: Number, min: 0, max: 4 })
   priceLevel?: number;
 
-  // ============== LOCATION (OPTIONAL) ==============
   @Prop({
     type: {
       type: String,
@@ -38,21 +35,37 @@ export class Place extends Document {
     coordinates: number[];
   };
 
-  // FROM USERS
   @Prop({ type: [String], default: [] })
   customImages: string[];
 
   @Prop({ type: [String], default: [] })
   customTags: string[];
 
-  // SOCIAL DATA
   @Prop({ type: Number, default: 0 })
   averageUserRating: number;
 
   @Prop({ type: Number, default: 0 })
   totalUserReviews: number;
 
-  // METADATA
+  // ← ADICIONAR CAMPOS DO GOOGLE PLACES
+  @Prop({ type: Number })
+  googleRating?: number;
+
+  @Prop({ type: Number })
+  googleReviewCount?: number;
+
+  @Prop({ type: [String], default: [] })
+  googlePhotos?: string[];
+
+  @Prop({ type: Object })
+  openingHours?: any;
+
+  @Prop({ type: String })
+  phoneNumber?: string;
+
+  @Prop({ type: String })
+  website?: string;
+
   @Prop({ type: Types.ObjectId, ref: 'User' })
   createdBy?: Types.ObjectId;
 
@@ -65,5 +78,4 @@ export class Place extends Document {
 
 export const placeSchema = SchemaFactory.createForClass(Place);
 
-// Geospatial index
 placeSchema.index({ location: '2dsphere' });

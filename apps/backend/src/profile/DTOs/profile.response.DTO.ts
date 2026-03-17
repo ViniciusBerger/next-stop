@@ -1,4 +1,4 @@
-import { Exclude, Expose, Type } from 'class-transformer';
+import { Exclude, Expose, Transform, Type } from 'class-transformer';
 
 // Response DTO for Preferences
 export class PreferencesResponseDTO {
@@ -62,10 +62,11 @@ export class ProfileResponseDTO {
   @Expose()
   friends: any[];
 
-  // Delete sensitive fields
-  @Exclude()
+  @Expose()
+  @Transform(({ obj }) => obj._id?.toString()) // Convert MongoDB ObjectId to string
   _id: string;
 
+  // Delete sensitive fields
   @Exclude()
   firebaseUid: string;
 
