@@ -119,7 +119,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Edit Profile Button */}
-        <TouchableOpacity style={styles.editButton}>
+        <TouchableOpacity style={styles.editButton} onPress={() => router.push('/editprofile')}>
           <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>
 
@@ -160,9 +160,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 160,
+    height: 160,
+    borderRadius: 110,
     marginBottom: 8,
   },
   username: {
