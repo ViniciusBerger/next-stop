@@ -33,6 +33,9 @@ export class UserResponseDTO {
     email: string;
 
     @Expose()
+    role: string; // Needed for frontend routing (member vs admin)
+
+    @Expose()
     @Type(() => Object) // ← was Type(() => Profile), causing the crash
     profile: any;
 
