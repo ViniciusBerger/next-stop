@@ -1,55 +1,58 @@
-import { Exclude, Expose } from "class-transformer";
-import { Types } from "mongoose";
+import { Exclude, Expose, Type } from "class-transformer";
 import { Profile } from "../../profile/schemas/profile.schema";
-import { Badge } from "../schemas/badges.schema";
-import { User } from "../schemas/user.schema";
+import { Badge } from "../../badges/schemas/badges.schema";
 
+/**
+ * DTO for sanitizing and returning user data to the client.
+ * Decoupled from the database 'User' entity to prevent layer leakage.
+ */
+@Exclude() //excludes any field not marked with @Expose
 export class UserResponseDTO {
 
-    @Exclude()
-    _id:any;
-    @Exclude()
-    firebaseUid?: string;
-    @Exclude()
-    role?: string;
+/**
+ * Removed constructor here intentionally.
+ *
+ * Previously we used Object.assign() in a manual constructor to map
+ * incoming data. However, Object.assign() is a plain JS operation that
+ * completely bypasses class-transformer's decorator system — meaning @Expose(),
+ * @Exclude(), and @Type() decorators were never actually applied. Sensitive
+ * fields were leaking to the client despite being marked @Exclude().
+ *
+ * The fix was to remove the constructor entirely and use plainToInstance()
+ * in the controller instead, which lets class-transformer handle instantiation
+ * and correctly apply all decorators before returning the response.
+ *
+ * See user.controller.ts for the updated controller code that uses plainToInstance()
+ * to create UserResponseDTO instances from the User entity.
+ */
+
     @Expose()
     username: string; 
+
     @Expose()
     email: string;
+
     @Expose()
-    profile: Profile;
+    role: string; // Needed for frontend routing (member vs admin)
+
+    @Expose()
+    @Type(() => Object) // ← was Type(() => Profile), causing the crash
+    profile: any;
+
     @Expose()
     bio: string;
-    @Expose()
-    profilePicture: string;
-    @Expose()
-    badges: Badge[];
-    @Expose()
-    friends: Types.ObjectId[];
-    @Expose()
-    isBanned: boolean
-    @Exclude()
-    createdAt?: Date;
-    @Exclude()
-    updatedAt?: Date;
-    @Exclude()
-    lastLogin?: Date;
 
+    @Expose()
+    profilePictureUrl: string; 
 
-    constructor(user: User) {
-        this._id = user._id;
-        this.firebaseUid = user.firebaseUid;
-        this.role = user.role;
-        this.username = user.username;
-        this.email = user.email;
-        this.profile = user.profile;
-        this.bio = user.bio;
-        this.profilePicture = user.profilePicture;
-        this.badges = user.badges;
-        this.friends = user.friends;
-        this.isBanned = user.isBanned;
-        this.createdAt = user.createdAt;
-        this.updatedAt = user.updatedAt;
-        this.lastLogin = user.lastLogin;
-    }
+    @Expose()
+    @Type(() => Object) // ← was Type(() => Badge)
+    badges: any[];
+
+    @Expose()
+    friends: string[];
+
+    @Expose()
+    isBanned: boolean;
+
 }

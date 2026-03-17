@@ -29,32 +29,36 @@ export const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 14,
+    fontSize: 20,
     marginBottom: 6,
     color: "#000000",
   },
 
   input: {
-    height: 44,
+    height: 50,
     backgroundColor: "#E8EEFF",
     borderWidth: 1,
     borderColor: "#6B73FF",
     borderRadius: 4,
-    paddingHorizontal: 10,
+    paddingHorizontal: 15, // Slightly increased for better UX
+    paddingVertical: 0, // Remove vertical padding
     marginBottom: 16,
+    fontSize: 16,
+    color: "#333",
+    textAlignVertical: 'center', // Center text vertically
   },
 
   errorText: {
     color: "#FF0000",
-    fontSize: 12,
+    fontSize: 16,
     marginTop: -10,
     marginBottom: 10,
   },
 
   button: {
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: "#6B73FF",
+    height: 60,
+    borderRadius: 100,
+    backgroundColor: "#7d77f0",
     justifyContent: "center",
     alignItems: "center",
     marginTop: 10,
@@ -62,15 +66,15 @@ export const styles = StyleSheet.create({
   },
 
   buttonText: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "600",
-    color: "#000000",
+    color: "#ffffff",
   },
 
   link: {
-    fontSize: 14,
+    fontSize: 20,
     color: "#000000",
-    marginTop: 12,
+    marginTop: 20,
   },
 
   card: {
@@ -79,17 +83,16 @@ export const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 24,
     borderRadius: 16,
-    borderWidth: 2,
-    borderColor: "#2EE6A8",
     backgroundColor: "#FFFFFF",
-    margin: 24,
+    marginHorizontal: 30,
+    marginVertical: 40,
   },
 
   text: {
-    fontSize: 27,
+    fontSize: 30,
     fontWeight: "600",
     color: "#000000",
-    marginLeft: 16,
+    marginLeft: 20,
   },
 
   post: {
@@ -129,12 +132,11 @@ export const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 80,
-    backgroundColor: "#6B73FF",
+    backgroundColor: "#747BFF",
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    borderTopWidth: 3,
-    borderTopColor: "#2EE6A8",
+    borderTopWidth: 0.5,
   },
 
   tabButton: {
@@ -151,7 +153,7 @@ export const styles = StyleSheet.create({
   },
 
   homeHeader: {
-    paddingTop: 40,
+    paddingTop: 60,
     paddingHorizontal: 24,
     height: 225,
   },
@@ -172,6 +174,7 @@ export const styles = StyleSheet.create({
     backgroundColor: "#9E9E9E",
     justifyContent: "center",
     alignItems: "center",
+    marginTop: 20,
   },
 
   avatar: {
@@ -196,23 +199,51 @@ export const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 420,
-    backgroundColor: "#6B73FF",
+    backgroundColor: "#747BFF",
     borderBottomColor: "#2EE6A8",
     borderBottomWidth: 10,
   },
-
 
   headerGreeting: {
     marginTop: 32,
     fontSize: 32,
     fontWeight: "700",
-    color: "#000000",
+    color: "#ffffff",
   },
 
   headerSubtitle: {
-    marginTop: 30,
+    fontWeight: "600",
     fontSize: 18,
-    color: "#000000",
+    color: "#ffffff",
     alignSelf: "center",
+    paddingTop: 8,
+  },
+
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
+  },
+
+  headerContainer: {
+    height: 300,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  linkContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+    gap: 15,
+  },
+
+  scrollContainer: {
+    flexGrow: 1,
+    paddingBottom: 40
+  },
+
+  headerWrapper: {
+    height: 380,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

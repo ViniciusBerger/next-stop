@@ -1,9 +1,50 @@
-import { IsString, IsOptional, IsArray, IsNumber, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsArray, Min, Max, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class LocationDTO {
+  @IsString()
+  type: string;
+
+  @IsArray()
+  @IsNumber({}, { each: true })
+  coordinates: number[];
+}
 
 export class UpdatePlaceDTO {
   @IsOptional()
   @IsString()
+  _id?: string;
+
+  @IsOptional()
+  @IsString()
+  googlePlaceId?: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(4)
+  priceLevel?: number;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LocationDTO)
+  location?: LocationDTO;
 
   @IsOptional()
   @IsArray()
@@ -11,19 +52,26 @@ export class UpdatePlaceDTO {
   customImages?: string[];
 
   @IsOptional()
+  @IsNumber()
+  googleRating?: number;
+
+  @IsOptional()
+  @IsNumber()
+  googleReviewCount?: number;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  customTags?: string[];
-
-  // These fields are updated by the system, not directly by users
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(5)
-  averageUserRating?: number;
+  googlePhotos?: string[];
 
   @IsOptional()
-  @IsNumber()
-  @Min(0)
-  totalUserReviews?: number;
+  openingHours?: any;
+
+  @IsOptional()
+  @IsString()
+  phoneNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  website?: string;
 }

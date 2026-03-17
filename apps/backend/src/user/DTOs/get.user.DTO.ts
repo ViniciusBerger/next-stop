@@ -1,14 +1,26 @@
-import { IsString, IsEmail, IsNotEmpty, MinLength, MaxLength, Min, IsStrongPassword, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, MinLength, IsOptional, ValidateIf } from 'class-validator';
 
-
+/**
+ * Filter criteria for retrieving a user.
+ * Used for GET requests /users?username=...
+ */
 export class GetUserDTO {
-    @IsOptional() 
+
+    constructor(partial: Partial<GetUserDTO>) {
+        Object.assign(this, partial)
+    }
+    
+    @IsOptional()
     @IsString()
-    @MinLength(20)
-    firebaseUid?: string; 
+    @MinLength(28)
+    // If username is missing, firebaseUid is no longer optional
+    @ValidateIf(o => !o.username)
+    firebaseUid?: string;
 
     @IsOptional()
     @IsString()
-    @IsNotEmpty()
+    @MinLength(3)
+    // If firebaseUid is missing, username is no longer optional
+    @ValidateIf(o => !o.firebaseUid)
     username?: string;
 }

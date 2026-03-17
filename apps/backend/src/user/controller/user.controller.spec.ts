@@ -1,138 +1,161 @@
-import { Test, TestingModule } from "@nestjs/testing"
-import { UserController } from "./user.controller"
-import { UserService } from "../service/user.service"
-import { BadRequestException } from "@nestjs/common";
-import { UserResponseDTO } from "../DTOs/user.response.DTO";
+import { Test, TestingModule } from '@nestjs/testing';
+import { UserController } from './user.controller';
+import { UserService } from '../service/user.service';
+import { NotFoundException } from '@nestjs/common';
+import { UserResponseDTO } from '../DTOs/user.response.DTO';
+import { GetUserDTO } from '../DTOs/get.user.DTO';
+import { UpdateUserDTO } from '../DTOs/update.user.DTO';
+import { DeleteUserDTO } from '../DTOs/delete.user.DTO';
 
 /**
  * UserController unit tests
- * 
- * This test suite verifies the functionality of the UserController class, checking status code 
+ *
+ * This test suite verifies the functionality of the UserController class, checking status code
  * and data transfer. It uses Jest for mocking dependencies and assertions.
- * 
+ *
  * these tests follow the triple A of testing: Arrange, act and assert [AAA]
- * 
+ *
  * To run the tests, use the command: npm test -- apps/backend/src/user/controller/user.controller.spec.ts
- * 
+ *
  */
+describe('UserController - Unit Test', () => {
+  let controller: UserController;
+  let service: UserService;
 
-describe('userController', ()=> {
-    let userController: UserController;
-    let userService:UserService;
+  const mockUser = {
+    _id: 'user_123',
+    firebaseUid: '1234567890123456789012345678',
+    username: 'testuser',
+    email: 'test@example.com',
+    role: 'member',
+    profile: {},
+    badges: [],
+    friends: [],
+    favorites: [],
+    wishlist: [],
+    isBanned: false,
+    isSuspended: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastLogin: new Date(),
+    toObject: jest.fn().mockReturnValue({
+      _id: 'user_123',
+      firebaseUid: '1234567890123456789012345678',
+      username: 'testuser',
+      email: 'test@example.com',
+      role: 'member',
+      profile: {},
+      badges: [],
+      friends: [],
+      isBanned: false,
+    }),
+  };
 
-    beforeEach(async ()=> {
-        // create testing environment before each it
-        const module: TestingModule = await Test.createTestingModule({
-            controllers: [UserController],
-            providers: [{
-                provide: UserService,
-                // methods testing will have access to
-                useValue: {
-                    getUser: jest.fn(),
-                    createUser: jest.fn(),
-                    updateUser: jest.fn(),
-                    deleteUser: jest.fn(),
-                }
-            }
-        ]
-        }).compile()
-        
-        // instantiate service and controller
-        userController = module.get<UserController>(UserController)
-        userService = module.get<UserService>(UserService) 
-    })
+  const mockRequest = {
+    user: { uid: '1234567890123456789012345678' }
+  };
 
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [UserController],
+      providers: [
+        {
+          provide: UserService,
+          useValue: {
+            findById: jest.fn().mockResolvedValue(mockUser),
+            findByUsername: jest.fn().mockResolvedValue(mockUser),
+            updateUser: jest.fn().mockResolvedValue(mockUser),
+            deleteUser: jest.fn().mockResolvedValue(mockUser),
+          },
+        },
+      ],
+    }).compile();
 
-    it("Should define userService and userRepository", ()=> {
-        expect(userController).toBeDefined()
-        expect(userService).toBeDefined()
-    })
+    controller = module.get<UserController>(UserController);
+    service = module.get<UserService>(UserService);
+  });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+    expect(service).toBeDefined();
+  });
 
-    it("createUser -> Should send createUserDTO to service",async ()=> {
-        const mockDTO = { username: 'testuser', firebaseUid: '123' };
+  describe('findOne', () => {
+    it('should return user by firebaseUid', async () => {
+      const params = { firebaseUid: '1234567890123456789012345678' } as GetUserDTO;
 
-        jest.spyOn(userService, "createUser").mockResolvedValue(mockDTO)
-        const user = await userController.createUser(mockDTO as any)
+      const result = await controller.findOne(params);
 
-        expect(user).toEqual(expect.objectContaining(mockDTO))
-        expect(userService.createUser).toHaveBeenCalledWith(mockDTO)
-        expect(userService.createUser).toHaveBeenCalledTimes(1)
+      expect(service.findById).toHaveBeenCalledWith(params.firebaseUid);
+      expect(result).toBeInstanceOf(UserResponseDTO);
+      expect(result.username).toBe(mockUser.username);
+    });
 
-    })
+    it('should return user by username', async () => {
+      const params = { username: 'testuser' } as GetUserDTO;
 
+      const result = await controller.findOne(params);
 
-    it("createUser -> Should return status 400",async()=> {
-        const mockDTO = null
+      expect(service.findByUsername).toHaveBeenCalledWith(params.username);
+      expect(result).toBeInstanceOf(UserResponseDTO);
+      expect(result.username).toBe(mockUser.username);
+    });
 
-        jest.spyOn(userService, "createUser").mockRejectedValue(new BadRequestException())
+    it('should throw NotFoundException if user not found by firebaseUid', async () => {
+      jest.spyOn(service, 'findById').mockResolvedValue(null);
+      const params = { firebaseUid: 'nonexistent' } as GetUserDTO;
 
-        await (expect(userController.createUser(mockDTO as any)).rejects.toThrow(BadRequestException))
-    })
+      await expect(controller.findOne(params))
+        .rejects.toThrow(NotFoundException);
+    });
 
+    it('should throw NotFoundException if user not found by username', async () => {
+      jest.spyOn(service, 'findByUsername').mockResolvedValue(null);
+      const params = { username: 'nonexistent' } as GetUserDTO;
 
-    it("getUser -> Should send getUserDTO to service",async ()=> {
-        const mockDTO = { username: 'testuser', firebaseUid: '123' };
+      await expect(controller.findOne(params))
+        .rejects.toThrow(NotFoundException);
+    });
+  });
 
-        jest.spyOn(userService, "getUser").mockResolvedValue(mockDTO as any)
-        const user = await userController.getUser(mockDTO as any)
+  describe('updateUser', () => {
+    it('should update user and return UserResponseDTO', async () => {
+      const updateDto: UpdateUserDTO = { username: 'updateduser' };
 
-        expect(user).toEqual(expect.objectContaining(mockDTO) as UserResponseDTO)
-        expect(userService.getUser).toHaveBeenCalledWith(mockDTO)
-        expect(userService.getUser).toHaveBeenCalledTimes(1)
+      const result = await controller.updateUser(mockRequest, updateDto);
 
-    })
+      expect(service.updateUser).toHaveBeenCalledWith(mockRequest.user.uid, updateDto);
+      expect(result).toBeInstanceOf(UserResponseDTO);
+    });
 
+    it('should handle multiple field updates', async () => {
+      const updateDto: UpdateUserDTO = {
+        username: 'newusername',
+      };
 
-    it("getUser -> Should return status 400",async()=> {
-        const mockDTO = null
+      const result = await controller.updateUser(mockRequest, updateDto);
 
-        jest.spyOn(userService, "getUser").mockRejectedValue(new BadRequestException())
+      expect(service.updateUser).toHaveBeenCalledWith(mockRequest.user.uid, updateDto);
+      expect(result).toBeInstanceOf(UserResponseDTO);
+    });
+  });
 
-        await (expect(userController.getUser(mockDTO as any)).rejects.toThrow(BadRequestException))
-    })
+  describe('deleteUser', () => {
+    it('should delete user and return UserResponseDTO', async () => {
+      const params: DeleteUserDTO = { firebaseUid: '1234567890123456789012345678' };
 
+      const result = await controller.deleteUser(params);
 
-    it("updateUser -> Should send editUserDTO to service",async ()=> {
-        const mockDTO = { username: 'testuser', firebaseUid: '123' };
+      expect(service.deleteUser).toHaveBeenCalledWith(params);
+      expect(result).toBeInstanceOf(UserResponseDTO);
+    });
 
-        jest.spyOn(userService, "updateUser").mockResolvedValue(mockDTO as any)
-        const user = await userController.updateUser(mockDTO as any)
+    it('should handle deletion of non-existent user', async () => {
+      jest.spyOn(service, 'deleteUser').mockRejectedValue(new NotFoundException());
+      const params: DeleteUserDTO = { firebaseUid: 'nonexistent' };
 
-        expect(user).toEqual({message: expect.objectContaining(mockDTO) as UserResponseDTO})
-        expect(userService.updateUser).toHaveBeenCalledWith(mockDTO)
-        expect(userService.updateUser).toHaveBeenCalledTimes(1)
-
-    })
-
-
-    it("updateUser -> Should return status 400",async()=> {
-        const mockDTO = null
-
-        jest.spyOn(userService, "updateUser").mockRejectedValue(new BadRequestException())
-
-        await (expect(userController.updateUser(mockDTO as any)).rejects.toThrow(BadRequestException))
-    })
-
-
-    it("deleteUser -> Should send deleteUserDTO to service",async ()=> {
-        const mockDTO = { username: 'testuser', firebaseUid: '123' };
-
-        jest.spyOn(userService, "deleteUser").mockResolvedValue(mockDTO as any)
-        const user = await userController.deleteUser(mockDTO as any)
-
-        expect(user).toEqual({message: mockDTO as UserResponseDTO})
-        expect(userService.deleteUser).toHaveBeenCalledWith(mockDTO)
-        expect(userService.deleteUser).toHaveBeenCalledTimes(1)
-
-    })
-
-
-    it("deleteUser -> Should return status 400",async()=> {
-        const mockDTO = null
-
-        jest.spyOn(userService, "deleteUser").mockRejectedValue(new BadRequestException())
-
-        await (expect(userController.deleteUser(mockDTO as any)).rejects.toThrow(BadRequestException))
-    })
-})
+      await expect(controller.deleteUser(params))
+        .rejects.toThrow(NotFoundException);
+    });
+  });
+});

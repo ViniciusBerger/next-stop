@@ -1,11 +1,13 @@
-import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Req, UseGuards } from "@nestjs/common";
+import { FirebaseAuthGuard } from "../../common/firebase/firebase.auth.guard";
 import { UserService } from "../service/user.service";
-import { GetUserDTO } from "../DTOs/get.user.DTO";
 import { UserResponseDTO } from "../DTOs/user.response.DTO";
-import { CreateUserDTO } from "../DTOs/create.user.DTO";
-import { EditUserDTO } from "../DTOs/edit.user.DTO";
+import { UpdateUserDTO } from "../DTOs/update.user.DTO";
 import { DeleteUserDTO } from "../DTOs/delete.user.DTO";
+import { GetUserDTO } from "../DTOs/get.user.DTO";
+import { plainToInstance } from "class-transformer";
 
+<<<<<<< HEAD
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @ApiTags('Users')
@@ -72,4 +74,61 @@ export class UserController {
     return await this.userService.verifyEmailToken(token);
   }
 
+=======
+@UseGuards(FirebaseAuthGuard)
+@Controller("user")
+export class UserController {
+  constructor(private readonly userService: UserService) {}
+
+    /**
+   * Retrieves a single user. 
+   * Maps :firebaseUid from URL to GetUserDTO and extracts it for the service.
+   * 
+   * @return userResponseDTO
+   */
+  @Get(':firebaseUid')
+  async findOne(@Param() params: GetUserDTO) {
+    const {firebaseUid, username} = params;
+    let user;
+
+    if (firebaseUid) user = await this.userService.findById(firebaseUid as GetUserDTO);
+    if (username) user = await this.userService.findByUsername(username as GetUserDTO);
+
+    if (!user) throw new NotFoundException(`User with ${params} was not found`);
+    return plainToInstance(UserResponseDTO, user.toObject(), {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  
+
+  /**
+   * Updates user profile data.
+   * Identity is taken from the Auth Guard (req.user), logic data from Body DTO.
+   * 
+   * @return userResponseDTO
+   */
+  @Patch()
+  async updateUser(@Req() req, @Body() updateUserDTO: UpdateUserDTO) {
+    const updatedUser = await this.userService.updateUser(req.user.uid, updateUserDTO);
+    return plainToInstance(UserResponseDTO, updatedUser.toObject(), { // ✅ fixed
+      excludeExtraneousValues: true,
+    });
+  }
+
+  /**
+   * Deletes a user by UID.
+   * Note: The param name ':firebaseUid' must match the property in DeleteUserDTO.
+   * 
+   * @return userResponseDTO
+   */
+
+  @Delete(':firebaseUid')
+  async deleteUser(@Param() params: DeleteUserDTO) {
+    const deletedUser = await this.userService.deleteUser(params);
+    return plainToInstance(UserResponseDTO, deletedUser.toObject(), { // ✅ fixed
+      excludeExtraneousValues: true,
+    });
+  }
+>>>>>>> 1ee85fd5e41c485704d95c5a7af5d997111b1711
 }

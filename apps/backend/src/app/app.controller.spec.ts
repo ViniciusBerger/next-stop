@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuthGuard } from '../auth/guards/auth.guard';
+import { FirebaseAuthGuard } from '../common/firebase/firebase.auth.guard';
 import { verify } from 'crypto';
 import { verifyToken } from '@clerk/backend';
 
@@ -12,7 +12,7 @@ describe('AppController', () => {
     const app: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
       providers: [
-        {provide:AuthGuard, 
+        {provide:FirebaseAuthGuard, 
           useValue: {verifyToken: jest.fn().mockReturnValue(true)} // A "fake" service!
         },
         AppService],

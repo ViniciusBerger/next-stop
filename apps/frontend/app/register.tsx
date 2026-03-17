@@ -1,21 +1,33 @@
 import React, { useEffect, useState } from "react";
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  ActivityIndicator, 
-  StyleSheet, 
-  KeyboardAvoidingView, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+  KeyboardAvoidingView,
   Platform,
-  ScrollView 
+  ScrollView,
+  Dimensions
 } from "react-native";
 import HeaderBackground from "@/src/svgs/HeaderBackground";
 import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
 import { BackButton } from "@/components/backButton";
-// import { registerWithEmail, sendEmailVerification } from "../service/authService";
-// import { checkIfUsernameExists } from "@/src/service/userService";
+import { auth } from "@/src/config/firebase";
+import { signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import axios from "axios";
+import { API_URL } from "@/src/config/api";
+import { 
+  ValidationMessage, 
+  FieldValidation, 
+  PasswordStrengthIndicator 
+} from "@/components/ui/ValidationMessage";
+import { LoadingOverlay } from "@/components/ui/LoadingOverlay";
+import { showToast } from "@/components/ui/Toast";
+
+const { width, height } = Dimensions.get('window');
 
 // Validation Regex Patterns and Reserved Words
 const EMAIL_REGEX = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
@@ -24,249 +36,541 @@ const USERNAME_REGEX = /^[a-zA-Z0-9._]{3,20}$/;
 const RESERVED_WORDS = ['admin', 'support', 'owner', 'official', 'root'];
 
 export default function RegisterScreen() {
-  //Use States
   const router = useRouter();
+  const [screenDimensions, setScreenDimensions] = useState({ width, height });
+
+  // Listen for orientation changes
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenDimensions({ width: window.width, height: window.height });
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // Form state
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agree, setAgree] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // UI state
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [touched, setTouched] = useState({
+    name: false,
+    email: false,
+    password: false,
+    confirmPassword: false
+  });
 
+  // Field-specific errors
+  const [fieldErrors, setFieldErrors] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: ""
+  });
+
+  // General error message
+  const [generalError, setGeneralError] = useState("");
+
+  // Success state for animations
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  // Username availability check with debounce
   useEffect(() => {
-  const checkUsername = async () => {
-    try {
-      // const isTaken = await checkIfUsernameExists(name);
-      const isTaken = false; // Mock result
+    if (!touched.name || name.length < 3) return;
 
-      if (isTaken) {
-        setError("That username is already taken");
-      } else {
-        setError(""); // Clear error if available
+    const checkUsername = async () => {
+      try {
+        const isTaken = RESERVED_WORDS.includes(name.toLowerCase());
+
+        if (isTaken) {
+          setFieldErrors(prev => ({ ...prev, name: "This username is already taken" }));
+        } else {
+          setFieldErrors(prev => ({ ...prev, name: "" }));
+        }
+      } catch (err) {
+        console.error(err);
       }
-    } catch (err) {
-      console.error(err);
+    };
+
+    const timeoutId = setTimeout(checkUsername, 500);
+    return () => clearTimeout(timeoutId);
+  }, [name, touched.name]);
+
+  // Validation functions
+  const validateField = (field: string, value: string): string => {
+    switch (field) {
+      case 'name':
+        if (!value) return "Username is required";
+        if (value.length < 3) return "Username must be at least 3 characters";
+        if (value.length > 20) return "Username must be less than 20 characters";
+        if (!USERNAME_REGEX.test(value)) {
+          return "Username can only contain letters, numbers, underscores, or dots";
+        }
+        if (RESERVED_WORDS.includes(value.toLowerCase())) {
+          return "This username is restricted";
+        }
+        return "";
+
+      case 'email':
+        if (!value) return "Email is required";
+        if (!EMAIL_REGEX.test(value)) return "Please enter a valid email address";
+        return "";
+
+      case 'password':
+        if (!value) return "Password is required";
+        if (value.length < 8) return "Password must be at least 8 characters";
+        if (!PASSWORD_REGEX.test(value)) {
+          return "Password must include uppercase, lowercase, and a number";
+        }
+        return "";
+
+      case 'confirmPassword':
+        if (!value) return "Please confirm your password";
+        if (value !== password) return "Passwords do not match";
+        return "";
+
+      default:
+        return "";
     }
   };
 
-  // Wait 500ms after the user stops typing
-  const timeoutId = setTimeout(checkUsername, 500);
+  const handleBlur = (field: string) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
 
-  // Cleanup: if the user types again before 500ms, cancel the previous check
-  return () => clearTimeout(timeoutId);
-}, [name]);
+    let value = "";
+    switch (field) {
+      case 'name': value = name; break;
+      case 'email': value = email; break;
+      case 'password': value = password; break;
+      case 'confirmPassword': value = confirmPassword; break;
+    }
+
+    const error = validateField(field, value);
+    setFieldErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  const handleChange = (field: string, value: string) => {
+    switch (field) {
+      case 'name': setName(value); break;
+      case 'email': setEmail(value); break;
+      case 'password': setPassword(value); break;
+      case 'confirmPassword': setConfirmPassword(value); break;
+    }
+    setFieldErrors(prev => ({ ...prev, [field]: "" }));
+    setGeneralError("");
+
+    if (field === 'password' && touched.confirmPassword && confirmPassword) {
+      const confirmError = validateField('confirmPassword', confirmPassword);
+      setFieldErrors(prev => ({ ...prev, confirmPassword: confirmError }));
+    }
+  };
 
   async function handleRegister() {
-    if (!name || !email || !password || !confirmPassword) {
-      setError("Please fill in all fields");
-      return;
-    }
-    const cleanName = name.toLowerCase().trim();
+    // Validate all fields
+    const nameError = validateField('name', name);
+    const emailError = validateField('email', email);
+    const passwordError = validateField('password', password);
+    const confirmError = validateField('confirmPassword', confirmPassword);
 
-    if (RESERVED_WORDS.includes(cleanName)) {
-      setError("This username is restricted. Please choose another.");
-      return;
-    }
-    if (!USERNAME_REGEX.test(name)) {
-    setError("Username must be 3-20 characters and can only contain letters, numbers, underscores, or dots.");
-    return;
-  }
-    if (!EMAIL_REGEX.test(email)) {
-      setError("Please enter a valid email address");
-      return;
-    }
-    if (!PASSWORD_REGEX.test(password)) {
-    setError("Password must be at least 8 characters long and include an uppercase letter, lowercase letter, and a number.");
-    return;
-  }
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
+    setFieldErrors({
+      name: nameError,
+      email: emailError,
+      password: passwordError,
+      confirmPassword: confirmError
+    });
+
+    setTouched({
+      name: true,
+      email: true,
+      password: true,
+      confirmPassword: true
+    });
+
+    // Check terms agreement
     if (!agree) {
-      setError("Please agree to the Terms & Conditions");
+      setGeneralError("Please agree to the Terms & Conditions");
       return;
     }
 
-    // try {
-    //   // 1. Create the user
-    //   const userCredential = await registerWithEmail(email, password, name);
-      
-    //   // 2. Send the verification email
-    //   // (Assuming you use Firebase Auth)
-    //   if (userCredential.user) {
-    //     await sendEmailVerification(userCredential.user);
-    //   }
+    // Check if any errors exist
+    if (nameError || emailError || passwordError || confirmError) {
+      setGeneralError("Please fix the errors below");
+      return;
+    }
 
-    //   // 3. Move to the waiting screen
-    //   router.navigate("/emailverification");
-    // } catch (err: any) {
-    //   setError(err.message);
-    // }  
-
-    setError("");
+    setGeneralError("");
     setLoading(true);
+
+    try {
+      const response = await axios.post(`${API_URL}/auth/register`, {
+        email: email.toLowerCase().trim(),
+        password: password,
+        displayName: name,
+        username: name.toLowerCase().trim()
+      });
+
+      if (response.data) {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        await sendEmailVerification(userCredential.user);
+        
+        setShowSuccess(true);
+        setTimeout(() => {
+          setShowSuccess(false);
+          router.replace("/emailverification");
+        }, 2000);
+      }
+    } catch (err: any) {
+      const message = err.response?.data?.message || "Registration failed";
+      
+      // Map backend errors to specific fields
+      if (message.includes('Email already in use')) {
+        setFieldErrors(prev => ({ ...prev, email: 'Email already in use' }));
+        setTouched(prev => ({ ...prev, email: true }));
+      } else if (message.includes('Username already taken')) {
+        setFieldErrors(prev => ({ ...prev, name: 'Username already taken' }));
+        setTouched(prev => ({ ...prev, name: true }));
+      } else {
+        setGeneralError(message);
+        showToast(message, 'error');
+      }
+    } finally {
+      setLoading(false);
+    }
   }
+
+  // Username availability check
+  useEffect(() => {
+    if (!touched.name || name.length < 3 || validateField('name', name)) return;
+
+    const checkUsername = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/auth/check-username?username=${name.toLowerCase().trim()}`);
+        if (res.data.taken) {
+          setFieldErrors(prev => ({ ...prev, name: "Username already taken" }));
+        } else {
+          setFieldErrors(prev => ({ ...prev, name: "" }));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    const timeoutId = setTimeout(checkUsername, 500);
+    return () => clearTimeout(timeoutId);
+  }, [name, touched.name]);
+
+  // Email availability check
+  useEffect(() => {
+    if (!touched.email || !EMAIL_REGEX.test(email)) return;
+
+    const checkEmail = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/auth/check-email?email=${email.toLowerCase().trim()}`);
+        if (res.data.taken) {
+          setFieldErrors(prev => ({ ...prev, email: "Email already in use" }));
+        } else {
+          setFieldErrors(prev => ({ ...prev, email: "" }));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    const timeoutId = setTimeout(checkEmail, 500);
+    return () => clearTimeout(timeoutId);
+  }, [email, touched.email]);
+
+  // Responsive sizing
+  const headerHeight = screenDimensions.height * 0.3;
+  const headerTop = screenDimensions.height * 0.08;
+  const headerFontSize = Math.min(40, screenDimensions.width * 0.1);
+  const inputHeight = Math.min(50, screenDimensions.height * 0.07);
+  const buttonHeight = Math.min(60, screenDimensions.height * 0.08);
+  const fontSize = Math.min(16, screenDimensions.width * 0.04);
+  const smallFontSize = Math.min(14, screenDimensions.width * 0.035);
+  const tinyFontSize = Math.min(12, screenDimensions.width * 0.03);
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Header Section */}
-        <View style={styles.headerWrapper}>
+        <View style={[styles.headerWrapper, { height: headerHeight }]}>
           <HeaderBackground />
-          <View style={styles.headerContent}>
-            <BackButton color="white" />            
-            <Text style={styles.headerTitle}>Register</Text>
-            <View style={{ width: 38 }} /> {/*Alignment purposes*/}
+          <View style={[styles.headerContent, { top: headerTop }]}>
+            <BackButton color="white" path="/login"/>
+            <Text style={[styles.headerTitle, { fontSize: headerFontSize }]}>Register</Text>
+            <View style={{ width: 38 }} />
           </View>
         </View>
 
         <View style={styles.inner}>
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {/* General Error Message with enhanced styling */}
+          {generalError ? (
+            <ValidationMessage 
+              message={generalError} 
+              type="error" 
+              animated 
+            />
+          ) : null}
 
-          <Text style={styles.label}>Username</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="username"
-            value={name}
-            onChangeText={setName}
-          />
+          {/* Username Field */}
+          <Text style={[styles.label, { fontSize: smallFontSize }]}>Username</Text>
+          <View style={[
+            styles.inputWrapper,
+            { height: inputHeight },
+            touched.name && fieldErrors.name ? styles.inputError : null,
+          ]}>
+            <TextInput
+              style={[styles.input, { fontSize, height: inputHeight, flex: 1 }]}
+              placeholder="username"
+              placeholderTextColor="#9CA3AF"
+              value={name}
+              onChangeText={(value) => handleChange('name', value)}
+              onBlur={() => handleBlur('name')}
+              editable={!loading}
+            />
+          </View>
+          <FieldValidation error={fieldErrors.name} touched={touched.name} />
 
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="example@email.com"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+          {/* Email Field */}
+          <Text style={[styles.label, { fontSize: smallFontSize }]}>Email</Text>
+          <View style={[
+            styles.inputWrapper,
+            { height: inputHeight },
+            touched.email && fieldErrors.email ? styles.inputError : null,
+          ]}>
+            <TextInput
+              style={[styles.input, { fontSize, height: inputHeight, flex: 1 }]}
+              placeholder="example@email.com"
+              placeholderTextColor="#9CA3AF"
+              value={email}
+              onChangeText={(value) => handleChange('email', value)}
+              onBlur={() => handleBlur('email')}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable={!loading}
+            />
+          </View>
+          <FieldValidation error={fieldErrors.email} touched={touched.email} />
 
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-          {password.length === 0 && (
-            <Text style={styles.passwordHint}>
+          {/* Password Field with Strength Indicator */}
+          <Text style={[styles.label, { fontSize: smallFontSize }]}>Password</Text>
+          <View style={[
+            styles.inputWrapper,
+            { height: inputHeight },
+            touched.password && fieldErrors.password ? styles.inputError : null,
+          ]}>
+            <TextInput
+              style={[styles.input, { fontSize, height: inputHeight, flex: 1 }]}
+              placeholder="password"
+              placeholderTextColor="#9CA3AF"
+              value={password}
+              onChangeText={(value) => handleChange('password', value)}
+              onBlur={() => handleBlur('password')}
+              secureTextEntry={!showPassword}
+              editable={!loading}
+            />
+            <TouchableOpacity hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons
+                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                size={20}
+                color="#7E9AFF"
+                onPress={() => setShowPassword(!showPassword)}
+              />
+            </TouchableOpacity>
+          </View>
+          
+          {/* Password Strength Indicator */}
+          {touched.password && password.length > 0 && (
+            <PasswordStrengthIndicator password={password} />
+          )}
+          
+          <FieldValidation error={fieldErrors.password} touched={touched.password} />
+          
+          {touched.password && !fieldErrors.password && (
+            <Text style={[styles.passwordHint, { fontSize: tinyFontSize }]}>
               Min. 8 characters, 1 uppercase, 1 lowercase, and a number.
             </Text>
           )}
-          
-          <Text style={styles.label}>Confirm Password</Text>
-          <TextInput
-            style={[styles.input, confirmPassword && password !== confirmPassword ? styles.inputError : null]}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-          />
+
+          {/* Confirm Password Field */}
+          <Text style={[styles.label, { fontSize: smallFontSize }]}>Confirm Password</Text>
+          <View style={[
+            styles.inputWrapper,
+            { height: inputHeight },
+            touched.confirmPassword && fieldErrors.confirmPassword ? styles.inputError : null,
+          ]}>
+            <TextInput
+              style={[styles.input, { fontSize, height: inputHeight, flex: 1 }]}
+              placeholder="confirm password"
+              placeholderTextColor="#9CA3AF"
+              value={confirmPassword}
+              onChangeText={(value) => handleChange('confirmPassword', value)}
+              onBlur={() => handleBlur('confirmPassword')}
+              secureTextEntry={!showConfirmPassword}
+              editable={!loading}
+            />
+            <TouchableOpacity hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons
+                name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                size={20}
+                color="#7E9AFF"
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              />
+            </TouchableOpacity>
+          </View>
+          <FieldValidation error={fieldErrors.confirmPassword} touched={touched.confirmPassword} />
 
           {/* Terms & Conditions Row */}
           <View style={styles.checkboxContainer}>
-            <TouchableOpacity 
-              style={[styles.checkbox, agree && styles.checkboxActive]} 
+            <TouchableOpacity
+              style={[styles.checkbox, agree && styles.checkboxActive]}
               onPress={() => setAgree(!agree)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              {/* Render the icon only if agree is true */}
               {agree && <Ionicons name="checkmark" size={18} color="white" />}
             </TouchableOpacity>
-            <Text style={styles.checkboxLabel}>Agree with Terms & Conditions</Text>
+            <Text style={[styles.checkboxLabel, { fontSize: smallFontSize }]}>
+              Agree with Terms & Conditions
+            </Text>
           </View>
 
-          <TouchableOpacity 
-            style={styles.button} 
+          {/* Register Button */}
+          <TouchableOpacity
+            style={[styles.button, { height: buttonHeight }]}
             onPress={handleRegister}
             disabled={loading}
+            activeOpacity={0.8}
           >
             {loading ? (
-              <ActivityIndicator color="#000" />
+              <ActivityIndicator color="#ffffff" />
             ) : (
-              <Text style={styles.buttonText}>Create Account</Text>
+              <Text style={[styles.buttonText, { fontSize }]}>Create Account</Text>
             )}
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Loading Overlay */}
+      <LoadingOverlay visible={loading} message="Creating your account..." />
+
+      {/* Success Animation */}
+      {showSuccess && (
+        <View style={StyleSheet.absoluteFill}>
+          <ValidationMessage 
+            message="Registration successful!" 
+            type="success" 
+            animated 
+          />
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
-  scrollContainer: { flexGrow: 1 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F8F9FA' 
+  },
+  scrollContainer: { 
+    flexGrow: 1 
+  },
   headerWrapper: {
-    height: 265,
     width: '100%',
   },
   headerContent: {
     position: 'absolute',
-    top: 60,
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 25,
   },
-  backButton: { marginRight: 20 },
-  backText: { fontSize: 24, fontWeight: 'bold', color: '#FFFFFF' },
-  headerTitle: { 
-    fontSize: 28, 
-    fontWeight: 'bold', 
+  headerTitle: {
+    fontWeight: 'bold',
     color: '#FFFFFF',
     flex: 1,
     textAlign: 'center',
-    marginRight: 40,
-    marginTop: 10
+    marginRight: 20,
   },
-  inner: { paddingHorizontal: 30, paddingBottom: 40 },
-  label: { fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#000' },
-  input: { 
-    borderWidth: 1, 
+  inner: {
+    paddingHorizontal: 30,
+    paddingBottom: 40,
+  },
+  label: {
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#000',
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
     borderColor: '#7E9AFF',
     backgroundColor: '#DEE4FF',
-    padding: 15, 
-    borderRadius: 5, 
-    marginBottom: 20,
-    fontSize: 16,
-    color: '#808080'
+    borderRadius: 5,
+    marginBottom: 5,
   },
-  inputError: { borderColor: '#dc2626'},
-  checkboxContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
+  input: {
+    paddingVertical: 0,
+    color: '#333',
+    paddingHorizontal: 15,
+  },
+  inputError: {
+    borderColor: '#dc2626',
+    backgroundColor: '#FEE2E2',
+  },
+  passwordHint: {
+    color: '#666',
+    marginBottom: 15,
+    marginTop: 2,
+    marginLeft: 5,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 30,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    marginTop: 10,
   },
-  checkbox: { 
-    width: 24, 
-    height: 24, 
-    borderWidth: 1, 
-    borderColor: '#000', 
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 1,
+    borderColor: '#000',
     backgroundColor: '#D9D9D9',
     marginRight: 10,
     justifyContent: 'center',
     alignItems: 'center'
   },
-  checkboxActive: { backgroundColor: '#7E9AFF', borderColor: '#7E9AFF' },
-  checkboxLabel: { fontSize: 14, color: '#000' },
-  button: { 
-    backgroundColor: '#7E9AFF', 
-    padding: 18, 
-    borderRadius: 25, 
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#37E9BB'
+  checkboxActive: {
+    backgroundColor: '#7E9AFF',
+    borderColor: '#7E9AFF'
   },
-  buttonText: { color: '#000', fontWeight: 'bold', fontSize: 18 },
-  errorText: { color: '#dc2626', textAlign: 'center', marginBottom: 5, marginTop: 5, fontSize: 20, fontWeight: '600' },
-  passwordHint: {
-  fontSize: 14,
-  color: '#666',
-  marginBottom: 10,
-  marginTop: -15,
-},
+  checkboxLabel: {
+    color: '#000'
+  },
+  button: {
+    backgroundColor: '#7d77f0',
+    padding: 18,
+    borderRadius: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
 });
