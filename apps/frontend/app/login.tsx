@@ -43,17 +43,21 @@ async function handleLogin() {
     });
 
     if (response.data) {
-      // 4. Save for future authenticated requests
-      try {
-        // For phones
-        await setItemAsync("userToken", idToken); 
-      } catch (e) {
-        // For web
-        localStorage.setItem("userToken", idToken);
-      }
-      // 5. Navigate to the home screen
+    try {
+      await setItemAsync("userToken", idToken);
+      await setItemAsync("userRole", response.data.role); // Store role securely for mobile
+    } catch (e) {
+      localStorage.setItem("userToken", idToken);
+      localStorage.setItem("userRole", response.data.role); //For web
+    }
+
+    // Route based on role instead of always going to /home
+    if (response.data.role === "admin") {
+      router.replace("/(admin)/dashboard");
+    } else {
       router.replace("/home");
     }
+  }
   } catch (error: any) {
     console.error("Login Error:", error.response?.data || error.message);
     setHasError(true);  }
