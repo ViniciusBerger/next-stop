@@ -2,6 +2,11 @@ import { IsString, IsOptional, IsNotEmpty, IsNumber, Min, Max } from 'class-vali
 import { Type } from 'class-transformer';
 
 export class GetPlaceDTO {
+
+  @IsOptional()
+  @IsString()
+  id?: string;   // ADD THIS LINE 
+
   @IsOptional()
   @IsString()
   @IsNotEmpty()
@@ -10,17 +15,17 @@ export class GetPlaceDTO {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
-  googlePlaceId?: string; // Google Place ID
+  googlePlaceId?: string;
 
   @IsOptional()
   @IsString()
   @IsNotEmpty()
-  name?: string; // Search by name (partial match)
+  name?: string;
 
   @IsOptional()
   @IsString()
   @IsNotEmpty()
-  category?: string; // Filter by category
+  category?: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -34,22 +39,22 @@ export class GetPlaceDTO {
   @IsNumber()
   @Min(0)
   @Max(4)
-  maxPriceLevel?: number; // PRICE LEVEL FILTER - Ex: maxPriceLevel=2 → it shows 0, 1, 2 (Free, $, $$)
+  maxPriceLevel?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  latitude?: number; // LOCATION FILTER - latitude
+  latitude?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  longitude?: number; // LOCATION FILTER - longitude
+  longitude?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(1)
-  @Max(50000) // Max 50km radius
-  radiusMeters?: number; // Default: 5000 (5km)
+  @Max(50000)
+  radiusMeters?: number;
 }
