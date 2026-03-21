@@ -52,6 +52,7 @@
   },
   "devDependencies": {
     "@react-navigation/devtools": "^7.0.50",
+    "@types/node": "^25.5.0",
     "@types/react": "~19.1.0",
     "@types/react-native": "^0.72.8",
     "eslint": "^9.25.0",
