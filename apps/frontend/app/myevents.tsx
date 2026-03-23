@@ -7,6 +7,7 @@ import { auth } from "@/src/config/firebase";
 import axios from "axios";
 import { API_URL } from "@/src/config/api";
 import { useFocusEffect } from "expo-router";
+import { getToken } from "@/src/utils/auth";
 
 export default function MyEvents() {
   const [createdEvents, setCreatedEvents] = useState<any[]>([]);
@@ -30,7 +31,7 @@ export default function MyEvents() {
           const user = auth.currentUser;
           if (!user) return;
 
-          const token = localStorage.getItem("userToken");
+          const token = await getToken();
 
           const profileRes = await axios.get(`${API_URL}/profile?firebaseUid=${user.uid}`, {
             headers: { Authorization: `Bearer ${token}` }

@@ -7,6 +7,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/src/config/firebase";
 import axios from "axios";
 import { API_URL } from "@/src/config/api";
+import { getToken } from "@/src/utils/auth";
 
 export default function MyReviewsScreen() {
   const [reviews, setReviews] = useState<any[]>([]);
@@ -38,7 +39,7 @@ useEffect(() => {
 
 const fetchReviews = async (uid: string) => {
   try {
-    const token = localStorage.getItem("userToken");
+    const token = await getToken();
     console.log("Fetching reviews for:", uid);
     
     const response = await axios.get(`${API_URL}/reviews/user/${uid}`, {
@@ -127,7 +128,7 @@ const fetchReviews = async (uid: string) => {
               isOwnReview={true}
               onDelete={async () => {
                 try {
-                  const token = localStorage.getItem("userToken");
+                  const token = await getToken();
                   await axios.delete(`${API_URL}/reviews/${item.id}`, {
                     headers: {
                       "user-id": item.mongoAuthorId,

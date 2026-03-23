@@ -7,6 +7,7 @@ import axios from "axios";
 import { auth } from "@/src/config/firebase";
 import { API_URL } from "@/src/config/api";
 import { Platform, Linking } from 'react-native';
+import { getToken } from "@/src/utils/auth";
 
 export default function EventDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -40,8 +41,7 @@ export default function EventDetailsScreen() {
         const user = auth.currentUser;
         if (!user) return;
 
-        const token = localStorage.getItem("userToken");
-
+        const token = await getToken();
         // Get MongoDB _id
         const profileRes = await axios.get(`${API_URL}/profile?firebaseUid=${user.uid}`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -76,7 +76,7 @@ export default function EventDetailsScreen() {
 
   const handleToggleAttendance = async () => {
     try {
-      const token = localStorage.getItem("userToken");
+      const token = await getToken();
       await axios.post(`${API_URL}/events/${id}/attend`, 
         { userId: mongoUserId },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -219,7 +219,7 @@ export default function EventDetailsScreen() {
                 { text: "No", style: "cancel" },
                 { text: "Yes, cancel", style: "destructive", onPress: async () => {
                   try {
-                    const token = localStorage.getItem("userToken");
+                    const token = await getToken();
                     const res = await axios.delete(`${API_URL}/events/${id}`, {
                       headers: { 
                         Authorization: `Bearer ${token}`,
@@ -251,7 +251,7 @@ export default function EventDetailsScreen() {
                 { text: "No", style: "cancel" },
                 { text: "Yes, delete", style: "destructive", onPress: async () => {
                 try {
-                    const token = localStorage.getItem("userToken");
+                    const token = await getToken();
                     const res = await axios.delete(`${API_URL}/events/${id}`, {
                     headers: { 
                         Authorization: `Bearer ${token}`,

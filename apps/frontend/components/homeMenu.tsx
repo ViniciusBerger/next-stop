@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Href, useRouter } from 'expo-router';
-import { deleteItemAsync } from 'expo-secure-store'; // Import the specific function
+import { removeToken } from "@/src/utils/auth";
 import { auth } from '@/src/config/firebase'; // Import your firebase auth instance
 import { signOut } from 'firebase/auth'; // Import signOut function
 
@@ -38,14 +38,8 @@ export default function HomeMenu({ isVisible, onClose }: HomeMenuProps) {
       // 1. Sign out from Firebase
       await signOut(auth);
       
-      // 2. Remove the token from local storage
-      try {
-        // For phones
-        await deleteItemAsync("userToken");
-      } catch (e) {
-        // For web
-        localStorage.removeItem("userToken");
-      }
+      // 2. Remove the token
+      await removeToken();
       
       // 3. Close the menu and go back to login
       onClose();

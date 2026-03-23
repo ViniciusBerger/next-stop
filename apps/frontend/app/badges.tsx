@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { auth } from "@/src/config/firebase";
 import axios from "axios";
 import { API_URL } from "@/src/config/api";
+import { getToken } from '@/src/utils/auth';
 
 export default function BadgesScreen() {
   const [earnedBadges, setEarnedBadges] = useState<any[]>([]);
@@ -18,7 +19,7 @@ export default function BadgesScreen() {
       try {
         const user = auth.currentUser;
         if (!user) return;
-        const token = localStorage.getItem("userToken");
+        const token = await getToken();
 
         // Get mongoId
         const profileRes = await axios.get(`${API_URL}/profile?firebaseUid=${user.uid}`, {
