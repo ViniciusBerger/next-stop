@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "frontend",
-    "slug": "frontend",
+    "slug": "nextstop",
+    "owner": "teamnext",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -19,7 +20,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.nextstop.app"
     },
     "web": {
       "output": "static",
@@ -45,6 +47,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "81c84b81-8fc6-4e90-9a51-aeed974f2c85"
+      }
     }
   }
 }

@@ -2,43 +2,71 @@ import React from 'react';
 import { View, Text, StyleSheet, FlatList, Image } from 'react-native';
 import { ScreenLayout } from "@/components/screenLayout";
 import { Ionicons } from '@expo/vector-icons';
-
-// Mock data for badges
-const BADGES = [
-  { id: '1', name: '3 Outings', description: 'Complete 3 outings', progress: 3, total: 3, icon: 'trophy', color: '#FFD700', earned: true },
-  { id: '2', name: 'Fresh Perspective', description: 'Review a new spot', progress: 1, total: 1, icon: 'eye', color: '#45d5af', earned: true },
-  { id: '3', name: 'Paparazzi', description: 'Upload 10 photos', progress: 4, total: 10, icon: 'camera', color: '#5962ff', earned: false },
-  { id: '4', name: 'Social Butterfly', description: 'Meet 5 new groups', progress: 2, total: 5, icon: 'people', color: '#9775FA', earned: false },
-  { id: '5', name: 'Night Owl', description: '3 Late night outings', progress: 0, total: 3, icon: 'moon', color: '#2C3E50', earned: false },
-  { id: '6', name: 'Local Legend', description: '5 visits to one spot', progress: 5, total: 5, icon: 'medal', color: '#FF8C00', earned: true },
-];
+import { useEffect, useState } from "react";
+import { auth } from "@/src/config/firebase";
+import axios from "axios";
+import { API_URL } from "@/src/config/api";
 
 export default function BadgesScreen() {
+  const [earnedBadges, setEarnedBadges] = useState<any[]>([]);
+  const [unearnedBadges, setUnearnedBadges] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [mongoUserId, setMongoUserId] = useState<string | null>(null);
 
-  const renderBadge = ({ item }: { item: typeof BADGES[0] }) => {
-    const progressWidth = (item.progress / item.total) * 100;
+   useEffect(() => {
+    const fetchBadges = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+        const token = localStorage.getItem("userToken");
 
-    return (
-      <View style={[styles.badgeCard, !item.earned && styles.lockedBadge]}>
-        <View style={[styles.iconCircle, { backgroundColor: item.earned ? item.color : '#E0E0E0' }]}>
-          <Ionicons 
-            name={item.earned ? (item.icon as any) : 'lock-closed'} 
-            size={30} 
-            color="#FFF" 
-          />
-        </View>
-        
-        <Text style={styles.badgeName}>{item.name}</Text>
-        <Text style={styles.badgeDesc}>{item.description}</Text>
+        // Get mongoId
+        const profileRes = await axios.get(`${API_URL}/profile?firebaseUid=${user.uid}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const mongoId = profileRes.data._id;
+        setMongoUserId(mongoId);
 
-        {/* Progress Bar */}
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressBar, { width: `${progressWidth}%`, backgroundColor: item.color }]} />
-        </View>
-        <Text style={styles.progressText}>{item.progress}/{item.total}</Text>
+        // Get badges
+        const badgesRes = await axios.get(`${API_URL}/badges/user/${mongoId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        setEarnedBadges(badgesRes.data.earned);
+        setUnearnedBadges(badgesRes.data.unearned);
+      } catch (err: any) {
+        console.error("Failed to fetch badges:", err.response?.data || err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBadges();
+  }, []);
+
+  const allBadges = [
+    ...earnedBadges.map(b => ({ ...b, earned: true })),
+    ...unearnedBadges.map(b => ({ ...b, earned: false })),
+  ];
+
+  const renderBadge = ({ item }: { item: any }) => (
+    <View style={[styles.badgeCard, !item.earned && styles.lockedBadge]}>
+      <View style={[styles.iconCircle, { backgroundColor: item.earned ? '#45d5af' : '#E0E0E0' }]}>
+        {item.iconUrl ? (
+          <Image source={{ uri: item.iconUrl }} style={{ width: 36, height: 36 }} />
+        ) : (
+          <Ionicons name={item.earned ? 'trophy' : 'lock-closed'} size={30} color="#FFF" />
+        )}
       </View>
-    );
-  };
+      <Text style={styles.badgeName}>{item.name}</Text>
+      <Text style={styles.badgeDesc}>{item.description}</Text>
+      {item.earned && item.earnedAt && (
+        <Text style={styles.progressText}>
+          Earned {new Date(item.earnedAt).toLocaleDateString([], { month: 'short', year: 'numeric' })}
+        </Text>
+      )}
+    </View>
+  );
 
   return (
     <ScreenLayout showBack={true}>
@@ -47,17 +75,17 @@ export default function BadgesScreen() {
         
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{BADGES.filter(b => b.earned).length}</Text>
+            <Text style={styles.statNumber}>{earnedBadges.length}</Text>
             <Text style={styles.statLabel}>Earned</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{BADGES.length}</Text>
+            <Text style={styles.statNumber}>{earnedBadges.length + unearnedBadges.length}</Text>
             <Text style={styles.statLabel}>Total</Text>
           </View>
         </View>
 
         <FlatList
-          data={BADGES}
+          data={allBadges}
           renderItem={renderBadge}
           keyExtractor={(item) => item.id}
           numColumns={2}
