@@ -4,10 +4,10 @@ import { useState } from "react";
 import HeaderBackground from "../src/svgs/HeaderBackground";
 import { useRouter } from "expo-router";
 import axios from "axios";
-import { setItemAsync} from "expo-secure-store";
 import { auth } from "../src/config/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { API_URL } from "@/src/config/api";
+import { setRole, setToken } from "@/src/utils/auth";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -43,13 +43,8 @@ async function handleLogin() {
     });
 
     if (response.data) {
-    try {
-      await setItemAsync("userToken", idToken);
-      await setItemAsync("userRole", response.data.role); // Store role securely for mobile
-    } catch (e) {
-      localStorage.setItem("userToken", idToken);
-      localStorage.setItem("userRole", response.data.role); //For web
-    }
+      await setToken(idToken);
+      await setRole(response.data.role);
 
     // Route based on role instead of always going to /home
     if (response.data.role === "admin") {

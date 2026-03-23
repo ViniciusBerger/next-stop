@@ -7,6 +7,7 @@ import { ScreenLayout } from "@/components/screenLayout";
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { API_URL } from "@/src/config/api";
+import { getToken } from "@/src/utils/auth";
 
 export default function CreateEventScreen() {
   const router = useRouter();
@@ -90,7 +91,7 @@ const handleCreate = async () => {
 }
 
   try {
-    const token = localStorage.getItem("userToken");
+    const token = await getToken();
     const user = auth.currentUser;
     if (!user) { Alert.alert("Not Logged In", "You must be logged in."); return; }
 

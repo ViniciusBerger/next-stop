@@ -7,6 +7,7 @@ import { useLocalSearchParams } from "expo-router";
 import axios from "axios";
 import { API_URL } from "@/src/config/api";
 import { auth } from "@/src/config/firebase";
+import { getToken } from "@/src/utils/auth";
 
 export default function LocationReviewsScreen() {
   const { placeId, placeName } = useLocalSearchParams<{ placeId: string; placeName: string }>();
@@ -18,7 +19,7 @@ export default function LocationReviewsScreen() {
     const fetchData = async () => {
       try {
         const user = auth.currentUser;
-        const token = localStorage.getItem("userToken");
+        const token = await getToken();
 
         // Get mongoId for isOwnReview check
         if (user) {
@@ -49,7 +50,7 @@ export default function LocationReviewsScreen() {
 
   const handleDelete = async (reviewId: string) => {
     try {
-      const token = localStorage.getItem("userToken");
+      const token = await getToken();
       await axios.delete(`${API_URL}/reviews/${reviewId}`, {
         headers: {
           Authorization: `Bearer ${token}`,

@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { auth } from "@/src/config/firebase";
 import axios from "axios";
 import { API_URL } from "@/src/config/api";
+import { getToken } from "@/src/utils/auth";
 
 export default function LocationDetailsScreen() {
   const [isFavorited, setIsFavorited] = useState(false);
@@ -72,7 +73,7 @@ export default function LocationDetailsScreen() {
         const user = auth.currentUser;
         if (!user) return;
 
-        const token = localStorage.getItem("userToken");
+        const token = await getToken();
 
         // Get MongoDB _id
         const profileRes = await axios.get(`${API_URL}/profile?firebaseUid=${user.uid}`, {

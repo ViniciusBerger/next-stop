@@ -5,7 +5,8 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  StyleSheet
+  StyleSheet,
+  Platform
 } from "react-native";
 import { DiscoverCard } from "../../components/discoverCard";
 import { PostCard } from "../../components/postCard";
@@ -14,7 +15,6 @@ import { HomeHeader } from "../../components/homeHeader";
 import { styles } from "../../src/styles/login.styles";
 import HomeMenu from "../../components/homeMenu";
 import { useRouter } from "expo-router";
-import { getItemAsync } from "expo-secure-store";
 import axios from "axios";
 import { auth } from "@/src/config/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -23,6 +23,7 @@ import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { showToast } from "@/components/ui/Toast";
 import { Ionicons } from '@expo/vector-icons';
 import { API_URL } from "@/src/config/api";
+import { getToken } from "@/src/utils/auth";
 
 // Mock posts data for when offline or no real data
 const MOCK_POSTS = [
@@ -85,15 +86,14 @@ useEffect(() => {
     console.log("auth.currentUser:", auth.currentUser?.uid ?? "NULL");
 
     if (user) {
-      const token = localStorage.getItem("userToken");
-      console.log("Token in localStorage:", token ? "EXISTS" : "MISSING");
+      const token = await getToken();
+      console.log("Token:", token ? "EXISTS" : "MISSING");
 
       if (token) {
         try {
           const response = await axios.get(`${API_URL}/profile?firebaseUid=${user.uid}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
-          console.log("Profile response:", response.data);
           if (response.data?.username) {
             setUsername(response.data.username);
           }
@@ -101,8 +101,6 @@ useEffect(() => {
           console.error("API Error:", apiError.response?.status, apiError.response?.data);
         }
       }
-    } else {
-      console.log("No user in auth state");
     }
     loadPosts();
   });
