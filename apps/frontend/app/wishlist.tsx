@@ -6,6 +6,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import axios from "axios";
 import { API_URL } from "@/src/config/api";
 import { EmptyState } from "@/components/ui/StateComponents";
+import { getToken } from "@/src/utils/auth";
 
 export default function WishlistScreen() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export default function WishlistScreen() {
       const fetchWishlist = async () => {
         try {
           setLoading(true);
-          const token = localStorage.getItem("userToken");
+          const token = await getToken();
 
           const response = await axios.get(`${API_URL}/user/me/wishlist`, {
             headers: { Authorization: `Bearer ${token}` },

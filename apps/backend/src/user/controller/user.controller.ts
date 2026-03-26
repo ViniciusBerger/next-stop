@@ -12,6 +12,27 @@ import { plainToInstance } from "class-transformer";
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @Patch('me/wishlist/:placeId')
+  async toggleWishlist(@Req() req, @Param('placeId') placeId: string) {
+    console.log('🔖 Wishlist hit:', placeId);
+    return this.userService.toggleArrayField(req.user.uid, 'wishlist', placeId);
+  }
+
+  @Patch('me/favorites/:placeId')
+  async toggleFavorite(@Req() req, @Param('placeId') placeId: string) {
+    return this.userService.toggleArrayField(req.user.uid, 'favorites', placeId);
+  }
+
+  @Get('me/wishlist')
+  async getWishlist(@Req() req) {
+    return this.userService.getArrayField(req.user.uid, 'wishlist');
+  }
+
+  @Get('me/favorites')
+  async getFavorites(@Req() req) {
+    return this.userService.getArrayField(req.user.uid, 'favorites');
+  }
+
     /**
    * Retrieves a single user. 
    * Maps :firebaseUid from URL to GetUserDTO and extracts it for the service.

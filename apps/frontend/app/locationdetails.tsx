@@ -111,7 +111,7 @@ export default function LocationDetailsScreen() {
 
   const loadSavedState = async () => {
   try {
-    const token = localStorage.getItem("userToken");
+    const token = await getToken();
 
     const [favoritesRes, wishlistRes] = await Promise.all([
       axios.get(`${API_URL}/user/me/favorites`, {
@@ -134,7 +134,7 @@ export default function LocationDetailsScreen() {
 
 const handleToggleFavorite = async () => {
   try {
-    const token = localStorage.getItem("userToken");
+    const token = await getToken();
 
     await axios.patch(
       `${API_URL}/user/me/favorites/${placeId}`,
@@ -150,7 +150,7 @@ const handleToggleFavorite = async () => {
 
 const handleToggleWishlist = async () => {
   try {
-    const token = localStorage.getItem("userToken");
+    const token = await getToken();
 
     await axios.patch(
       `${API_URL}/user/me/wishlist/${placeId}`,
