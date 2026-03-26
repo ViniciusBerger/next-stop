@@ -13,6 +13,7 @@ import { ReviewModule } from 'src/reviews/review.module';
 import { EventModule } from 'src/events/event.module';
 import { ReportModule } from 'src/reports/report.module';
 import { ProfileModule } from 'src/profile/profile.module';
+import { FriendsModule }from '../friends/friends.module';
 // Comment to push a change and test an update to render deployment
 
 @Module({
@@ -33,6 +34,7 @@ import { ProfileModule } from 'src/profile/profile.module';
     EventModule,
     ReportModule,
     ProfileModule,
+    FriendsModule,
   ],
   controllers: [AppController],
 
