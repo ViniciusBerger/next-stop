@@ -6,6 +6,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import axios from "axios";
 import { API_URL } from "@/src/config/api";
 import { EmptyState } from "@/components/ui/StateComponents";
+import { getToken } from "@/src/utils/auth";
 
 export default function FavoritesScreen() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export default function FavoritesScreen() {
       const fetchFavorites = async () => {
         try {
           setLoading(true);
-          const token = localStorage.getItem("userToken");
+          const token = await getToken()
 
           const response = await axios.get(`${API_URL}/user/me/favorites`, {
             headers: { Authorization: `Bearer ${token}` },

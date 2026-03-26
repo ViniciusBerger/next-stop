@@ -6,6 +6,7 @@ import { UpdateUserDTO } from "../DTOs/update.user.DTO";
 import { UserRepository } from "../repository/user.repository";
 import { DeleteUserDTO } from "../DTOs/delete.user.DTO";
 import { FriendRequestDTO } from "../DTOs/friend.request";
+import { Types } from "mongoose";
 
 @Injectable()
 export class UserService {
@@ -111,6 +112,34 @@ export class UserService {
 
     async findByUsernameString(username: string): Promise<User | null> {
         return await this.userRepository.findOne({ username });
+    }
+
+    async toggleArrayField(userId: string, field: 'wishlist' | 'favorites', placeId: string) {
+        console.log('🔍 Looking for firebaseUid:', userId);
+        const objectId = new Types.ObjectId(placeId);
+
+        const user = await this.userRepository.findOne({ firebaseUid: userId });
+        console.log('👤 User found:', user ? 'YES' : 'NULL');
+        if (!user) throw new NotFoundException("User not found");
+
+        const index = user[field].findIndex((id: Types.ObjectId) => id.equals(objectId));
+        if (index > -1) {
+            user[field].splice(index, 1); // Remove
+        } else {
+            user[field].push(objectId); // Add
+        }
+
+        return await this.userRepository.update(
+            { firebaseUid: userId },
+            { $set: { [field]: user[field] } }
+        );
+    }
+
+    async getArrayField(userId: string, field: 'wishlist' | 'favorites') {
+    const user = await this.userRepository.findOne({ firebaseUid: userId });
+    if (!user) throw new NotFoundException("User not found");
+    await user.populate(field);
+    return user[field];
     }
 
 }
