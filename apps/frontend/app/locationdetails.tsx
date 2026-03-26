@@ -103,8 +103,66 @@ export default function LocationDetailsScreen() {
       }
     };
 
-    if (placeId) checkVisit();
+    if (placeId){
+      checkVisit();
+      loadSavedState();
+    }
   }, [placeId]);
+
+  const loadSavedState = async () => {
+  try {
+    const token = localStorage.getItem("userToken");
+
+    const [favoritesRes, wishlistRes] = await Promise.all([
+      axios.get(`${API_URL}/user/me/favorites`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      axios.get(`${API_URL}/user/me/wishlist`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+    ]);
+
+    const favoriteIds = favoritesRes.data.map((p: any) => p._id ?? p.id);
+    const wishlistIds = wishlistRes.data.map((p: any) => p._id ?? p.id);
+
+    setIsFavorited(favoriteIds.includes(placeId));
+    setIsBookmarked(wishlistIds.includes(placeId));
+  } catch (err) {
+    console.error("Failed to load saved place state:", err);
+  }
+};
+
+const handleToggleFavorite = async () => {
+  try {
+    const token = localStorage.getItem("userToken");
+
+    await axios.patch(
+      `${API_URL}/user/me/favorites/${placeId}`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    setIsFavorited((prev) => !prev);
+  } catch (err) {
+    console.error("Failed to toggle favorite:", err);
+  }
+};
+
+const handleToggleWishlist = async () => {
+  try {
+    const token = localStorage.getItem("userToken");
+
+    await axios.patch(
+      `${API_URL}/user/me/wishlist/${placeId}`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    setIsBookmarked((prev) => !prev);
+  } catch (err) {
+    console.error("Failed to toggle wishlist:", err);
+  }
+};
 
   return (
     <ScreenLayout showBack={true}>
@@ -178,7 +236,7 @@ export default function LocationDetailsScreen() {
           <View style={styles.interactionRow}>
             <TouchableOpacity 
               style={styles.interactionButton} 
-              onPress={() => setIsFavorited(!isFavorited)}
+              onPress={handleToggleFavorite}
             >
               <Ionicons 
                 name={isFavorited ? "heart" : "heart-outline"} 
@@ -194,7 +252,7 @@ export default function LocationDetailsScreen() {
 
             <TouchableOpacity 
               style={styles.interactionButton} 
-              onPress={() => setIsBookmarked(!isBookmarked)}
+              onPress={handleToggleWishlist}
             >
               <Ionicons 
                 name={isBookmarked ? "bookmark" : "bookmark-outline"} 
