@@ -38,6 +38,9 @@ export default function RootLayout() {
         <Stack.Screen name="myreviews" />
         <Stack.Screen name="feedback" />
         <Stack.Screen name="badges" />
+        <Stack.Screen name="favorites" />
+        <Stack.Screen name="wishlist" />
+        <Stack.Screen name="history" />
         
         {/* Error Pages */}
         <Stack.Screen name="404" options={{ title: 'Page Not Found' }} />
