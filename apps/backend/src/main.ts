@@ -3,6 +3,7 @@ import { AppModule } from './app/app.module';
 import admin from 'firebase-admin';
 import { ConfigService } from '@nestjs/config';
 import { GlobalValidationPipe } from './common/validation.pipe';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 
 async function bootstrap() {
@@ -23,6 +24,21 @@ async function bootstrap() {
       origin: '*', // Allow all origins (for development)
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     });
+
+    // ADD THIS ONLY ↓↓↓
+
+const config = new DocumentBuilder()
+.setTitle('NextStop API')
+.setDescription('NextStop backend APIs')
+.setVersion('1.0')
+.build();
+
+const document =
+SwaggerModule.createDocument(app, config);
+
+SwaggerModule.setup('api', app, document);
+
+// END AD
 
   await app.listen(process.env.PORT ?? 3000);
 }
