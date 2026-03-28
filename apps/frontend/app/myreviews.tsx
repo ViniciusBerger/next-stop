@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Platform } from "react-native";
 import { ScreenLayout } from "@/components/screenLayout";
 import { ReviewCard } from "@/components/reviewCard";
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,22 @@ export default function MyReviewsScreen() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const showAlert = (title: string, message: string, buttons?: { text: string; style?: string; onPress?: () => void }[]) => {
+    if (Platform.OS === 'web') {
+      if (buttons && buttons.length > 1) {
+        const confirmed = window.confirm(`${title}\n\n${message}`);
+        if (confirmed) {
+          const confirmButton = buttons.find(b => b.style === 'destructive' || b.text !== 'No');
+          confirmButton?.onPress?.();
+        }
+      } else {
+        window.alert(`${title}\n\n${message}`);
+      }
+    } else {
+      Alert.alert(title, message, buttons as any);
+    }
+  };
 
 useEffect(() => {
   // Avoids waiting for async auth restore
@@ -126,21 +142,29 @@ const fetchReviews = async (uid: string) => {
             <ReviewCard
               {...item}
               isOwnReview={true}
-              onDelete={async () => {
-                try {
-                  const token = await getToken();
-                  await axios.delete(`${API_URL}/reviews/${item.id}`, {
-                    headers: {
-                      "user-id": item.mongoAuthorId,
-                      Authorization: `Bearer ${token}`
+              onDelete={() => showAlert(
+                "Delete Review",
+                "Are you sure you want to delete this review?",
+                [
+                  { text: "No", style: "cancel" },
+                  { text: "Yes, delete", style: "destructive", onPress: async () => {
+                    try {
+                      const token = await getToken();
+                      await axios.delete(`${API_URL}/reviews/${item.id}`, {
+                        headers: {
+                          "user-id": item.mongoAuthorId,
+                          Authorization: `Bearer ${token}`
+                        }
+                      });
+                      setReviews(prev => prev.filter(r => r.id !== item.id));
+                      showAlert("Deleted", "Your review has been deleted.");
+                    } catch (err) {
+                      console.error("Delete failed:", err);
+                      showAlert("Error", "Failed to delete review.");
                     }
-                  });
-                  // Remove from local state instantly without refetching
-                  setReviews(prev => prev.filter(r => r.id !== item.id));
-                } catch (err) {
-                  console.error("Delete failed:", err);
-                }
-              }}
+                  }}
+                ]
+              )}
             />
           </View>
         )}

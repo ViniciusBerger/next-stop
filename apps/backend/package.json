@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@clerk/backend": "^2.29.4",
+    "@google/generative-ai": "^0.24.1",
     "@googlemaps/google-maps-services-js": "^3.4.2",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",

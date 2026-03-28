@@ -6,7 +6,9 @@ import {
   TextInput, 
   TouchableOpacity,
   StatusBar,
-  ImageBackground
+  ImageBackground,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { ScreenLayout } from '@/components/screenLayout';
 import { PlaceCard } from '@/components/placeCard';
@@ -16,8 +18,7 @@ import { useGeolocation } from '../hooks/useGeolocation';
 import { useRouter } from 'expo-router';
 import axios from "axios";
 import { API_URL } from '@/src/config/api';
-import MapComponent from '@/components/MapComponent';
-
+import { auth } from '@/src/config/firebase';
 
 export default function DiscoverScreen() {
 
@@ -32,7 +33,7 @@ export default function DiscoverScreen() {
   const { location } = useGeolocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [places, setPlaces] = useState<Place[]>([]); // State to hold data from backend
-  const [isLoading, setIsLoading] = useState(true); // Loading state for UI feedback  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true); // Loading state for UI feedback
   const router = useRouter();
   const [filters, setFilters] = useState<{
     category: string | null;
@@ -42,6 +43,12 @@ export default function DiscoverScreen() {
   }>({
     category: null, distance: null, rating: null, priceLevel: null
   });
+
+  // AI Randomizer state
+  const [vibeModalVisible, setVibeModalVisible] = useState(false);
+  const [vibeInput, setVibeInput] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiMessage, setAiMessage] = useState('');
 
   // Define the structure of a Place object so TypeScript understands the data
   interface Place {
@@ -71,26 +78,25 @@ export default function DiscoverScreen() {
     return dist < 1 ? `${(dist * 1000).toFixed(0)}m` : `${dist.toFixed(1)}km`;
   };
 
-
   useEffect(() => {
     if (!location) return;
-      fetchPlaces(location);
-    }, [location]);
+    fetchPlaces(location);
+  }, [location]);
 
-    const fetchPlaces = async (currentLocation: { latitude: number; longitude: number }) => {
-      try {
-        setIsLoading(true);
-        // GET request to NestJS places endpoint
-        const response = await axios.get(`${API_URL}/places/nearby`, {
+  const fetchPlaces = async (currentLocation: { latitude: number; longitude: number }) => {
+    try {
+      setIsLoading(true);
+      // GET request to NestJS places endpoint
+      const response = await axios.get(`${API_URL}/places/nearby`, {
         params: {
           latitude: currentLocation.latitude,
           longitude: currentLocation.longitude,
-          radius: 10000, // 5km radius
+          radius: 10000, // 10km radius
         }
-        });
+      });
 
-        // Map backend data to match frontend interface
-        const formattedPlaces = response.data
+      // Map backend data to match frontend interface
+      const formattedPlaces = response.data
         .map((item: any) => {
           console.log(`📍 ${item.name} → category: "${item.category}"`);
           return item;
@@ -116,76 +122,189 @@ export default function DiscoverScreen() {
         }))
         .sort((a: any, b: any) => parseFloat(a.distance) - parseFloat(b.distance));
 
-        setPlaces(formattedPlaces);
-      } catch (error) {
-        console.error("Failed to fetch places:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      setPlaces(formattedPlaces);
+    } catch (error) {
+      console.error("Failed to fetch places:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const filteredPlaces = useMemo(() =>
-      places
-        .filter(p => !searchQuery || 
-          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.address?.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        .filter(p => !filters.category || p.category?.toLowerCase() === (filters.category as string).toLowerCase())
-        .filter(p => !filters.rating || p.rating >= (filters.rating as number))
-        .filter(p => !filters.priceLevel || p.priceLevel === filters.priceLevel)
-        .filter(p => !filters.distance || parseFloat(p.distance) * 1000 <= (filters.distance as number)),
-      [places, filters, searchQuery]
-    );
+  const filteredPlaces = useMemo(() =>
+    places
+      .filter(p => !searchQuery || 
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.address?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .filter(p => !filters.category || p.category?.toLowerCase() === (filters.category as string).toLowerCase())
+      .filter(p => !filters.rating || p.rating >= (filters.rating as number))
+      .filter(p => !filters.priceLevel || p.priceLevel === filters.priceLevel)
+      .filter(p => !filters.distance || parseFloat(p.distance) * 1000 <= (filters.distance as number)),
+    [places, filters, searchQuery]
+  );
 
-    const handlePlacePress = (place: any) => {
-      router.push({
-        pathname: "/locationdetails",
-        params: { place: JSON.stringify(place) } // ← serialize the place object
+  const handlePlacePress = (place: any) => {
+    router.push({
+      pathname: "/locationdetails",
+      params: { place: JSON.stringify(place) } // ← serialize the place object
+    });
+  };
+
+  // AI-powered place picker — sends vibe + place list to AI and navigates to the best match
+  const handleAIPick = async () => {
+    if (filteredPlaces.length === 0 || !vibeInput.trim()) return;
+
+    setAiLoading(true);
+    setAiMessage('');
+
+    try {
+      // 2. Call endpoint
+      const response = await axios.post(`${API_URL}/ai/pick`, {
+        vibe: vibeInput,
+        places: filteredPlaces.map(p => ({
+          id: p.id,
+          name: p.name,
+          category: p.category || p.type
+        })),
+        userId: auth.currentUser?.uid //Now logging who searched what
       });
-    };
 
-    const handleRandomPlace = () => {
-      if (filteredPlaces.length === 0) return;
+      const { id, reason } = response.data; // Matches backend response
+
+      // 3. Find the place in local list by ID instead of Index
+      const pickedPlace = filteredPlaces.find(p => p.id === id);
+      
+      if (!pickedPlace) throw new Error("Place not found in local list");
+
+      setAiMessage(reason);
+
+      setTimeout(() => {
+        setVibeModalVisible(false);
+        setVibeInput('');
+        setAiMessage('');
+        router.push({
+          pathname: '/locationdetails',
+          params: { place: JSON.stringify(pickedPlace) }
+        });
+      }, 5000); // Show AI reasoning for 5 seconds before navigating
+
+    } catch (err) {
+      console.error("AI pick failed:", err);
+      // Fallback to random pick if AI fails
       const random = filteredPlaces[Math.floor(Math.random() * filteredPlaces.length)];
+      setVibeModalVisible(false);
       router.push({
         pathname: '/locationdetails',
         params: { place: JSON.stringify(random) }
       });
-    };
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   return (
-      <ScreenLayout showBack={true}>      
-        <StatusBar barStyle="light-content" />
+    <ScreenLayout showBack={true}>      
+      <StatusBar barStyle="light-content" />
 
-        {/* 1. Header is now "above" the map visually */}
-        <View style={styles.discoverHeader}>
-          <Text style={styles.headerTitle}>Discover</Text>
-          <View style={styles.controlsRow}>
-            <View style={styles.searchBar}>
-              <Ionicons name="sparkles" size={18} color="#555" style={styles.searchIcon} onPress={handleRandomPlace} />
-              <TextInput
-                style={styles.input}
-                placeholder="Search nearby..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholderTextColor="#888"
-              />
-              <Ionicons name="search" size={20} color="#555" />
+      {/* AI Vibe Modal — opens when user taps the sparkles icon */}
+      <Modal
+        visible={vibeModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setVibeModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="sparkles" size={24} color="#7d77f0" />
+              <Text style={styles.modalTitle}>What's your vibe?</Text>
             </View>
-            <PlaceFilter onFilterChange={setFilters} />
+            <Text style={styles.modalSubtitle}>
+              Describe what you're looking for and AI will pick the perfect spot
+            </Text>
+
+            <TextInput
+              style={styles.vibeInput}
+              placeholder="e.g. cozy date night, fun with friends, solo chill..."
+              placeholderTextColor="#aaa"
+              value={vibeInput}
+              onChangeText={setVibeInput}
+              multiline
+              editable={!aiLoading}
+            />
+
+            {/* AI reasoning message shown briefly before navigating */}
+            {aiMessage ? (
+              <View style={styles.aiMessageBox}>
+                <Ionicons name="sparkles" size={16} color="#7d77f0" />
+                <Text style={styles.aiMessageText}>{aiMessage}</Text>
+              </View>
+            ) : null}
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => {
+                  setVibeModalVisible(false);
+                  setVibeInput('');
+                }}
+                disabled={aiLoading}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.pickButton, (!vibeInput.trim() || aiLoading) && { opacity: 0.5 }]}
+                onPress={handleAIPick}
+                disabled={!vibeInput.trim() || aiLoading}
+              >
+                {aiLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.pickButtonText}>Pick for me ✨</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
+      </Modal>
 
-        {/* 2. The Map Container */}
-        <View style={styles.mapWrapper}>
-          <ImageBackground 
-            source={require('@/src/icons/mapPlaceholder.png')}          
-            style={styles.mapBackground}
-            imageStyle={{ borderRadius: 20 }}
-          >
-            {/* Spacer determines how much map shows before the white card starts */}
-            <View style={styles.spacer} />
+      {/* 1. Header is now "above" the map visually */}
+      <View style={styles.discoverHeader}>
+        <Text style={styles.headerTitle}>Discover</Text>
+        <View style={styles.controlsRow}>
+          <View style={styles.searchBar}>
+            {/* Sparkles icon now opens the AI vibe modal instead of pure random */}
+            <Ionicons
+              name="sparkles"
+              size={18}
+              color="#7d77f0"
+              style={styles.searchIcon}
+              onPress={() => setVibeModalVisible(true)}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Search nearby..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholderTextColor="#888"
+            />
+            <Ionicons name="search" size={20} color="#555" />
+          </View>
+          <PlaceFilter onFilterChange={setFilters} />
+        </View>
+      </View>
+
+      {/* 2. The Map Container */}
+      <View style={styles.mapWrapper}>
+        <ImageBackground 
+          source={require('@/src/icons/mapPlaceholder.png')}          
+          style={styles.mapBackground}
+          imageStyle={{ borderRadius: 20 }}
+        >
+          {/* Spacer determines how much map shows before the white card starts */}
+          <View style={styles.spacer} />
           <View style={styles.listContainer}>
             <View style={styles.dragHandle} />
             <Text style={styles.sheetTitle}>Places Nearby</Text>
@@ -218,11 +337,11 @@ export default function DiscoverScreen() {
               ))
             )}
           </View>
-          </ImageBackground>
-        </View>
-      </ScreenLayout>
-    );
-  }
+        </ImageBackground>
+      </View>
+    </ScreenLayout>
+  );
+}
 
 const styles = StyleSheet.create({
   headerTitle: {
@@ -313,38 +432,123 @@ const styles = StyleSheet.create({
     borderColor: '#DEE4FF',
   },
   loadingContainer: {
-  alignItems: 'center',
-  paddingVertical: 20,
-},
-loadingText: {
-  fontSize: 16,
-  color: '#888',
-  marginBottom: 20,
-},
-skeletonCard: {
-  flexDirection: 'row',
-  width: '100%',
-  marginBottom: 12,
-  padding: 16,
-  borderRadius: 20,
-  backgroundColor: '#f0f0f0',
-},
-skeletonImage: {
-  width: 60,
-  height: 60,
-  borderRadius: 12,
-  backgroundColor: '#e0e0e0',
-  marginRight: 16,
-},
-skeletonInfo: {
-  flex: 1,
-  justifyContent: 'center',
-  gap: 8,
-},
-skeletonLine: {
-  height: 14,
-  borderRadius: 6,
-  backgroundColor: '#e0e0e0',
-  width: '80%',
-},
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#888',
+    marginBottom: 20,
+  },
+  skeletonCard: {
+    flexDirection: 'row',
+    width: '100%',
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+  },
+  skeletonImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    backgroundColor: '#e0e0e0',
+    marginRight: 16,
+  },
+  skeletonInfo: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 8,
+  },
+  skeletonLine: {
+    height: 14,
+    borderRadius: 6,
+    backgroundColor: '#e0e0e0',
+    width: '80%',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalBox: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#888',
+    marginBottom: 16,
+  },
+  vibeInput: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
+    color: '#333',
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: 16,
+  },
+  aiMessageBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#f0eeff',
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+    marginBottom: 16,
+  },
+  aiMessageText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#7d77f0',
+    fontStyle: 'italic',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '600',
+  },
+  pickButton: {
+    flex: 2,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#7d77f0',
+    alignItems: 'center',
+  },
+  pickButtonText: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '600',
+  },
 });

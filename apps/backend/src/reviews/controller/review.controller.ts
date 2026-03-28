@@ -90,11 +90,16 @@ export class ReviewController {
   async getUserReviews(@Param('userId') userId: string) {
     const reviews = await this.reviewService.getUserReviews(userId);
 
-    return reviews.map((review) =>
-      plainToInstance(ReviewResponseDTO, review.toObject(), {
+    return reviews.map((review) => {
+      const obj = review.toObject();
+      obj._id = obj._id?.toString();
+      if (obj.author && typeof obj.author === 'object') {
+        obj.author._id = obj.author._id?.toString();
+      }
+      return plainToInstance(ReviewResponseDTO, obj, {
         excludeExtraneousValues: true,
-      }),
-    );
+      });
+    });
   }
 
   /**

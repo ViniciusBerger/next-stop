@@ -114,19 +114,50 @@ export default function CreateReviewScreen() {
     }
   };
 
-  const StarRating = () => (
-    <View style={styles.starRow}>
-      {[1, 2, 3, 4, 5].map((star) => (
-        <TouchableOpacity key={star} onPress={() => setRating(star)}>
-          <Ionicons 
-            name={star <= rating ? "star" : "star-outline"} 
-            size={35} 
-            color={star <= rating ? "#FFD700" : "#000"} 
-          />
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
+  const StarRating = () => {
+    const stars = [1, 2, 3, 4, 5];
+
+    return (
+      <View style={styles.starRow}>
+        {stars.map((index) => {
+          // Determine which icon to show for this specific star position
+          let iconName: any = "star-outline";
+          if (rating >= index) {
+            iconName = "star";
+          } else if (rating >= index - 0.5) {
+            iconName = "star-half";
+          }
+
+          return (
+            <View key={index} style={styles.starContainer}>
+              {/* Star Icon */}
+              <Ionicons 
+                name={iconName} 
+                size={35} 
+                color={rating >= index - 0.5 ? "#FFD700" : "#000"} 
+              />
+
+              {/* Hidden Hitboxes for interaction */}
+              <View style={StyleSheet.absoluteFill}>
+                <View style={styles.hitboxRow}>
+                  {/* Left Half Hitbox */}
+                  <TouchableOpacity 
+                    style={styles.halfHitbox} 
+                    onPress={() => setRating(index - 0.5)} 
+                  />
+                  {/* Right Half Hitbox */}
+                  <TouchableOpacity 
+                    style={styles.halfHitbox} 
+                    onPress={() => setRating(index)} 
+                  />
+                </View>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
 
   return (
     <ScreenLayout showBack={true}>
@@ -246,15 +277,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000',
   },
-  starRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    backgroundColor: '#C8D7FF',
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#5962ff',
-  },
   textArea: {
     height: 120,
   },
@@ -306,5 +328,31 @@ const styles = StyleSheet.create({
     color: '#5962ff',
     fontWeight: '600',
     marginTop: 5,
+  },
+  starRow: {
+    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#C8D7FF',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#5962ff',
+  },
+  starContainer: {
+    position: 'relative', // Allows absolute positioning of hitboxes
+    width: 35,
+    height: 35,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  hitboxRow: {
+    flexDirection: 'row',
+    flex: 1,
+  },
+  halfHitbox: {
+    flex: 1, // Each takes exactly 50% of the star's width
+    height: '100%',
   },
 });

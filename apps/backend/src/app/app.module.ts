@@ -14,6 +14,7 @@ import { EventModule } from 'src/events/event.module';
 import { ReportModule } from 'src/reports/report.module';
 import { ProfileModule } from 'src/profile/profile.module';
 import { FriendsModule }from '../friends/friends.module';
+import { AiModule } from '../ai/ai.module';
 // Comment to push a change and test an update to render deployment
 
 @Module({
@@ -35,6 +36,7 @@ import { FriendsModule }from '../friends/friends.module';
     ReportModule,
     ProfileModule,
     FriendsModule,
+    AiModule
   ],
   controllers: [AppController],
 
