@@ -106,7 +106,18 @@ export default function AdminDashboard() {
     showToast('Dashboard updated', 'success');
   };
 
-  const dailyCounts = stats?.daily.map((d) => d.count) ?? [];
+  // Fill in all 7 days so the graph always has enough points,
+  // defaulting missing days to 0.
+  const dailyCounts = (() => {
+    if (!stats) return Array(7).fill(0);
+    const map = new Map(stats.daily.map((d) => [d._id, d.count]));
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      const key = d.toISOString().slice(0, 10);
+      return map.get(key) ?? 0;
+    });
+  })();
   const todayCount = dailyCounts[dailyCounts.length - 1] ?? 0;
   const topVibe = stats?.trending[0];
 
