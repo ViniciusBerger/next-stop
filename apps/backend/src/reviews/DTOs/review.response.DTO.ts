@@ -21,6 +21,7 @@ import { Expose, Transform, Type } from 'class-transformer';
  */
 class AuthorDTO {
   @Expose()
+  @Transform(({ value }) => value?.toString())
   _id: string;
 
   @Expose()
@@ -38,6 +39,7 @@ class PlaceDTO {
 
 export class ReviewResponseDTO {
   @Expose()
+  @Transform(({ value }) => value?.toString())
   _id: string;
   
   @Expose()
