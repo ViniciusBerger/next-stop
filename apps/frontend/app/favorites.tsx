@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     textAlign: "center",
     marginBottom: 20,
-    marginTop: -10,
+    marginTop: 0,
   },
   emptyText: {
     color: "#000",

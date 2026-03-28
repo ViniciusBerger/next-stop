@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF', 
     textAlign: 'center', 
     marginBottom: 30, 
-    marginTop: -10 
+    marginTop: 0 
 },
   inputGroup: { 
     marginBottom: 25

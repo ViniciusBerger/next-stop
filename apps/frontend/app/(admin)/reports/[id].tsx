@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 20,
-    marginTop: -10,
+    marginTop: 0,
   },
   headerTitle: {
     fontSize: 28,

@@ -1,92 +1,101 @@
-import { Body, Controller, Get, Param, Patch, Put, Query, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, UseGuards } from "@nestjs/common";
 import { plainToInstance } from "class-transformer";
-import { ReportResponseDTO } from "../reports/DTOs/report.response.DTO";
-import { ReportService } from "../reports/service/report.service";
 import { FirebaseAuthGuard } from "../common/firebase/firebase.auth.guard";
-import { GetEventDTO } from "../events/DTOs/get.event.DTO";
 import { EventService } from "../events/service/event.service";
 import { EventResponseDTO } from "../events/DTOs/event.response.DTO";
 import { UserService } from "../user/service/user.service";
-import { UpdateUserDTO } from "src/user/DTOs/update.user.DTO";
-import { UserResponseDTO } from "src/user/DTOs/user.response.DTO";
-import { Roles } from "src/common/authorization/roles.decorator";
+import { ModerationUserDTO } from "../user/DTOs/moderation.user.DTO";
 
 /**
- * AdminController handles high-privileged operations including 
- * managing reports, events, and user statuses.
+ * AdminController handles high-privileged operations including
+ * managing user statuses and listing events.
  */
 @Controller('admin')
-@Roles('admin')
-@UseGuards(FirebaseAuthGuard) // Protects all routes in this controller via Firebase
+@UseGuards(FirebaseAuthGuard)
 export class AdminController {
-    constructor (
-        private readonly reportService: ReportService,
+    constructor(
         private readonly eventService: EventService,
-        private readonly userService: UserService
-    ){}
+        private readonly userService: UserService,
+    ) {}
 
     /**
-     * Marks a specific report as 'completed' in the database.
-     * @param id The MongoDB ObjectId of the report
-     * @returns A sanitized ReportResponseDTO
+     * Retrieves all users with moderation fields.
+     * GET /admin/users
      */
-    @Put(':id/complete')
-    async completeReport(@Param('id') id: string) {
-        const completedReport = await this.reportService.completeReport(id);
-    
-        // Convert Mongoose document to plain object and strip non-exposed values
-        return plainToInstance(ReportResponseDTO, completedReport.toObject(), {
-            excludeExtraneousValues: true,
-        });
+    @Get('users')
+    async getUsers() {
+        const users = await this.userService.getAll();
+        // findAll() uses lean() so results are plain objects — no .toObject() needed
+        return users.map(user =>
+            plainToInstance(ModerationUserDTO, user, { excludeExtraneousValues: true }),
+        );
     }
 
     /**
-     * Retrieves a list of all events.
-     * Supports filtering via GetEventDTO query parameters.
+     * Bans a user permanently.
+     * PATCH /admin/users/:firebaseUid/ban
+     */
+    @Patch('users/:firebaseUid/ban')
+    async banUser(
+        @Param('firebaseUid') firebaseUid: string,
+        @Body() body: { reason?: string },
+    ) {
+        const user = await this.userService.banUser(firebaseUid, body.reason);
+        const obj = user.toObject();
+        obj._id = obj._id.toString();
+        return plainToInstance(ModerationUserDTO, obj, { excludeExtraneousValues: true });
+    }
+
+    /**
+     * Lifts a ban from a user.
+     * PATCH /admin/users/:firebaseUid/unban
+     */
+    @Patch('users/:firebaseUid/unban')
+    async unbanUser(@Param('firebaseUid') firebaseUid: string) {
+        const user = await this.userService.unbanUser(firebaseUid);
+        const obj = user.toObject();
+        obj._id = obj._id.toString();
+        return plainToInstance(ModerationUserDTO, obj, { excludeExtraneousValues: true });
+    }
+
+    /**
+     * Suspends a user for a set number of days.
+     * PATCH /admin/users/:firebaseUid/suspend
+     */
+    @Patch('users/:firebaseUid/suspend')
+    async suspendUser(
+        @Param('firebaseUid') firebaseUid: string,
+        @Body() body: { days: number; reason?: string },
+    ) {
+        const user = await this.userService.suspendUser(firebaseUid, body.days, body.reason);
+        const obj = user.toObject();
+        obj._id = obj._id.toString();
+        return plainToInstance(ModerationUserDTO, obj, { excludeExtraneousValues: true });
+    }
+
+    /**
+     * Lifts a suspension from a user.
+     * PATCH /admin/users/:firebaseUid/unsuspend
+     */
+    @Patch('users/:firebaseUid/unsuspend')
+    async unsuspendUser(@Param('firebaseUid') firebaseUid: string) {
+        const user = await this.userService.unsuspendUser(firebaseUid);
+        const obj = user.toObject();
+        obj._id = obj._id.toString();
+        return plainToInstance(ModerationUserDTO, obj, { excludeExtraneousValues: true });
+    }
+
+    /**
+     * Lists all events (admin view).
+     * GET /admin/events
      */
     @Get('events')
-    async getEvents(@Query() getEventDTO?: GetEventDTO) {
-        const events = await this.eventService.getAllEvents(getEventDTO);
-      
-        // Map through array to transform each document individually
+    async getEvents() {
+        const events = await this.eventService.getAllEvents();
         return events.map(event =>
             plainToInstance(EventResponseDTO, event.toObject(), {
                 excludeExtraneousValues: true,
             }),
         );
-    }
-
-    /**
-     * Retrieves a list of all registered users.
-     * Note: As discussed, this fetches the entire collection.
-     */
-    @Get('users')
-    async getUsers() {
-        const users = await this.userService.getAll();
-      
-        return users.map(user =>
-            plainToInstance(UserResponseDTO, user.toObject(), {
-                excludeExtraneousValues: true,
-            }),
-        );
-    }
-
-    /**
-     * Updates user status to 'banned'.
-     * @note Logic relies on the service handling the 'isBanned' flag within the DTO.
-     */
-    @Patch('ban')
-    async banUser(@Body() updateUserDTO: UpdateUserDTO) {
-        const bannedUser = await this.userService.updateUser(updateUserDTO.id ?? "", updateUserDTO);
-        return plainToInstance(UserResponseDTO, bannedUser.toObject(), { excludeExtraneousValues: true });
-    }
-
-    /**
-     * Reverts a user's ban status.
-     */
-    @Patch('unban')
-    async unbanUser(@Body() updateUserDTO: UpdateUserDTO) {
-        const returnedUser = await this.userService.updateUser(updateUserDTO.id ?? "", updateUserDTO);
-        return plainToInstance(UserResponseDTO, returnedUser.toObject(), { excludeExtraneousValues: true });
     }
 }

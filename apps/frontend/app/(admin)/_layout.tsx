@@ -13,6 +13,7 @@ export default function AdminLayout() {
           headerTitleStyle: {
             fontWeight: 'bold',
           },
+          headerShown: false, // Hide header by default, can be overridden in individual screens
         }}
       >
         {/* Admin Dashboard */}

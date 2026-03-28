@@ -1,68 +1,117 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert, ActivityIndicator, Platform } from "react-native";
 import { AdminScreenLayout } from "@/components/adminScreenLayout";
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import axios from 'axios';
+import { API_URL } from '@/src/config/api';
 
-//FIREBASE IMPORTS (Commented out until ready)
-// import { db } from "@/src/service/firebase";
-// import { doc, updateDoc, onSnapshot } from "firebase/firestore";
+const DangerToggle = ({ value, onValueChange }: { value: boolean; onValueChange: (v: boolean) => void }) => (
+  <TouchableOpacity
+    activeOpacity={0.8}
+    onPress={() => onValueChange(!value)}
+    style={{
+      width: 41, height: 15, borderRadius: 15.5,
+      backgroundColor: value ? '#dc2626' : '#D1D1D1',
+      padding: 0, justifyContent: 'center',
+    }}
+  >
+    <View style={{
+      width: 21, height: 21, borderRadius: 13.5,
+      backgroundColor: '#FFFFFF',
+      alignSelf: value ? 'flex-end' : 'flex-start',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.50,
+      shadowRadius: 2,
+      elevation: 2,
+    }} />
+  </TouchableOpacity>
+);
 
 export default function AdminSettingsScreen() {
+  const router = useRouter();
   const [isGoogleApiActive, setIsGoogleApiActive] = useState(true);
-  const [isStripeActive, setIsStripeActive] = useState(true);
+  const [isGeminiActive, setIsGeminiActive] = useState(true);
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
-  
+
   // New States for Privacy & Data
   const [isAnonymizeData, setIsAnonymizeData] = useState(false);
   const [isLocationHistoryActive, setIsLocationHistoryActive] = useState(true);
 
-  /* //REAL-TIME SYNC WITH FIRESTORE
   useEffect(() => {
-    const configRef = doc(db, "system", "config");
-    const unsubscribe = onSnapshot(configRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setIsGoogleApiActive(data.googleMapsEnabled);
-        setIsStripeActive(data.stripeEnabled);
-        setIsMaintenanceMode(data.maintenanceMode);
-        setIsAnonymizeData(data.anonymizeData);
-        setIsLocationHistoryActive(data.locationHistoryEnabled);
-      }
-    });
-    return () => unsubscribe();
+    axios.get(`${API_URL}/system/config`).then(({ data }) => {
+      setIsGoogleApiActive(data.googleMapsEnabled);
+      setIsGeminiActive(data.geminiEnabled);
+      setIsMaintenanceMode(data.maintenanceMode);
+      setIsAnonymizeData(data.anonymizeData);
+      setIsLocationHistoryActive(data.locationHistoryEnabled);
+    }).catch(err => console.error('Failed to load system config:', err));
   }, []);
 
   const updateSystemConfig = async (key: string, value: boolean) => {
     try {
-      const configRef = doc(db, "system", "config");
-      await updateDoc(configRef, {
-        [key]: value,
-        lastUpdatedBy: "admin_user_id",
-        updatedAt: new Date()
-      });
+      await axios.patch(`${API_URL}/system/config`, { key, value });
     } catch (error) {
-      Alert.alert("Error", "Action failed. Check permissions.");
+      showAlert('Error', 'Failed to save setting.');
     }
   };
-  */
+
+  const showAlert = (title: string, message: string, buttons?: { text: string; style?: string; onPress?: () => void }[]) => {
+    if (Platform.OS === 'web') {
+      if (buttons && buttons.length > 1) {
+        const confirmed = window.confirm(`${title}\n\n${message}`);
+        if (confirmed) {
+          const confirmButton = buttons.find(b => b.style === 'destructive' || (b.style !== 'cancel' && !!b.onPress));
+          confirmButton?.onPress?.();
+        }
+      } else {
+        window.alert(`${title}\n\n${message}`);
+      }
+    } else {
+      Alert.alert(title, message, buttons as any);
+    }
+  };
 
   const handleToggle = (key: string, value: boolean, setter: (v: boolean) => void) => {
     setter(value);
-    // updateSystemConfig(key, value); 
+    updateSystemConfig(key, value);
+  };
+
+  const handlePurgeCache = () => {
+    showAlert(
+      'Purge Cached Data',
+      'This will permanently delete all AI search logs. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Purge',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { data } = await axios.delete(`${API_URL}/ai/logs`);
+              showAlert('Done', `${data.deleted} log entries cleared.`);
+            } catch (err) {
+              showAlert('Error', 'Failed to purge cached data.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const toggleMaintenance = (value: boolean) => {
-    Alert.alert(
+    showAlert(
       "Confirm Action",
-      value 
+      value
         ? "Activating Maintenance Mode will restrict app access. Continue?"
         : "Deactivating Maintenance Mode will restore app access. Continue?",
       [
         { text: "Cancel", style: "cancel" },
         { text: "Confirm", style: "destructive", onPress: () => {
             setIsMaintenanceMode(value);
-            // updateSystemConfig("maintenanceMode", value);
-          } 
+            updateSystemConfig("maintenanceMode", value);
+          }
         }
       ]
     );
@@ -96,12 +145,12 @@ export default function AdminSettingsScreen() {
 
           <View style={[styles.settingRow, styles.borderTop]}>
             <View style={styles.textColumn}>
-              <Text style={styles.settingLabel}>Google Photos API</Text>
-              <Text style={styles.subLabel}>Location-based visual data</Text>
+              <Text style={styles.settingLabel}>Google Gemini API</Text>
+              <Text style={styles.subLabel}>AI-powered recommendations</Text>
             </View>
-            <Switch 
-              value={isStripeActive} 
-              onValueChange={(v) => handleToggle("stripeEnabled", v, setIsStripeActive)}
+            <Switch
+              value={isGeminiActive}
+              onValueChange={(v) => handleToggle("geminiEnabled", v, setIsGeminiActive)}
               trackColor={{ false: "#D1D1D1", true: "#37E9BB" }}
             />
           </View>
@@ -109,7 +158,7 @@ export default function AdminSettingsScreen() {
 
         <Text style={styles.sectionTitleDark}>ADDITIONS</Text>
         <View style={styles.card}>
-          <TouchableOpacity style={styles.buttonRow} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.buttonRow} activeOpacity={0.7} onPress={() => router.push('/(admin)/announcement' as any)}>
             <Ionicons name="megaphone-outline" size={22} color="#7E9AFF" />
             <Text style={styles.buttonText}>Schedule Announcement</Text>
             <Ionicons name="chevron-forward" size={18} color="#ccc" />
@@ -129,7 +178,8 @@ export default function AdminSettingsScreen() {
         {/* --- PRIVACY & DATA SECTION --- */}
         <Text style={styles.sectionTitleDark}>PRIVACY & DATA</Text>
         <View style={styles.card}>
-          <View style={styles.settingRow}>
+          {/* Location History Function which can be implemented at a later time */}
+          {/* <View style={styles.settingRow}>
             <View style={styles.textColumn}>
               <Text style={styles.settingLabel}>Location History</Text>
               <Text style={styles.subLabel}>Store user movement for heatmap</Text>
@@ -139,9 +189,10 @@ export default function AdminSettingsScreen() {
               onValueChange={(v) => handleToggle("locationHistoryEnabled", v, setIsLocationHistoryActive)}
               trackColor={{ false: "#D1D1D1", true: "#37E9BB" }}
             />
-          </View>
+          </View> */}
 
-          <TouchableOpacity style={[styles.buttonRow, styles.borderTop]} activeOpacity={0.7}>
+          {/* Purge Cached Data Function - Deletes all AI Logs */}
+          <TouchableOpacity style={[styles.buttonRow, styles.borderTop]} activeOpacity={0.7} onPress={handlePurgeCache}>
             <Ionicons name="trash-outline" size={22} color="#dc2626" />
             <Text style={[styles.buttonText, {color: '#dc2626'}]}>Purge Cached Data</Text>
             <Ionicons name="chevron-forward" size={18} color="#ccc" />
@@ -155,11 +206,7 @@ export default function AdminSettingsScreen() {
               <Text style={[styles.settingLabel, { color: '#dc2626' }]}>Maintenance Mode</Text>
               <Text style={styles.subLabel}>Restrict app access to Admins only</Text>
             </View>
-            <Switch 
-              value={isMaintenanceMode} 
-              onValueChange={toggleMaintenance}
-              trackColor={{ false: "#D1D1D1", true: "#dc2626" }}
-            />
+            <DangerToggle value={isMaintenanceMode} onValueChange={toggleMaintenance} />
           </View>
         </View>
       </View>
@@ -177,7 +224,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF', 
     textAlign: 'center', 
     marginBottom: 20, 
-    marginTop: -10 
+    marginTop: 0 
 },
   statusBanner: { 
     flexDirection: 'row', 

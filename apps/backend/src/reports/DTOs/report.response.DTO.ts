@@ -1,15 +1,17 @@
-import { Exclude, Expose } from 'class-transformer';
+import { Exclude, Expose, Transform } from 'class-transformer';
 
 export class ReportedItemResponseDTO {
   @Expose()
   itemType: string;
 
   @Expose()
+  @Transform(({ value }) => value?.toString())
   itemId: string;
 }
 
 export class ReportResponseDTO {
   @Expose()
+  @Transform(({ value }) => value?.toString())
   _id: string;
 
   @Expose()

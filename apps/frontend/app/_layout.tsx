@@ -2,6 +2,11 @@ import { Stack } from "expo-router";
 import { useNavigationContainerRef } from "expo-router";
 import { useEffect } from "react";
 import { ToastManager } from "../components/ui/Toast";
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/src/config/firebase';
+import { setupNotificationHandler, registerPushToken } from '@/src/utils/notifications';
+
+setupNotificationHandler();
 
 export default function RootLayout() {
   const navigationRef = useNavigationContainerRef();
@@ -11,6 +16,16 @@ export default function RootLayout() {
       // This automatically connects to Flipper if available
     }
   }, [navigationRef]);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const idToken = await user.getIdToken();
+        registerPushToken(idToken).catch(console.error);
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   return (
     <>

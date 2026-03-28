@@ -1,140 +1,119 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-type ReportStatus = 'pending' | 'in-review' | 'resolved' | 'dismissed';
-type ReportReason = 'spam' | 'harassment' | 'inappropriate' | 'fake' | 'other';
-type ReportType = 'user' | 'place' | 'review';
+export type ReportStatus = 'pending' | 'completed';
+export type ReportType = 'feedback' | 'issue';
 
-interface Report {
-  id: string;
-  reporterId: string;
-  reporterName: string;
-  reporterEmail: string;
-  reporterAvatar?: string;
-  reportedType: ReportType;
-  reportedId: string;
-  reportedName: string;
-  reason: ReportReason;
+export interface Report {
+  _id: string;
+  type: ReportType;
+  title: string;
   description: string;
+  reportedBy: { username: string; email: string };
+  reportedItem?: { itemType: string; itemId: string };
   status: ReportStatus;
   createdAt: string;
-  updatedAt?: string;
-  resolvedBy?: string;
-  resolution?: string;
-  priority: 'low' | 'medium' | 'high';
+  completedAt?: string;
 }
 
 interface ReportCardProps {
   report: Report;
-  onPress: () => void;
+  onComplete: () => void;
+  onDelete: () => void;
 }
 
-export const ReportCard = ({ report, onPress }: ReportCardProps) => {
-  const getStatusColor = (status: ReportStatus) => {
-    switch (status) {
-      case 'pending': return '#FF9800';
-      case 'in-review': return '#2196F3';
-      case 'resolved': return '#4CAF50';
-      case 'dismissed': return '#9E9E9E';
-      default: return '#666';
-    }
-  };
+const getStatusColor = (status: ReportStatus) => {
+  return status === 'pending' ? '#FF9800' : '#4CAF50';
+};
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return '#F44336';
-      case 'medium': return '#FF9800';
-      case 'low': return '#4CAF50';
-      default: return '#666';
-    }
-  };
+const getTypeColor = (type: ReportType) => {
+  return type === 'issue' ? '#F44336' : '#7E9AFF';
+};
 
-  const getReasonIcon = (reason: ReportReason) => {
-    switch (reason) {
-      case 'spam': return 'megaphone';
-      case 'harassment': return 'hand-right';
-      case 'inappropriate': return 'warning';
-      case 'fake': return 'eye-off';
-      case 'other': return 'flag';
-      default: return 'flag';
-    }
-  };
+const getTypeIcon = (type: ReportType): any => {
+  return type === 'issue' ? 'warning-outline' : 'chatbubble-ellipses-outline';
+};
 
-  const getTypeIcon = (type: ReportType) => {
-    switch (type) {
-      case 'user': return 'person';
-      case 'place': return 'location';
-      case 'review': return 'chatbubble';
-      default: return 'help-circle';
-    }
-  };
+const getItemTypeIcon = (itemType?: string): any => {
+  switch (itemType?.toLowerCase()) {
+    case 'user': return 'person-outline';
+    case 'review': return 'chatbubble-outline';
+    case 'place': return 'location-outline';
+    case 'event': return 'calendar-outline';
+    default: return 'help-circle-outline';
+  }
+};
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString();
-  };
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffDays = Math.ceil(Math.abs(now.getTime() - date.getTime()) / 86400000);
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString();
+};
 
-  return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.cardHeader}>
-        <View style={styles.reporterInfo}>
-          <Image 
-            source={{ uri: report.reporterAvatar || 'https://i.pravatar.cc/150?u=' + report.reporterId }} 
-            style={styles.avatar}
-          />
-          <View>
-            <Text style={styles.reporterName}>{report.reporterName}</Text>
-            <Text style={styles.reporterEmail}>{report.reporterEmail}</Text>
-          </View>
-        </View>
-        <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(report.priority) + '20' }]}>
-          <Text style={[styles.priorityText, { color: getPriorityColor(report.priority) }]}>
-            {report.priority.toUpperCase()}
+export const ReportCard = ({ report, onComplete, onDelete }: ReportCardProps) => (
+  <View style={styles.card}>
+    {/* Header: reporter + type badge */}
+    <View style={styles.cardHeader}>
+      <View style={styles.reporterInfo}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarInitial}>
+            {report.reportedBy.username?.[0]?.toUpperCase() ?? '?'}
           </Text>
         </View>
+        <View>
+          <Text style={styles.reporterName}>{report.reportedBy.username}</Text>
+          <Text style={styles.reporterEmail}>{report.reportedBy.email}</Text>
+        </View>
       </View>
-
-      <View style={styles.cardBody}>
-        <View style={styles.typeRow}>
-          <View style={styles.reportedTypeContainer}>
-            <Ionicons name={getTypeIcon(report.reportedType) as any} size={14} color="#666" />
-            <Text style={styles.reportedTypeText}>{report.reportedType}</Text>
-          </View>
-          <View style={styles.reasonContainer}>
-            <Ionicons name={getReasonIcon(report.reason) as any} size={14} color="#F44336" />
-            <Text style={styles.reasonText}>{report.reason}</Text>
-          </View>
-          <Text style={styles.dateText}>{formatDate(report.createdAt)}</Text>
-        </View>
-
-        <View style={styles.reportedItem}>
-          <Text style={styles.reportedLabel}>Reported: </Text>
-          <Text style={styles.reportedName}>{report.reportedName}</Text>
-        </View>
-
-        <Text style={styles.description} numberOfLines={2}>
-          {report.description}
+      <View style={[styles.typeBadge, { backgroundColor: getTypeColor(report.type) + '20' }]}>
+        <Ionicons name={getTypeIcon(report.type)} size={12} color={getTypeColor(report.type)} />
+        <Text style={[styles.typeText, { color: getTypeColor(report.type) }]}>
+          {report.type.toUpperCase()}
         </Text>
-
-        <View style={styles.statusRow}>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(report.status) + '20' }]}>
-            <Text style={[styles.statusText, { color: getStatusColor(report.status) }]}>
-              {report.status.toUpperCase()}
-            </Text>
-          </View>
-        </View>
       </View>
-    </TouchableOpacity>
-  );
-};
+    </View>
+
+    {/* Body */}
+    <View style={styles.cardBody}>
+      <Text style={styles.title}>{report.title}</Text>
+      <Text style={styles.description} numberOfLines={2}>{report.description}</Text>
+
+      <View style={styles.metaRow}>
+        {report.reportedItem && (
+          <View style={styles.itemTypeBadge}>
+            <Ionicons name={getItemTypeIcon(report.reportedItem.itemType)} size={12} color="#666" />
+            <Text style={styles.itemTypeText}>{report.reportedItem.itemType}</Text>
+          </View>
+        )}
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(report.status) + '20' }]}>
+          <Text style={[styles.statusText, { color: getStatusColor(report.status) }]}>
+            {report.status.toUpperCase()}
+          </Text>
+        </View>
+        <Text style={styles.dateText}>{formatDate(report.createdAt)}</Text>
+      </View>
+    </View>
+
+    {/* Actions */}
+    <View style={styles.actions}>
+      {report.status === 'pending' && (
+        <TouchableOpacity style={styles.completeBtn} onPress={onComplete} activeOpacity={0.8}>
+          <Ionicons name="checkmark-circle-outline" size={15} color="#4CAF50" />
+          <Text style={styles.completeBtnText}>Mark Complete</Text>
+        </TouchableOpacity>
+      )}
+      <TouchableOpacity style={styles.deleteBtn} onPress={onDelete} activeOpacity={0.8}>
+        <Ionicons name="trash-outline" size={15} color="#F44336" />
+        <Text style={styles.deleteBtnText}>Delete</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+);
 
 const styles = StyleSheet.create({
   card: {
@@ -160,102 +139,127 @@ const styles = StyleSheet.create({
   reporterInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#7E9AFF',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#DEE4FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitial: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#7E9AFF',
   },
   reporterName: {
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 2,
   },
   reporterEmail: {
     fontSize: 11,
-    color: '#666',
+    color: '#888',
+    marginTop: 1,
   },
-  priorityBadge: {
+  typeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
-  priorityText: {
+  typeText: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   cardBody: {
-    gap: 8,
+    gap: 6,
+    marginBottom: 12,
   },
-  typeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  reportedTypeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F0F3FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  reportedTypeText: {
-    fontSize: 11,
-    color: '#666',
-    textTransform: 'capitalize',
-  },
-  reasonContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  reasonText: {
-    fontSize: 11,
-    color: '#F44336',
-    textTransform: 'capitalize',
-  },
-  dateText: {
-    flex: 1,
-    fontSize: 10,
-    color: '#999',
-    textAlign: 'right',
-  },
-  reportedItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  reportedLabel: {
-    fontSize: 13,
-    color: '#666',
-  },
-  reportedName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
+  title: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1A1A2E',
   },
   description: {
     fontSize: 13,
     color: '#666',
     lineHeight: 18,
   },
-  statusRow: {
+  metaRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 8,
     marginTop: 4,
   },
+  itemTypeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F0F3FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  itemTypeText: {
+    fontSize: 11,
+    color: '#666',
+    textTransform: 'capitalize',
+  },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
   statusText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
+  },
+  dateText: {
+    flex: 1,
+    fontSize: 11,
+    color: '#999',
+    textAlign: 'right',
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    paddingTop: 10,
+  },
+  completeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#4CAF5015',
+  },
+  completeBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4CAF50',
+  },
+  deleteBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#F4433615',
+  },
+  deleteBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#F44336',
   },
 });

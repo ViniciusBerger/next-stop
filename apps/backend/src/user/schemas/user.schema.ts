@@ -69,6 +69,9 @@ export class User extends Document {
 
     @Prop({ type: [Types.ObjectId], ref: 'Place', default: [] })
     wishlist: Types.ObjectId[];
+
+    @Prop({ type: String, required: false })
+    expoPushToken?: string;
 }
 
 export const userSchema = SchemaFactory.createForClass(User);
