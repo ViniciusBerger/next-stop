@@ -1,5 +1,6 @@
 import React from "react";
 import { ScrollView, View, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { styles as loginStyles } from "../src/styles/login.styles"; //Named to avoid confusion
 import { BottomTabBar } from "@/components/bottomTabBar";
 import { BackButton } from "./backButton";
@@ -10,10 +11,12 @@ interface ScreenLayoutProps {
 }
 
 export function ScreenLayout({ children, showBack = true }: ScreenLayoutProps) {
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={{ flex: 1, backgroundColor: '#F8F9FA' }}>
       {/*Content Layer */}
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -21,13 +24,13 @@ export function ScreenLayout({ children, showBack = true }: ScreenLayoutProps) {
       <View style={[loginStyles.headerBackground, { position: 'absolute' }]} />
 
       {/*Back Button on top*/}
-      <View style={styles.topHeader}>
+      <View style={[styles.topHeader, { paddingTop: insets.top + 8 }]}>
         {showBack && <BackButton color="white" />}
       </View>
 
         {children}
       </ScrollView>
-      
+
       {/* Bottom Tab Bar */}
       <BottomTabBar />
     </View>
@@ -36,10 +39,8 @@ export function ScreenLayout({ children, showBack = true }: ScreenLayoutProps) {
 
 const styles = StyleSheet.create({
   topHeader: {
-    height: 100, // Adjust based on your phone's notch/safe area
-    paddingTop: 50,
     paddingHorizontal: 10,
-    zIndex: 10, // Keeps button clickable above everything else
+    zIndex: 10,
   },
   scrollContent: {
     paddingBottom: 100, // Space for the BottomTabBar

@@ -27,8 +27,10 @@ export class ReportController {
   @Post()
   async createReport(@Body() createReportDTO: CreateReportDTO) {
     const newReport = await this.reportService.createReport(createReportDTO);
+    const obj = newReport.toObject();
+    obj._id = obj._id.toString();
 
-    return plainToInstance(ReportResponseDTO, newReport.toObject(), {
+    return plainToInstance(ReportResponseDTO, obj, {
       excludeExtraneousValues: true,
     });
   }
@@ -42,11 +44,13 @@ export class ReportController {
   async getReports(@Query() getReportDTO?: GetReportDTO) {
     const reports = await this.reportService.getAllReports(getReportDTO);
 
-    return reports.map(report =>
-      plainToInstance(ReportResponseDTO, report.toObject(), {
+    return reports.map(report => {
+      const obj = report.toObject();
+      obj._id = obj._id.toString();
+      return plainToInstance(ReportResponseDTO, obj, {
         excludeExtraneousValues: true,
-      }),
-    );
+      });
+    });
   }
 
   /**
@@ -68,8 +72,10 @@ export class ReportController {
   @Get(':id')
   async getReport(@Param('id') id: string) {
     const report = await this.reportService.getReport(id);
+    const obj = report.toObject();
+    obj._id = obj._id.toString();
 
-    return plainToInstance(ReportResponseDTO, report.toObject(), {
+    return plainToInstance(ReportResponseDTO, obj, {
       excludeExtraneousValues: true,
     });
   }
@@ -82,8 +88,10 @@ export class ReportController {
   @Put(':id/complete')
   async completeReport(@Param('id') id: string) {
     const completedReport = await this.reportService.completeReport(id);
+    const obj = completedReport.toObject();
+    obj._id = obj._id.toString();
 
-    return plainToInstance(ReportResponseDTO, completedReport.toObject(), {
+    return plainToInstance(ReportResponseDTO, obj, {
       excludeExtraneousValues: true,
     });
   }

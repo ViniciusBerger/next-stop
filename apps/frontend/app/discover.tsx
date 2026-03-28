@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   discoverHeader: {
-    marginTop: -10, // Adjust this to sit perfectly under the ScreenLayout back button
+    marginTop: 0, // Adjust this to sit perfectly under the ScreenLayout back button
     marginBottom: 20,
     alignItems: 'center',
     zIndex: 20, // Forces the search bar to stay on top of the map

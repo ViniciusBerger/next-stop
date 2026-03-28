@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,199 +6,132 @@ import {
   FlatList,
   TouchableOpacity,
   TextInput,
-  Image,
-  ActivityIndicator,
-  ScrollView
+  ScrollView,
+  Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
+import axios from 'axios';
 import { AdminScreenLayout } from '@/components/adminScreenLayout';
-import { ReportCard } from '@/components/ui/ReportCard';
-import { showToast } from '@/components/ui/Toast';
+import { ReportCard, Report } from '@/components/ui/ReportCard';
 import { EmptyState } from '@/components/ui/StateComponents';
+import { API_URL } from '@/src/config/api';
 
-// Types
-type ReportStatus = 'pending' | 'in-review' | 'resolved' | 'dismissed';
-type ReportReason = 'spam' | 'harassment' | 'inappropriate' | 'fake' | 'other';
-type ReportType = 'user' | 'place' | 'review';
+type StatusFilter = 'all' | 'pending' | 'completed';
+type TypeFilter = 'all' | 'feedback' | 'issue';
 
-interface Report {
-  id: string;
-  reporterId: string;
-  reporterName: string;
-  reporterEmail: string;
-  reporterAvatar?: string;
-  reportedType: ReportType;
-  reportedId: string;
-  reportedName: string;
-  reason: ReportReason;
-  description: string;
-  status: ReportStatus;
-  createdAt: string;
-  updatedAt?: string;
-  resolvedBy?: string;
-  resolution?: string;
-  priority: 'low' | 'medium' | 'high';
-}
-
-// Mock Data - Replace with API calls
-const MOCK_REPORTS: Report[] = [
-  {
-    id: '1',
-    reporterId: 'user2',
-    reporterName: 'Jane Smith',
-    reporterEmail: 'jane@example.com',
-    reporterAvatar: 'https://i.pravatar.cc/150?u=2',
-    reportedType: 'user',
-    reportedId: 'user6',
-    reportedName: 'Mike Ross',
-    reason: 'harassment',
-    description: 'User is posting harassing comments on multiple reviews. They have targeted several users with offensive language.',
-    status: 'pending',
-    createdAt: '2024-03-15T11:20:00Z',
-    priority: 'high',
-  },
-  {
-    id: '2',
-    reporterId: 'user3',
-    reporterName: 'Bob Johnson',
-    reporterEmail: 'bob@example.com',
-    reporterAvatar: 'https://i.pravatar.cc/150?u=3',
-    reportedType: 'place',
-    reportedId: 'place123',
-    reportedName: 'Sunset Cafe',
-    reason: 'fake',
-    description: 'This place appears to be fake - address doesn\'t exist and photos are stolen from another business.',
-    status: 'in-review',
-    createdAt: '2024-03-14T16:30:00Z',
-    priority: 'medium',
-  },
-  {
-    id: '3',
-    reporterId: 'user4',
-    reporterName: 'Alice Brown',
-    reporterEmail: 'alice@example.com',
-    reporterAvatar: 'https://i.pravatar.cc/150?u=4',
-    reportedType: 'review',
-    reportedId: 'review123',
-    reportedName: 'Review by John Doe',
-    reason: 'inappropriate',
-    description: 'Review contains offensive language and personal attacks against the business owner.',
-    status: 'pending',
-    createdAt: '2024-03-14T09:15:00Z',
-    priority: 'high',
-  },
-  {
-    id: '4',
-    reporterId: 'user5',
-    reporterName: 'Charlie Wilson',
-    reporterEmail: 'charlie@example.com',
-    reporterAvatar: 'https://i.pravatar.cc/150?u=5',
-    reportedType: 'user',
-    reportedId: 'user7',
-    reportedName: 'Sarah Connor',
-    reason: 'spam',
-    description: 'User keeps posting promotional content in reviews for their own business.',
-    status: 'resolved',
-    createdAt: '2024-03-13T14:20:00Z',
-    updatedAt: '2024-03-14T10:30:00Z',
-    resolvedBy: 'admin1',
-    resolution: 'Warned user about promotional content',
-    priority: 'medium',
-  },
-  {
-    id: '5',
-    reporterId: 'user1',
-    reporterName: 'John Doe',
-    reporterEmail: 'john@example.com',
-    reporterAvatar: 'https://i.pravatar.cc/150?u=1',
-    reportedType: 'place',
-    reportedId: 'place456',
-    reportedName: 'Tech Hub',
-    reason: 'other',
-    description: 'The business has permanently closed but still appears as open.',
-    status: 'dismissed',
-    createdAt: '2024-03-12T11:45:00Z',
-    updatedAt: '2024-03-13T09:20:00Z',
-    resolvedBy: 'admin2',
-    resolution: 'Business confirmed still operating',
-    priority: 'low',
-  },
-  {
-    id: '6',
-    reporterId: 'user8',
-    reporterName: 'Diana Prince',
-    reporterEmail: 'diana@example.com',
-    reporterAvatar: 'https://i.pravatar.cc/150?u=8',
-    reportedType: 'review',
-    reportedId: 'review456',
-    reportedName: 'Review by Mike Ross',
-    reason: 'harassment',
-    description: 'Review contains personal attacks against another user in the comments section.',
-    status: 'pending',
-    createdAt: '2024-03-15T08:30:00Z',
-    priority: 'high',
-  },
-];
+const showAlert = (
+  title: string,
+  message: string,
+  buttons?: { text: string; style?: string; onPress?: () => void }[],
+) => {
+  if (Platform.OS === 'web') {
+    if (buttons && buttons.length > 1) {
+      const confirmed = window.confirm(`${title}\n\n${message}`);
+      if (confirmed) {
+        const confirmButton = buttons.find(
+          b => b.style === 'destructive' || (b.style !== 'cancel' && !!b.onPress),
+        );
+        confirmButton?.onPress?.();
+      }
+    } else {
+      window.alert(`${title}\n\n${message}`);
+    }
+  } else {
+    Alert.alert(title, message, buttons as any);
+  }
+};
 
 export default function ReportsScreen() {
-  const router = useRouter();
-  const [reports, setReports] = useState<Report[]>(MOCK_REPORTS);
+  const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<ReportStatus | 'all'>('all');
-  const [filterPriority, setFilterPriority] = useState<'all' | 'low' | 'medium' | 'high'>('all');
+  const [filterStatus, setFilterStatus] = useState<StatusFilter>('all');
+  const [filterType, setFilterType] = useState<TypeFilter>('all');
 
-  // Filter reports based on search and filters
+  const fetchReports = async () => {
+    setLoading(true);
+    try {
+      const { data } = await axios.get<Report[]>(`${API_URL}/reports`);
+      setReports(data);
+    } catch (err) {
+      showAlert('Error', 'Failed to load reports.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchReports();
+    }, []),
+  );
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const { data } = await axios.get<Report[]>(`${API_URL}/reports`);
+      setReports(data);
+    } catch (err) {
+      showAlert('Error', 'Failed to refresh reports.');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleComplete = (id: string) => {
+    axios
+      .put(`${API_URL}/reports/${id}/complete`)
+      .then(({ data }) => {
+        setReports(prev => prev.map(r => (r._id === id ? data : r)));
+      })
+      .catch(() => showAlert('Error', 'Failed to mark report as complete.'));
+  };
+
+  const handleDelete = (id: string) => {
+    showAlert(
+      'Delete Report',
+      'Are you sure you want to delete this report? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await axios.delete(`${API_URL}/reports/${id}`);
+              setReports(prev => prev.filter(r => r._id !== id));
+            } catch (err) {
+              showAlert('Error', 'Failed to delete report.');
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const filteredReports = reports.filter(item => {
-    const matchesSearch = item.reportedName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.reporterName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch =
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.reportedBy.username.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = filterStatus === 'all' || item.status === filterStatus;
-    const matchesPriority = filterPriority === 'all' || item.priority === filterPriority;
-    return matchesSearch && matchesStatus && matchesPriority;
+    const matchesType = filterType === 'all' || item.type === filterType;
+    return matchesSearch && matchesStatus && matchesType;
   });
 
   const stats = {
     total: reports.length,
     pending: reports.filter(r => r.status === 'pending').length,
-    inReview: reports.filter(r => r.status === 'in-review').length,
-    resolved: reports.filter(r => r.status === 'resolved').length,
-    dismissed: reports.filter(r => r.status === 'dismissed').length,
-    highPriority: reports.filter(r => r.priority === 'high').length,
-  };
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
-  };
-
-  const getStatusColor = (status: ReportStatus) => {
-    switch (status) {
-      case 'pending': return '#FF9800';
-      case 'in-review': return '#2196F3';
-      case 'resolved': return '#4CAF50';
-      case 'dismissed': return '#9E9E9E';
-      default: return '#666';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return '#F44336';
-      case 'medium': return '#FF9800';
-      case 'low': return '#4CAF50';
-      default: return '#666';
-    }
+    completed: reports.filter(r => r.status === 'completed').length,
+    feedback: reports.filter(r => r.type === 'feedback').length,
+    issues: reports.filter(r => r.type === 'issue').length,
   };
 
   const renderHeader = () => (
     <View>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Report Management</Text>
       </View>
@@ -231,138 +164,89 @@ export default function ReportsScreen() {
             <Text style={styles.statNumber}>{stats.pending}</Text>
             <Text style={styles.statLabel}>Pending</Text>
           </View>
-          <View style={[styles.statCard, { borderLeftColor: '#2196F3' }]}>
-            <Text style={styles.statNumber}>{stats.inReview}</Text>
-            <Text style={styles.statLabel}>In Review</Text>
-          </View>
           <View style={[styles.statCard, { borderLeftColor: '#4CAF50' }]}>
-            <Text style={styles.statNumber}>{stats.resolved}</Text>
-            <Text style={styles.statLabel}>Resolved</Text>
+            <Text style={styles.statNumber}>{stats.completed}</Text>
+            <Text style={styles.statLabel}>Completed</Text>
+          </View>
+          <View style={[styles.statCard, { borderLeftColor: '#7E9AFF' }]}>
+            <Text style={styles.statNumber}>{stats.feedback}</Text>
+            <Text style={styles.statLabel}>Feedback</Text>
           </View>
           <View style={[styles.statCard, { borderLeftColor: '#F44336' }]}>
-            <Text style={styles.statNumber}>{stats.highPriority}</Text>
-            <Text style={styles.statLabel}>High Priority</Text>
+            <Text style={styles.statNumber}>{stats.issues}</Text>
+            <Text style={styles.statLabel}>Issues</Text>
           </View>
         </View>
       </ScrollView>
 
-      {/* Status Filters */}
+      {/* Status Filter */}
       <View style={styles.filtersContainer}>
         <Text style={styles.filterLabel}>Status:</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <TouchableOpacity
-            style={[styles.filterChip, filterStatus === 'all' && styles.filterChipActive]}
-            onPress={() => setFilterStatus('all')}
-          >
-            <Text style={[styles.filterChipText, filterStatus === 'all' && styles.filterChipTextActive]}>
-              All
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, filterStatus === 'pending' && styles.filterChipActive]}
-            onPress={() => setFilterStatus('pending')}
-          >
-            <Text style={[styles.filterChipText, filterStatus === 'pending' && styles.filterChipTextActive]}>
-              Pending
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, filterStatus === 'in-review' && styles.filterChipActive]}
-            onPress={() => setFilterStatus('in-review')}
-          >
-            <Text style={[styles.filterChipText, filterStatus === 'in-review' && styles.filterChipTextActive]}>
-              In Review
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, filterStatus === 'resolved' && styles.filterChipActive]}
-            onPress={() => setFilterStatus('resolved')}
-          >
-            <Text style={[styles.filterChipText, filterStatus === 'resolved' && styles.filterChipTextActive]}>
-              Resolved
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, filterStatus === 'dismissed' && styles.filterChipActive]}
-            onPress={() => setFilterStatus('dismissed')}
-          >
-            <Text style={[styles.filterChipText, filterStatus === 'dismissed' && styles.filterChipTextActive]}>
-              Dismissed
-            </Text>
-          </TouchableOpacity>
+          {(['all', 'pending', 'completed'] as StatusFilter[]).map(s => (
+            <TouchableOpacity
+              key={s}
+              style={[styles.filterChip, filterStatus === s && styles.filterChipActive]}
+              onPress={() => setFilterStatus(s)}
+            >
+              <Text style={[styles.filterChipText, filterStatus === s && styles.filterChipTextActive]}>
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
       </View>
 
-      {/* Priority Filters */}
+      {/* Type Filter */}
       <View style={styles.filtersContainer}>
-        <Text style={styles.filterLabel}>Priority:</Text>
+        <Text style={styles.filterLabel}>Type:</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <TouchableOpacity
-            style={[styles.filterChip, filterPriority === 'all' && styles.filterChipActive]}
-            onPress={() => setFilterPriority('all')}
-          >
-            <Text style={[styles.filterChipText, filterPriority === 'all' && styles.filterChipTextActive]}>
-              All
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, { borderColor: '#F44336' }, filterPriority === 'high' && styles.filterChipActiveHigh]}
-            onPress={() => setFilterPriority('high')}
-          >
-            <Text style={[styles.filterChipText, filterPriority === 'high' && styles.filterChipTextActive]}>
-              High
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, { borderColor: '#FF9800' }, filterPriority === 'medium' && styles.filterChipActiveMedium]}
-            onPress={() => setFilterPriority('medium')}
-          >
-            <Text style={[styles.filterChipText, filterPriority === 'medium' && styles.filterChipTextActive]}>
-              Medium
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, { borderColor: '#4CAF50' }, filterPriority === 'low' && styles.filterChipActiveLow]}
-            onPress={() => setFilterPriority('low')}
-          >
-            <Text style={[styles.filterChipText, filterPriority === 'low' && styles.filterChipTextActive]}>
-              Low
-            </Text>
-          </TouchableOpacity>
+          {(['all', 'feedback', 'issue'] as TypeFilter[]).map(t => (
+            <TouchableOpacity
+              key={t}
+              style={[styles.filterChip, filterType === t && styles.filterChipActive]}
+              onPress={() => setFilterType(t)}
+            >
+              <Text style={[styles.filterChipText, filterType === t && styles.filterChipTextActive]}>
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
       </View>
     </View>
-  );
-
-  const renderItem = ({ item }: { item: Report }) => (
-    <ReportCard
-      report={item}
-      onPress={() => router.push(`/reports/${item.id}` as any)}
-    />
   );
 
   return (
     <AdminScreenLayout showBack={true}>
       <FlatList
         data={filteredReports}
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-        ListHeaderComponent={renderHeader}
+        renderItem={({ item }) => (
+          <ReportCard
+            report={item}
+            onComplete={() => handleComplete(item._id)}
+            onDelete={() => handleDelete(item._id)}
+          />
+        )}
+        keyExtractor={item => item._id}
+        ListHeaderComponent={renderHeader()}
         contentContainerStyle={styles.listContent}
         refreshing={refreshing}
         onRefresh={handleRefresh}
         ListEmptyComponent={
-          <EmptyState
-            icon="flag-outline"
-            title="No Reports Found"
-            message="No reports match your search criteria. Try adjusting your filters."
-            buttonText="Clear Filters"
-            onButtonPress={() => {
-              setSearchQuery('');
-              setFilterStatus('all');
-              setFilterPriority('all');
-            }}
-          />
+          loading ? null : (
+            <EmptyState
+              icon="flag-outline"
+              title="No Reports Found"
+              message="No reports match your search criteria. Try adjusting your filters."
+              buttonText="Clear Filters"
+              onButtonPress={() => {
+                setSearchQuery('');
+                setFilterStatus('all');
+                setFilterType('all');
+              }}
+            />
+          )
         }
       />
     </AdminScreenLayout>
@@ -373,7 +257,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 20,
-    marginTop: -10,
+    marginTop: 0,
   },
   headerTitle: {
     fontSize: 28,
@@ -454,18 +338,6 @@ const styles = StyleSheet.create({
   filterChipActive: {
     backgroundColor: '#7E9AFF',
     borderColor: '#7E9AFF',
-  },
-  filterChipActiveHigh: {
-    backgroundColor: '#F44336',
-    borderColor: '#F44336',
-  },
-  filterChipActiveMedium: {
-    backgroundColor: '#FF9800',
-    borderColor: '#FF9800',
-  },
-  filterChipActiveLow: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
   },
   filterChipText: {
     fontSize: 14,

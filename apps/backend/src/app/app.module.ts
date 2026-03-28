@@ -15,6 +15,9 @@ import { ReportModule } from 'src/reports/report.module';
 import { ProfileModule } from 'src/profile/profile.module';
 import { FriendsModule }from '../friends/friends.module';
 import { AiModule } from '../ai/ai.module';
+import { SystemModule } from '../system/system.module';
+import { AnnouncementModule } from '../announcements/announcement.module';
+import { AdminModule } from '../admin/admin.module';
 // Comment to push a change and test an update to render deployment
 
 @Module({
@@ -36,7 +39,10 @@ import { AiModule } from '../ai/ai.module';
     ReportModule,
     ProfileModule,
     FriendsModule,
-    AiModule
+    AiModule,
+    SystemModule,
+    AnnouncementModule,
+    AdminModule
   ],
   controllers: [AppController],
 

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { User } from "../schemas/user.schema";
 import { GetUserDTO } from "../DTOs/get.user.DTO";
 import { CreateUserDTO } from "../DTOs/create.user.DTO";
@@ -86,20 +86,51 @@ export class UserService {
     }
 
 
-    async banUser(id: string){
-        const userBanned = await this.updateUser(id, {isBanned: true}) 
-
-        if(!userBanned.isBanned) throw new InternalServerErrorException("error banning user.")
-        
-        return userBanned
+    async banUser(firebaseUid: string, reason?: string): Promise<User> {
+        const user = await this.userRepository.update(
+            { firebaseUid },
+            { $set: { isBanned: true, bannedAt: new Date(), banReason: reason ?? null, isSuspended: false, suspendedUntil: null } },
+        );
+        if (!user) throw new NotFoundException('User not found');
+        return user;
     }
 
-    async unbanUser(id: string){
-        const user = await this.updateUser(id, {isBanned: false}) 
+    async unbanUser(firebaseUid: string): Promise<User> {
+        const user = await this.userRepository.update(
+            { firebaseUid },
+            { $set: { isBanned: false, bannedAt: null, banReason: null } },
+        );
+        if (!user) throw new NotFoundException('User not found');
+        return user;
+    }
 
-        if(user.isBanned) throw new InternalServerErrorException("error unbanning user.")
-        
-        return user
+    async suspendUser(firebaseUid: string, days: number, reason?: string): Promise<User> {
+        const suspendedUntil = new Date();
+        suspendedUntil.setDate(suspendedUntil.getDate() + days);
+        const user = await this.userRepository.update(
+            { firebaseUid },
+            { $set: { isSuspended: true, suspendedUntil, banReason: reason ?? null } },
+        );
+        if (!user) throw new NotFoundException('User not found');
+        return user;
+    }
+
+    async unsuspendUser(firebaseUid: string): Promise<User> {
+        const user = await this.userRepository.update(
+            { firebaseUid },
+            { $set: { isSuspended: false, suspendedUntil: null, banReason: null } },
+        );
+        if (!user) throw new NotFoundException('User not found');
+        return user;
+    }
+
+    async savePushToken(firebaseUid: string, expoPushToken: string): Promise<User> {
+        const user = await this.userRepository.update(
+            { firebaseUid },
+            { $set: { expoPushToken } },
+        );
+        if (!user) throw new NotFoundException('User not found');
+        return user;
     }
 
     async findByEmail(email: string): Promise<User | null> {

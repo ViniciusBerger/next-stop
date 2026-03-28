@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   headerBlock: {
-    marginTop: -10,
+    marginTop: 0,
     marginBottom: 20,
     alignItems: "center",
   },

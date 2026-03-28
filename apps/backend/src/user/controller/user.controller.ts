@@ -12,6 +12,11 @@ import { plainToInstance } from "class-transformer";
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @Patch('me/push-token')
+  async savePushToken(@Req() req, @Body() body: { expoPushToken: string }) {
+    return this.userService.savePushToken(req.user.uid, body.expoPushToken);
+  }
+
   @Patch('me/wishlist/:placeId')
   async toggleWishlist(@Req() req, @Param('placeId') placeId: string) {
     console.log('🔖 Wishlist hit:', placeId);

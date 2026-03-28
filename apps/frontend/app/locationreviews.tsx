@@ -139,7 +139,7 @@ export default function LocationReviewsScreen() {
 
 const styles = StyleSheet.create({
   listPadding: { paddingBottom: 40 },
-  cardTop: { alignItems: 'center', marginTop: -10 },
+  cardTop: { alignItems: 'center', marginTop: 0 },
   headerTitle: { fontSize: 26, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 20, marginTop: 3 },
   whiteCardTop: {
     backgroundColor: '#FFF', width: '100%', height: 40,

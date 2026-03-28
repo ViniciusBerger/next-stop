@@ -19,7 +19,7 @@ export default function MyReviewsScreen() {
       if (buttons && buttons.length > 1) {
         const confirmed = window.confirm(`${title}\n\n${message}`);
         if (confirmed) {
-          const confirmButton = buttons.find(b => b.style === 'destructive' || b.text !== 'No');
+          const confirmButton = buttons.find(b => b.style === 'destructive' || (b.style !== 'cancel' && !!b.onPress));
           confirmButton?.onPress?.();
         }
       } else {
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   },
   cardTop: {
     alignItems: 'center',
-    marginTop: -10,
+    marginTop: 0,
   },
   headerTitle: {
     fontSize: 28,

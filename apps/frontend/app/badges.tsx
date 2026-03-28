@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
     textAlign: 'center',
     marginBottom: 20,
-    marginTop: -10
+    marginTop: 0
   },
   statsRow: {
     flexDirection: 'row',

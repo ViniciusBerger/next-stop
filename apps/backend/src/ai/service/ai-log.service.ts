@@ -13,12 +13,35 @@ export class AiLogService {
     return newLog.save();
   }
 
-  // This is for your Admin Dashboard later!
   async getTrendingVibes() {
     return this.aiLogModel.aggregate([
       { $group: { _id: '$userVibe', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
-      { $limit: 5 }
+      { $limit: 5 },
     ]);
+  }
+
+  async getDailyUsage(days = 7) {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    return this.aiLogModel.aggregate([
+      { $match: { createdAt: { $gte: since } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+  }
+
+  async getTotalSearches() {
+    return this.aiLogModel.countDocuments();
+  }
+
+  async clearAllLogs(): Promise<{ deletedCount: number }> {
+    const result = await this.aiLogModel.deleteMany({});
+    return { deletedCount: result.deletedCount };
   }
 }
