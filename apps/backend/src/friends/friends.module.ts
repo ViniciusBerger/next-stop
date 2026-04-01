@@ -6,7 +6,7 @@ from '@nestjs/mongoose';
 
 import {
 Friend,
-FriendSchema
+FriendSchema,
 }
 from './schema/friends.schema';
 
@@ -39,9 +39,10 @@ imports:[
 MongooseModule.forFeature([
 
 {
-name:Friend.name,
-schema:FriendSchema
-},
+    name: Friend.name,
+    schema: FriendSchema,
+    collection: 'Friends'
+  },
 
 {
 name:User.name,

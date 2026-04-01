@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   View,
   Text,
@@ -118,31 +119,239 @@ export default function FriendsScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('friends'); // 'friends', 'requests', 'suggestions'
   const [searchQuery, setSearchQuery] = useState('');
-  const [friends, setFriends] = useState(MOCK_FRIENDS);
-  const [requests, setRequests] = useState(MOCK_REQUESTS);
-  const [suggestions, setSuggestions] = useState(MOCK_SUGGESTIONS);
+  const [friends, setFriends] = useState<any[]>([]);
+const [requests, setRequests] = useState<any[]>([]);
+ const [suggestions, setSuggestions] = useState<any[]>([]);
 
-  const filteredFriends = searchQuery
-    ? friends.filter(friend => 
-        friend.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        friend.username.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : friends;
+ // Backend integration 
+const USER_ID = "6997df40f022ff836ee4055a"; // use real user id
 
-  const handleAcceptRequest = (id: string) => {
-    // Handle accept friend request
-    setRequests(prev => prev.filter(req => req.id !== id));
-  };
+const loadFriends = async () => {
+  try {
 
-  const handleDeclineRequest = (id: string) => {
-    // Handle decline friend request
-    setRequests(prev => prev.filter(req => req.id !== id));
-  };
+    const res = await axios.get(
+      `http://localhost:3000/friends?userId=${USER_ID}`
+    );
 
-  const handleAddFriend = (id: string) => {
-    // Handle send friend request
+    console.log("Friends:", res.data);
+
+    const formattedFriends = res.data.map((user: any) => ({
+
+      id: user._id,
+
+      name: user.username || "User",
+
+      username: user.email || "",
+
+      avatar:
+        user.profile?.profilePicture ||
+        `https://i.pravatar.cc/150?u=${user._id}`,
+
+      mutualFriends: 0,
+
+      isOnline: false
+
+    }));
+
+    setFriends(formattedFriends);
+
+  } catch (err) {
+
+    console.log("Friends error:", err);
+
+  }
+};
+
+// Load pending requests
+const loadRequests = async () => {
+  try {
+    const res = await axios.get(
+      `http://localhost:3000/friends/requests?userId=${USER_ID}`
+    );
+
+    console.log("Requests:", res.data);
+
+    if (res.data && Array.isArray(res.data)) {
+      const backendRequests = res.data.map((req: any) => {
+        const requestId = String(req._id);
+
+        return {
+          id: requestId,
+          name: req.name || req.username || "User",
+          username: req.email || req.requester || "",
+          avatar:
+            req.profile?.profilePicture ||
+            `https://i.pravatar.cc/150?u=${requestId}`,
+          mutualFriends: 0,
+          mutualPlaces: 0
+        };
+      });
+
+      setRequests(backendRequests);
+    } else {
+      setRequests([]);
+    }
+  } catch (error) {
+    console.log("Requests load failed", error);
+    setRequests([]);
+  }
+};
+
+const loadSuggestions = async () => {
+
+try{
+
+const res = await axios.get(
+`http://localhost:3000/friends/suggestions?userId=${USER_ID}`
+);
+
+console.log("Suggestions:",res.data);
+
+if(res.data){
+
+const backendSuggestions = res.data.map((user:any)=>({
+
+id:user._id,
+
+name:user.name || "User",
+
+username:user.email || "",
+
+avatar:user.profile?.profilePicture 
+|| `https://i.pravatar.cc/150?u=${user._id}`,
+
+mutualFriends:0,
+
+mutualPlaces:0
+
+}));
+
+setSuggestions(backendSuggestions);
+
+}
+
+}catch(error){
+
+console.log("Suggestions failed");
+
+}
+
+};
+
+
+// Call APIs when screen loads
+useEffect(()=>{
+
+loadFriends();
+loadRequests();
+loadSuggestions();
+
+},[]);
+
+const filteredFriends = searchQuery
+  ? friends.filter(friend => 
+      friend.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      friend.username.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  : friends;
+
+const handleAcceptRequest = async (id: string) => {
+
+try{
+
+await axios.post(
+"http://localhost:3000/friends/respond",
+{
+requestId: id,
+status: "accepted"
+}
+);
+
+// remove from UI immediately
+setRequests(prev => prev.filter(r => r.id !== id));
+
+// force fresh backend reload
+const friendsRes = await axios.get(
+`http://localhost:3000/friends?userId=${USER_ID}`
+);
+
+if(friendsRes.data){
+
+const backendFriends = friendsRes.data.map((user:any)=>({
+
+id:user._id,
+
+name:user.username || "Friend",
+
+username:user.email || "",
+
+avatar:user.profile?.profilePicture 
+? user.profile.profilePicture
+: `https://i.pravatar.cc/150?u=${user._id}`,
+
+mutualFriends:0,
+
+isOnline:false,
+
+lastActive:"Recently"
+
+}));
+
+setFriends(backendFriends);
+
+}
+
+// reload requests after accept
+await loadRequests();
+
+// go to friends tab
+setActiveTab('friends');
+
+}catch(error){
+
+console.log("Accept failed", error);
+
+}
+
+};
+
+ const handleDeclineRequest = async (id: string) => {
+  try {
+    await axios.post("http://localhost:3000/friends/respond", {
+      requestId: id,
+      status: "declined"
+    });
+
+    loadRequests();
+  } catch (error) {
+    console.log("Decline failed", error);
+  }
+};
+
+  const handleAddFriend = async (id: string) => {
+
+  try{
+
+    await axios.post(
+      "http://localhost:3000/friends",
+      {
+        requester: USER_ID,
+        recipient: id
+      }
+    );
+
     setSuggestions(prev => prev.filter(sug => sug.id !== id));
-  };
+
+    loadRequests();
+
+  }catch(error){
+
+    console.log("Friend request failed");
+
+  }
+
+};
+
 
   const FriendCard = ({ item }: { item: any }) => (
     <TouchableOpacity style={styles.friendCard} activeOpacity={0.7}>
@@ -313,9 +522,9 @@ export default function FriendsScreen() {
       default:
         return (
           <FlatList
-            data={filteredFriends}
+            data={friends}
             renderItem={({ item }) => <FriendCard item={item} />}
-            keyExtractor={item => item.id}
+            keyExtractor={item => String(item.id)}
             contentContainerStyle={styles.listContent}
             ListHeaderComponent={
               <>
@@ -324,7 +533,7 @@ export default function FriendsScreen() {
                   <FlatList
                     data={requests.slice(0, 2)}
                     renderItem={({ item }) => <RequestCard item={item} />}
-                    keyExtractor={item => item.id}
+                    keyExtractor={item => String(item.id)}
                     scrollEnabled={false}
                     contentContainerStyle={styles.subListContent}
                   />
@@ -334,7 +543,7 @@ export default function FriendsScreen() {
                   <FlatList
                     data={suggestions.slice(0, 2)}
                     renderItem={({ item }) => <SuggestionCard item={item} />}
-                    keyExtractor={item => item.id}
+                    keyExtractor={item => String(item.id)}
                     scrollEnabled={false}
                     contentContainerStyle={styles.subListContent}
                   />

@@ -17,6 +17,7 @@ private repo:FriendsRepository
 ){}
 
 
+// Send friend request
 async addFriend(dto){
 
 // prevent duplicate requests
@@ -45,27 +46,31 @@ status:"pending"
 }
 
 
-async getFriends(userId){
+// Get accepted friends
+async getFriends(userId:string){
 
 return this.repo.getFriends(userId);
 
 }
 
 
-async getRequests(userId){
+// Get pending requests
+async getRequests(userId:string){
 
 return this.repo.getRequests(userId);
 
 }
 
 
-async getSuggestions(userId){
+// Suggestions (basic version)
+async getSuggestions(userId:string){
 
 return this.repo.getSuggestions(userId);
 
 }
 
 
+// Accept / Decline request
 async respond(dto){
 
 const request =
@@ -87,12 +92,13 @@ dto.status
 );
 
 
+
 // add friendship if accepted
 if(dto.status === "accepted"){
 
 await this.repo.addFriendToUsers(
-request.requester,
-request.recipient
+request.requester.toString(),
+request.recipient.toString()
 );
 
 }
@@ -102,6 +108,7 @@ return updated;
 }
 
 
+// Remove friendship
 async remove(id){
 
 return this.repo.delete(id);
