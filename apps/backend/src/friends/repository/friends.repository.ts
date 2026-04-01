@@ -37,15 +37,17 @@ export class FriendsRepository {
   }).lean();
 
 }
-  // Get pending requests
+  // Get pending requests (with requester user data, excluding admins)
   async getRequests(userId: string) {
-    return this.model.find({
+    const requests = await this.model.find({
       recipient: userId,
       status: 'pending'
-    });
+    }).populate('requester').lean();
+
+    return requests.filter((r: any) => r.requester && r.requester.role !== 'admin');
   }
 
-  // Suggestions (basic version)
+  // Suggestions (basic version, excluding admins)
   async getSuggestions(userId: string) {
 
 const user = await this.userModel.findById(userId);
@@ -77,11 +79,22 @@ new Types.ObjectId(userId),
 ...friendIds.map(id=>new Types.ObjectId(id)),
 ...requestIds.map(id=>new Types.ObjectId(id))
 ]
-}
+},
+role: { $ne: 'admin' }
 
 }).limit(10).lean();
 
 }
+  // Get outgoing pending requests (with recipient user data, excluding admins)
+  async getOutgoingRequests(userId: string) {
+    const requests = await this.model.find({
+      requester: userId,
+      status: 'pending'
+    }).populate('recipient').lean();
+
+    return requests.filter((r: any) => r.recipient && r.recipient.role !== 'admin');
+  }
+
   // Add users to each other's friends array
   async addFriendToUsers(user1: string, user2: string) {
     await this.userModel.updateOne(

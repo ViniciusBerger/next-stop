@@ -7,8 +7,6 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
-  Platform,
-  Alert,
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
@@ -18,6 +16,7 @@ import axios from 'axios';
 import { auth } from '@/src/config/firebase';
 import { AdminScreenLayout } from '@/components/adminScreenLayout';
 import { API_URL } from '@/src/config/api';
+import { showAlert } from '@/src/utils/alert';
 
 interface ModerationUser {
   _id: string;
@@ -61,28 +60,6 @@ const getStatusIcon = (status: UserStatus): any => {
 const formatDate = (dateString?: string) => {
   if (!dateString) return '—';
   return new Date(dateString).toLocaleDateString();
-};
-
-const showAlert = (
-  title: string,
-  message: string,
-  buttons?: { text: string; style?: string; onPress?: () => void }[],
-) => {
-  if (Platform.OS === 'web') {
-    if (buttons && buttons.length > 1) {
-      const confirmed = window.confirm(`${title}\n\n${message}`);
-      if (confirmed) {
-        const confirmButton = buttons.find(
-          b => b.style === 'destructive' || (b.style !== 'cancel' && !!b.onPress),
-        );
-        confirmButton?.onPress?.();
-      }
-    } else {
-      window.alert(`${title}\n\n${message}`);
-    }
-  } else {
-    Alert.alert(title, message, buttons as any);
-  }
 };
 
 const getAuthHeader = async () => {

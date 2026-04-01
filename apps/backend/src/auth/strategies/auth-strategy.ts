@@ -41,11 +41,12 @@ export class AuthStrategy implements IAuthStrategy {
     // validate user
     async validate(credentials: ValidateUserDTO): Promise<User| null> {
         const userClaims = await this.firebase.auth().verifyIdToken(credentials.token);
-        
-        
+
+
         if (!userClaims) throw new BadRequestException("user is not registered! Please register before login")
         // Explicitly maps the UID to the expected Firebase ID in the DTO
         const user = await this.userService.findById({ firebaseUid: userClaims.uid } as GetUserDTO);
+        await this.userService.updateLastLogin(userClaims.uid);
         return user
     }
 

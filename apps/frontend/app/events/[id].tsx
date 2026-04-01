@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenLayout } from "@/components/screenLayout";
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { auth } from "@/src/config/firebase";
 import { API_URL } from "@/src/config/api";
 import { Platform, Linking } from 'react-native';
 import { getToken } from "@/src/utils/auth";
+import { showAlert } from '@/src/utils/alert';
 
 export default function EventDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -17,23 +18,6 @@ export default function EventDetailsScreen() {
   const [isAttending, setIsAttending] = useState(false);
   const [mongoUserId, setMongoUserId] = useState<string | null>(null);
   const isPast = event ? new Date(event.date) < new Date() : false;
-
-  const showAlert = (title: string, message: string, buttons?: { text: string; style?: string; onPress?: () => void }[]) => {
-    if (Platform.OS === 'web') {
-        if (buttons && buttons.length > 1) {
-        // Confirm dialog for destructive actions
-        const confirmed = window.confirm(`${title}\n\n${message}`);
-        if (confirmed) {
-            const confirmButton = buttons.find(b => b.style === 'destructive' || b.text !== 'No');
-            confirmButton?.onPress?.();
-        }
-        } else {
-        window.alert(`${title}\n\n${message}`);
-        }
-    } else {
-        Alert.alert(title, message, buttons as any);
-    }
-    };
 
   useEffect(() => {
     const fetchEvent = async () => {

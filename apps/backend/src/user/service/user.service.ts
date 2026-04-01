@@ -137,6 +137,10 @@ export class UserService {
         return await this.userRepository.findOne({ email });
     }
 
+    async updateLastLogin(firebaseUid: string): Promise<void> {
+        await this.userRepository.update({ firebaseUid }, { $set: { lastLogin: new Date() } });
+    }
+
     async findByEmailString(email: string): Promise<User | null> {
         return await this.userRepository.findOne({ email });
     }

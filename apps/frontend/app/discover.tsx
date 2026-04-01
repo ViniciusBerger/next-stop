@@ -1,26 +1,31 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
   TouchableOpacity,
   StatusBar,
-  ImageBackground,
+  ScrollView,
   Modal,
   ActivityIndicator,
 } from 'react-native';
-import { ScreenLayout } from '@/components/screenLayout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppMap } from '@/components/AppMap';
 import { PlaceCard } from '@/components/placeCard';
 import { PlaceFilter } from '@/components/placeFilter';
+import { BackButton } from '@/components/backButton';
+import { BottomTabBar } from '@/components/bottomTabBar';
 import { Ionicons } from '@expo/vector-icons';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useRouter } from 'expo-router';
 import axios from "axios";
 import { API_URL } from '@/src/config/api';
 import { auth } from '@/src/config/firebase';
+import { styles as loginStyles } from '@/src/styles/login.styles';
 
 export default function DiscoverScreen() {
+  const insets = useSafeAreaInsets();
 
   const HANGOUT_CATEGORIES = [
     'restaurant', 'cafe', 'bar', 'night club', 'park', 'museum',
@@ -204,8 +209,16 @@ export default function DiscoverScreen() {
   };
 
   return (
-    <ScreenLayout showBack={true}>      
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" />
+
+      {/* Gradient header background — same as ScreenLayout */}
+      <View style={[loginStyles.headerBackground, { position: 'absolute' }]} />
+
+      {/* Back button — respects safe area */}
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+        <BackButton color="white" />
+      </View>
 
       {/* AI Vibe Modal — opens when user taps the sparkles icon */}
       <Modal
@@ -296,54 +309,67 @@ export default function DiscoverScreen() {
         </View>
       </View>
 
-      {/* 2. The Map Container */}
-      <View style={styles.mapWrapper}>
-        <ImageBackground 
-          source={require('@/src/icons/mapPlaceholder.png')}          
-          style={styles.mapBackground}
-          imageStyle={{ borderRadius: 20 }}
-        >
-          {/* Spacer determines how much map shows before the white card starts */}
-          <View style={styles.spacer} />
-          <View style={styles.listContainer}>
-            <View style={styles.dragHandle} />
-            <Text style={styles.sheetTitle}>Places Nearby</Text>
-            <View style={styles.titleUnderline} />
+      {/* Map — lives outside any ScrollView */}
+      <AppMap
+        places={filteredPlaces}
+        userLocation={location}
+        onMarkerPress={handlePlacePress}
+        style={styles.map}
+      />
 
-            {isLoading ? (
-              <View style={styles.loadingContainer}>
-                <Text style={styles.loadingText}>Finding places near you...</Text>
-                {[1, 2, 3].map((i) => (
-                  <View key={i} style={styles.skeletonCard}>
-                    <View style={styles.skeletonImage} />
-                    <View style={styles.skeletonInfo}>
-                      <View style={styles.skeletonLine} />
-                      <View style={[styles.skeletonLine, { width: '50%' }]} />
-                    </View>
+      {/* Scrollable list — only this part scrolls */}
+      <View style={styles.listWrapper}>
+        <ScrollView
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.dragHandle} />
+          <Text style={styles.sheetTitle}>Places Nearby</Text>
+          <View style={styles.titleUnderline} />
+
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Finding places near you...</Text>
+              {[1, 2, 3].map((i) => (
+                <View key={i} style={styles.skeletonCard}>
+                  <View style={styles.skeletonImage} />
+                  <View style={styles.skeletonInfo}>
+                    <View style={styles.skeletonLine} />
+                    <View style={[styles.skeletonLine, { width: '50%' }]} />
                   </View>
-                ))}
-              </View>
-            ) : filteredPlaces.length === 0 ? (
-              <View style={styles.loadingContainer}>
-                <Text style={styles.loadingText}>No places found nearby</Text>
-              </View>
-            ) : (
-              filteredPlaces.map((item) => (
-                <PlaceCard
-                  key={item.id}
-                  place={item}
-                  onPress={handlePlacePress}
-                />
-              ))
-            )}
-          </View>
-        </ImageBackground>
+                </View>
+              ))}
+            </View>
+          ) : filteredPlaces.length === 0 ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>No places found nearby</Text>
+            </View>
+          ) : (
+            filteredPlaces.map((item) => (
+              <PlaceCard
+                key={item.id}
+                place={item}
+                onPress={handlePlacePress}
+              />
+            ))
+          )}
+        </ScrollView>
       </View>
-    </ScreenLayout>
+
+      <BottomTabBar />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
+  topBar: {
+    paddingHorizontal: 10,
+    zIndex: 10,
+  },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -363,7 +389,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     height: 48,
     alignItems: 'center',
-    marginRight: 12,
+    marginHorizontal: 12,
   },
   searchIcon: {
     marginRight: 8,
@@ -403,33 +429,27 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   discoverHeader: {
-    marginTop: 0, // Adjust this to sit perfectly under the ScreenLayout back button
     marginBottom: 20,
     alignItems: 'center',
-    zIndex: 20, // Forces the search bar to stay on top of the map
+    zIndex: 20,
   },
-  mapWrapper: {
-    marginTop: 0,
-    marginHorizontal: -20, // Negates the ScreenLayout padding so map is edge-to-edge
-    flex: 1,
-  },
-  mapBackground: {
+  map: {
+    height: 300,
     width: '100%',
-    minHeight: 800, // Ensure it's tall enough to cover the scroll area
   },
-  spacer: {
-    height: 400, // Reduced height so the map is visible but list starts sooner
-  },
-  listContainer: {
+  listWrapper: {
+    flex: 1,
     backgroundColor: '#FFF',
-    borderTopLeftRadius: 50, 
+    borderTopLeftRadius: 50,
     borderTopRightRadius: 50,
-    paddingHorizontal: 20,
-    paddingTop: 15,
-    paddingBottom: 100, // Extra padding for the bottom tab bar
-    minHeight: 600,
     borderWidth: 1,
     borderColor: '#DEE4FF',
+    overflow: 'hidden',
+  },
+  listContent: {
+    paddingHorizontal: 20,
+    paddingTop: 15,
+    paddingBottom: 100,
   },
   loadingContainer: {
     alignItems: 'center',

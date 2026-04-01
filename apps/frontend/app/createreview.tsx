@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, Platform } from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image } from "react-native";
 import { ScreenLayout } from "@/components/screenLayout";
 import { Ionicons } from '@expo/vector-icons';
 import { auth } from "@/src/config/firebase";
@@ -8,6 +8,7 @@ import axios from "axios";
 import * as ImagePicker from 'expo-image-picker'; // Import picker
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { API_URL } from "@/src/config/api";
+import { showAlert } from '@/src/utils/alert';
 
 export default function CreateReviewScreen() {
   const { placeId, placeName: initialPlaceName } = useLocalSearchParams(); // Catch the ID from navigation
@@ -33,19 +34,19 @@ export default function CreateReviewScreen() {
       const msg = authLoading 
         ? "Verifying login, please wait..." 
         : "You must be logged in to post a review.";
-      Platform.OS === 'web' ? window.alert(msg) : Alert.alert("Not Logged In", msg);
+      showAlert("Not Logged In", msg);
       return;
     }
 
     if (reviewText.length < 10) {
       const msg = "Review must be at least 10 characters long.";
-      Platform.OS === 'web' ? window.alert(msg) : Alert.alert("Too Short", msg);
+      showAlert("Too Short", msg);
       return;
     }
 
     if (rating < 1) {
       const msg = "Please select a star rating.";
-      Platform.OS === 'web' ? window.alert(msg) : Alert.alert("Rating Required", msg);
+      showAlert("Rating Required", msg);
       return;
     }
 
@@ -69,7 +70,7 @@ export default function CreateReviewScreen() {
 
       if (response.status === 201) {
         const successMsg = "Review successfully posted!";
-        Platform.OS === 'web' ? window.alert(successMsg) : Alert.alert("Success", successMsg);
+        showAlert("Success", successMsg);
         
         // Reset form state
         setPlaceName("");
@@ -88,7 +89,7 @@ export default function CreateReviewScreen() {
         ? serverMessage.join("\n") 
         : serverMessage || "Unknown Error";
 
-      Platform.OS === 'web' ? window.alert(finalMsg) : Alert.alert("Validation Failed", finalMsg);
+      showAlert("Validation Failed", finalMsg);
     }
   };
 

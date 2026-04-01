@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Href, useRouter } from 'expo-router';
 import { removeToken } from "@/src/utils/auth";
+import { showAlert } from '@/src/utils/alert';
 import { auth } from '@/src/config/firebase'; // Import your firebase auth instance
 import { signOut } from 'firebase/auth'; // Import signOut function
 
@@ -46,7 +47,7 @@ export default function HomeMenu({ isVisible, onClose }: HomeMenuProps) {
       router.replace("/login");
     } catch (error: any) {
       console.error("Logout Error:", error.message);
-      Alert.alert("Error", "Failed to log out. Please try again.");
+      showAlert("Error", "Failed to log out. Please try again.");
     }
   };
 

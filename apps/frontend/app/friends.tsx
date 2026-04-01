@@ -11,9 +11,14 @@ import {
   FlatList,
   Dimensions
 } from 'react-native';
+import { confirmAction } from '@/src/utils/alert';
 import { ScreenLayout } from '@/components/screenLayout';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/src/config/firebase';
+import { API_URL } from '@/src/config/api';
+import { getToken } from '@/src/utils/auth';
 
 const { width } = Dimensions.get('window');
 
@@ -120,17 +125,17 @@ export default function FriendsScreen() {
   const [activeTab, setActiveTab] = useState('friends'); // 'friends', 'requests', 'suggestions'
   const [searchQuery, setSearchQuery] = useState('');
   const [friends, setFriends] = useState<any[]>([]);
-const [requests, setRequests] = useState<any[]>([]);
- const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [outgoingRequests, setOutgoingRequests] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [mongoUserId, setMongoUserId] = useState<string | null>(null);
+  const [requestSentName, setRequestSentName] = useState<string | null>(null);
 
- // Backend integration 
-const USER_ID = "6997df40f022ff836ee4055a"; // use real user id
-
-const loadFriends = async () => {
+const loadFriends = async (userId: string) => {
   try {
 
     const res = await axios.get(
-      `http://localhost:3000/friends?userId=${USER_ID}`
+      `${API_URL}/friends?userId=${userId}`
     );
 
     console.log("Friends:", res.data);
@@ -141,7 +146,7 @@ const loadFriends = async () => {
 
       name: user.username || "User",
 
-      username: user.email || "",
+      username: user.username ? `@${user.username}` : "",
 
       avatar:
         user.profile?.profilePicture ||
@@ -163,10 +168,10 @@ const loadFriends = async () => {
 };
 
 // Load pending requests
-const loadRequests = async () => {
+const loadRequests = async (userId: string) => {
   try {
     const res = await axios.get(
-      `http://localhost:3000/friends/requests?userId=${USER_ID}`
+      `${API_URL}/friends/requests?userId=${userId}`
     );
 
     console.log("Requests:", res.data);
@@ -177,10 +182,10 @@ const loadRequests = async () => {
 
         return {
           id: requestId,
-          name: req.name || req.username || "User",
-          username: req.email || req.requester || "",
+          name: req.requester?.username || "User",
+          username: req.requester?.username ? `@${req.requester.username}` : "",
           avatar:
-            req.profile?.profilePicture ||
+            req.requester?.profile?.profilePicture ||
             `https://i.pravatar.cc/150?u=${requestId}`,
           mutualFriends: 0,
           mutualPlaces: 0
@@ -197,12 +202,12 @@ const loadRequests = async () => {
   }
 };
 
-const loadSuggestions = async () => {
+const loadSuggestions = async (userId: string) => {
 
 try{
 
 const res = await axios.get(
-`http://localhost:3000/friends/suggestions?userId=${USER_ID}`
+`${API_URL}/friends/suggestions?userId=${userId}`
 );
 
 console.log("Suggestions:",res.data);
@@ -213,9 +218,9 @@ const backendSuggestions = res.data.map((user:any)=>({
 
 id:user._id,
 
-name:user.name || "User",
+name:user.username || "User",
 
-username:user.email || "",
+username:user.username ? `@${user.username}` : "",
 
 avatar:user.profile?.profilePicture 
 || `https://i.pravatar.cc/150?u=${user._id}`,
@@ -239,14 +244,58 @@ console.log("Suggestions failed");
 };
 
 
-// Call APIs when screen loads
-useEffect(()=>{
+const loadOutgoingRequests = async (userId: string) => {
+  try {
+    const res = await axios.get(`${API_URL}/friends/outgoing?userId=${userId}`);
+    if (res.data && Array.isArray(res.data)) {
+      const formatted = res.data.map((req: any) => ({
+        id: String(req._id),
+        name: req.recipient?.username || "User",
+        username: req.recipient?.username ? `@${req.recipient.username}` : "",
+        avatar: req.recipient?.profile?.profilePicture || `https://i.pravatar.cc/150?u=${req._id}`
+      }));
+      setOutgoingRequests(formatted);
+    } else {
+      setOutgoingRequests([]);
+    }
+  } catch (error) {
+    console.log("Outgoing requests failed", error);
+    setOutgoingRequests([]);
+  }
+};
 
-loadFriends();
-loadRequests();
-loadSuggestions();
 
-},[]);
+// Fetch MongoDB user ID from Firebase UID, then load all data
+useEffect(() => {
+  const init = async (uid: string) => {
+    try {
+      const token = await getToken();
+      const profileRes = await axios.get(`${API_URL}/profile?firebaseUid=${uid}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const id = profileRes.data._id;
+      setMongoUserId(id);
+      loadFriends(id);
+      loadRequests(id);
+      loadOutgoingRequests(id);
+      loadSuggestions(id);
+    } catch (err) {
+      console.log("Failed to get user profile:", err);
+    }
+  };
+
+  const currentUser = auth.currentUser;
+  if (currentUser) {
+    init(currentUser.uid);
+    return;
+  }
+
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (user) init(user.uid);
+  });
+
+  return () => unsubscribe();
+}, []);
 
 const filteredFriends = searchQuery
   ? friends.filter(friend => 
@@ -260,7 +309,7 @@ const handleAcceptRequest = async (id: string) => {
 try{
 
 await axios.post(
-"http://localhost:3000/friends/respond",
+`${API_URL}/friends/respond`,
 {
 requestId: id,
 status: "accepted"
@@ -272,7 +321,7 @@ setRequests(prev => prev.filter(r => r.id !== id));
 
 // force fresh backend reload
 const friendsRes = await axios.get(
-`http://localhost:3000/friends?userId=${USER_ID}`
+`${API_URL}/friends?userId=${mongoUserId}`
 );
 
 if(friendsRes.data){
@@ -283,7 +332,7 @@ id:user._id,
 
 name:user.username || "Friend",
 
-username:user.email || "",
+username:user.username ? `@${user.username}` : "",
 
 avatar:user.profile?.profilePicture 
 ? user.profile.profilePicture
@@ -302,7 +351,7 @@ setFriends(backendFriends);
 }
 
 // reload requests after accept
-await loadRequests();
+if (mongoUserId) await loadRequests(mongoUserId);
 
 // go to friends tab
 setActiveTab('friends');
@@ -315,41 +364,49 @@ console.log("Accept failed", error);
 
 };
 
- const handleDeclineRequest = async (id: string) => {
-  try {
-    await axios.post("http://localhost:3000/friends/respond", {
-      requestId: id,
-      status: "declined"
+ const handleDeclineRequest = (id: string) => {
+    confirmAction('Decline Request', 'Are you sure you want to decline this friend request?', async () => {
+      try {
+        await axios.post(`${API_URL}/friends/respond`, {
+          requestId: id,
+          status: "rejected"
+        });
+        if (mongoUserId) loadRequests(mongoUserId);
+      } catch (error) {
+        console.log("Decline failed", error);
+      }
     });
+  };
 
-    loadRequests();
-  } catch (error) {
-    console.log("Decline failed", error);
-  }
-};
+  const handleCancelRequest = (requestId: string) => {
+    confirmAction('Cancel Request', 'Are you sure you want to cancel this friend request?', async () => {
+      try {
+        await axios.delete(`${API_URL}/friends/${requestId}`);
+        setOutgoingRequests(prev => prev.filter(r => r.id !== requestId));
+        if (mongoUserId) loadSuggestions(mongoUserId);
+      } catch (error) {
+        console.log("Cancel request failed", error);
+      }
+    });
+  };
 
   const handleAddFriend = async (id: string) => {
-
-  try{
-
-    await axios.post(
-      "http://localhost:3000/friends",
-      {
-        requester: USER_ID,
-        recipient: id
-      }
-    );
+  const suggestion = suggestions.find(s => s.id === id);
+  try {
+    await axios.post(`${API_URL}/friends`, {
+      requester: mongoUserId,
+      recipient: id
+    });
 
     setSuggestions(prev => prev.filter(sug => sug.id !== id));
 
-    loadRequests();
+    setRequestSentName(suggestion?.name || "User");
+    setTimeout(() => setRequestSentName(null), 3000);
 
-  }catch(error){
-
+    if (mongoUserId) loadOutgoingRequests(mongoUserId);
+  } catch (error) {
     console.log("Friend request failed");
-
   }
-
 };
 
 
@@ -412,6 +469,31 @@ console.log("Accept failed", error);
           <Text style={styles.declineButtonText}>Decline</Text>
         </TouchableOpacity>
       </View>
+    </View>
+  );
+
+  const OutgoingRequestCard = ({ item }: { item: any }) => (
+    <View style={styles.requestCard}>
+      <View style={styles.requestCardContent}>
+        <Image source={{ uri: item.avatar }} style={styles.requestAvatar} />
+        <View style={styles.requestInfo}>
+          <Text style={styles.requestName}>{item.name}</Text>
+          <Text style={styles.requestUsername}>{item.username}</Text>
+          <View style={styles.requestMeta}>
+            <View style={styles.pendingBadge}>
+              <Ionicons name="time-outline" size={12} color="#F59E0B" />
+              <Text style={styles.pendingText}>Pending</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+      <TouchableOpacity
+        style={[styles.actionButton, styles.cancelButton]}
+        onPress={() => handleCancelRequest(item.id)}
+      >
+        <Ionicons name="close" size={18} color="#666" />
+        <Text style={styles.cancelButtonText}>Cancel</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -483,12 +565,8 @@ console.log("Accept failed", error);
     switch (activeTab) {
       case 'requests':
         return (
-          <FlatList
-            data={requests}
-            renderItem={({ item }) => <RequestCard item={item} />}
-            keyExtractor={item => item.id}
-            contentContainerStyle={styles.listContent}
-            ListEmptyComponent={
+          <ScrollView contentContainerStyle={styles.listContent}>
+            {requests.length === 0 && outgoingRequests.length === 0 && (
               <View style={styles.emptyContainer}>
                 <Ionicons name="mail-outline" size={64} color="#ccc" />
                 <Text style={styles.emptyTitle}>No friend requests</Text>
@@ -496,8 +574,26 @@ console.log("Accept failed", error);
                   When someone sends you a friend request, it will appear here.
                 </Text>
               </View>
-            }
-          />
+            )}
+            {requests.length > 0 && (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Received</Text>
+                  <Text style={styles.sectionCount}>{requests.length}</Text>
+                </View>
+                {requests.map(item => <RequestCard key={item.id} item={item} />)}
+              </>
+            )}
+            {outgoingRequests.length > 0 && (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Sent</Text>
+                  <Text style={styles.sectionCount}>{outgoingRequests.length}</Text>
+                </View>
+                {outgoingRequests.map(item => <OutgoingRequestCard key={item.id} item={item} />)}
+              </>
+            )}
+          </ScrollView>
         );
       
       case 'suggestions':
@@ -549,7 +645,7 @@ console.log("Accept failed", error);
                   />
                 )}
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>All Friends</Text>
+                  <Text style={styles.sectionTitleDark}>All Friends</Text>
                   <Text style={styles.sectionCount}>{friends.length}</Text>
                 </View>
               </>
@@ -604,9 +700,9 @@ console.log("Accept failed", error);
             <Text style={[styles.tabText, activeTab === 'requests' && styles.activeTabText]}>
               Requests
             </Text>
-            {requests.length > 0 && (
+            {(requests.length + outgoingRequests.length) > 0 && (
               <View style={styles.badge}>
-                <Text style={styles.badgeText}>{requests.length}</Text>
+                <Text style={styles.badgeText}>{requests.length + outgoingRequests.length}</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -619,6 +715,14 @@ console.log("Accept failed", error);
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Request Sent Toast */}
+        {requestSentName && (
+          <View style={styles.toastBanner}>
+            <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+            <Text style={styles.toastText}>Friend request sent to {requestSentName}!</Text>
+          </View>
+        )}
 
         {/* Content */}
         {renderContent()}
@@ -724,6 +828,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  sectionTitleDark: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
   },
   sectionCount: {
     fontSize: 14,
@@ -955,15 +1064,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#000000',
     marginBottom: 8,
   },
   emptyMessage: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 18,
+    color: '#000000',
     textAlign: 'center',
+    marginTop: 17,
     marginBottom: 24,
     lineHeight: 20,
   },
@@ -977,5 +1087,55 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  pendingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+  },
+  pendingText: {
+    fontSize: 11,
+    color: '#F59E0B',
+    fontWeight: '600',
+  },
+  cancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#DDD',
+    gap: 6,
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  toastBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    borderColor: '#4CAF50',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    gap: 8,
+  },
+  toastText: {
+    color: '#166534',
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
   },
 });

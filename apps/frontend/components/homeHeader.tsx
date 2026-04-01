@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, Image } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { styles } from "../src/styles/login.styles";
 import { icons } from "../src/icons";
 
@@ -13,8 +14,10 @@ export function HomeHeader({
   avatarUrl,
   username = "Username",
 }: Props) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.homeHeader}>
+    <View style={[styles.homeHeader, { paddingTop: insets.top + 8 }]}>
       <TouchableOpacity onPress={onMenuPress} style={styles.menuButton}>
         <Image source={icons.menu} />
       </TouchableOpacity>
@@ -24,7 +27,7 @@ export function HomeHeader({
         <Text style={styles.headerSubtitle}>Ready for your next outing?</Text>
       </View>
 
-      <View style={styles.avatarWrapper}>
+      <View style={[styles.avatarWrapper, { top: insets.top + 8 }]}>
         {avatarUrl ? (
           <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         ) : (

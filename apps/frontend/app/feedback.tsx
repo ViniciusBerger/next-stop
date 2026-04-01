@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from "react-native";
 import { ScreenLayout } from "@/components/screenLayout";
 import { Ionicons } from '@expo/vector-icons';
-import { Alert, Platform } from "react-native";
 import axios from "axios";
+import { showAlert } from '@/src/utils/alert';
 import { auth } from "@/src/config/firebase";
 import { API_URL } from "@/src/config/api";
 
@@ -15,34 +15,19 @@ export default function FeedbackReportScreen() {
   const handleSend = async () => {
     // 1. Pre-submit validation alerts
     if (!type) {
-      if (Platform.OS === 'web') {
-        window.alert("Selection Required: Please choose Feedback or Issue.");
-      } else {
-      Alert.alert("Selection Required", "Please choose Feedback or Issue.");
+      showAlert("Selection Required", "Please choose Feedback or Issue.");
       return;
-      }
     }
 
     // Ensure title and description meet the DTO length requirements
     if (title.length < 3 || description.length < 10) {
-      if (Platform.OS === 'web') {
-        window.alert("Message Too Short: Title must be at least 3 characters and Description at least 10.");
-      } else {
-      Alert.alert(
-        "Message Too Short", 
-        "Title must be at least 3 characters and Description at least 10."
-      );
+      showAlert("Message Too Short", "Title must be at least 3 characters and Description at least 10.");
       return;
-      }
     }
     // Ensure user is logged in before allowing report submission
     if (!auth.currentUser) {
-      if (Platform.OS === 'web') {
-        window.alert("Authentication Error: You must be logged in to submit a report.");
-      } else {
-      Alert.alert("Authentication Error", "You must be logged in to submit a report.");
+      showAlert("Authentication Error", "You must be logged in to submit a report.");
       return;
-      }
     }
     
     // 2. Attempt to send the report to the backend
@@ -58,12 +43,8 @@ export default function FeedbackReportScreen() {
 
         if (response.status === 201 || response.status === 200) {
           // Success logic for platforms
-          if (Platform.OS === 'web') {
-            window.alert("Success!: Thank you! Your report has been sent to our team.");
-          } else {
-            Alert.alert("Success!", "Thank you! Your report has been sent to our team.");
-          }
-          
+          showAlert("Success!", "Thank you! Your report has been sent to our team.");
+
           // Reset form fields
           setTitle("");
           setDescription("");
@@ -71,13 +52,9 @@ export default function FeedbackReportScreen() {
         }
       } catch (error: any) {
         console.error("Submission Error:", error.response?.data);
-        
+
         // 3. Fail logic for platforms
-        if (Platform.OS === 'web') {
-          window.alert("Submission Failed: Something went wrong while sending your report.");
-        } else {
-          Alert.alert("Submission Failed", "Something went wrong while sending your report.");
-        }
+        showAlert("Submission Failed", "Something went wrong while sending your report.");
     }
   };
 
