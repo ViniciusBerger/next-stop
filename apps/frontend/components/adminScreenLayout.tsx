@@ -1,5 +1,5 @@
 import React from "react";
-import { ScrollView, View, StyleSheet } from "react-native";
+import { ScrollView, View, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { styles as loginStyles } from "../src/styles/login.styles"; //Named to avoid confusion
 import { BackButton } from "./backButton";
@@ -14,23 +14,27 @@ export function AdminScreenLayout({ children, showBack = true }: ScreenLayoutPro
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F8F9FA' }}>
-      {/*Content Layer */}
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
+        {/*Content Layer */}
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/*Background stays back */}
+          <View style={[loginStyles.headerBackground, { position: 'absolute' }]} />
 
-      {/*Background stays back */}
-      <View style={[loginStyles.headerBackground, { position: 'absolute' }]} />
+          {/*Back Button on top*/}
+          <View style={[styles.topHeader, { paddingTop: insets.top + 8 }]}>
+            {showBack && <BackButton color="white" />}
+          </View>
 
-      {/*Back Button on top*/}
-      <View style={[styles.topHeader, { paddingTop: insets.top + 8 }]}>
-        {showBack && <BackButton color="white" />}
-      </View>
-
-        {children}
-      </ScrollView>
-
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -41,7 +45,6 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   scrollContent: {
-    paddingBottom: 100,
     paddingHorizontal: 20,
   }
 });

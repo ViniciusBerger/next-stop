@@ -87,6 +87,19 @@ return this.service.getSuggestions(userId);
 }
 
 
+@Get('outgoing')
+
+getOutgoingRequests(
+
+@Query('userId') userId:string
+
+){
+
+return this.service.getOutgoingRequests(userId);
+
+}
+
+
 @Post('respond')
 
 respond(

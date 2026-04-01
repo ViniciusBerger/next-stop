@@ -47,8 +47,8 @@ export const PlaceCard = React.memo(({ place, onPress }: PlaceCardProps) => {
         <Text style={styles.placeEmoji}>{getEmoji(place.type)}</Text>
       </View>
       <View style={styles.placeInfo}>
-        <Text style={styles.placeName}>{place.name}</Text>
-        <Text style={styles.placeType}>
+        <Text style={styles.placeName} numberOfLines={1} ellipsizeMode="tail">{place.name}</Text>
+        <Text style={styles.placeType} numberOfLines={1}>
           {place.type ? place.type.charAt(0).toUpperCase() + place.type.slice(1) : 'Place'}
         </Text>
         <View style={styles.placeDetails}>

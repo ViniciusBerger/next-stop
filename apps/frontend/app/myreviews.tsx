@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Platform } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
 import { ScreenLayout } from "@/components/screenLayout";
 import { ReviewCard } from "@/components/reviewCard";
 import { Ionicons } from '@expo/vector-icons';
@@ -8,27 +8,12 @@ import { auth } from "@/src/config/firebase";
 import axios from "axios";
 import { API_URL } from "@/src/config/api";
 import { getToken } from "@/src/utils/auth";
+import { showAlert } from '@/src/utils/alert';
 
 export default function MyReviewsScreen() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const showAlert = (title: string, message: string, buttons?: { text: string; style?: string; onPress?: () => void }[]) => {
-    if (Platform.OS === 'web') {
-      if (buttons && buttons.length > 1) {
-        const confirmed = window.confirm(`${title}\n\n${message}`);
-        if (confirmed) {
-          const confirmButton = buttons.find(b => b.style === 'destructive' || (b.style !== 'cancel' && !!b.onPress));
-          confirmButton?.onPress?.();
-        }
-      } else {
-        window.alert(`${title}\n\n${message}`);
-      }
-    } else {
-      Alert.alert(title, message, buttons as any);
-    }
-  };
 
 useEffect(() => {
   // Avoids waiting for async auth restore

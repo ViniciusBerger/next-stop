@@ -1,5 +1,5 @@
 import React, { use, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Linking, Platform } from "react-native";
 import { ScreenLayout } from "@/components/screenLayout";
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -8,6 +8,7 @@ import { auth } from "@/src/config/firebase";
 import axios from "axios";
 import { API_URL } from "@/src/config/api";
 import { getToken } from "@/src/utils/auth";
+import { showAlert } from '@/src/utils/alert';
 
 export default function LocationDetailsScreen() {
   const [isFavorited, setIsFavorited] = useState(false);
@@ -35,7 +36,7 @@ export default function LocationDetailsScreen() {
     });
 
     Linking.openURL(url).catch(() => {
-      Alert.alert("Error", "Could not open map app");
+      showAlert("Error", "Could not open map app");
     });
   };
 
@@ -188,7 +189,7 @@ const handleToggleWishlist = async () => {
               activeOpacity={0.7}
             >
               <View style={styles.nameHeaderRow}>
-                <Text style={styles.locationName}>{placeName}</Text>
+                <Text style={styles.locationName} numberOfLines={2} ellipsizeMode="tail">{placeName}</Text>
                 <Ionicons name="open-outline" size={16} color="#5679f9" style={{marginLeft: 5}} />
               </View>
               <Text style={styles.locationType}>{placeType} • Tap to Navigate</Text>
@@ -234,9 +235,10 @@ const handleToggleWishlist = async () => {
 
           {/* 5. Pressable Buttons */}
           <View style={styles.interactionRow}>
-            <TouchableOpacity 
-              style={styles.interactionButton} 
+            <TouchableOpacity
+              style={styles.interactionButton}
               onPress={handleToggleFavorite}
+              hitSlop={{ top: 12, bottom: 12, left: 20, right: 20 }}
             >
               <Ionicons 
                 name={isFavorited ? "heart" : "heart-outline"} 
@@ -250,9 +252,10 @@ const handleToggleWishlist = async () => {
 
             <View style={styles.verticalDivider} />
 
-            <TouchableOpacity 
-              style={styles.interactionButton} 
+            <TouchableOpacity
+              style={styles.interactionButton}
               onPress={handleToggleWishlist}
+              hitSlop={{ top: 12, bottom: 12, left: 20, right: 20 }}
             >
               <Ionicons 
                 name={isBookmarked ? "bookmark" : "bookmark-outline"} 

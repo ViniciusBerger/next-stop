@@ -10,6 +10,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "android": {
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAkSmh7_5qBZK2rHh3htjry7fWqy9kIG0A"
+        }
+      },
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

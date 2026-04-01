@@ -70,6 +70,14 @@ return this.repo.getSuggestions(userId);
 }
 
 
+// Get outgoing pending requests
+async getOutgoingRequests(userId:string){
+
+return this.repo.getOutgoingRequests(userId);
+
+}
+
+
 // Accept / Decline request
 async respond(dto){
 

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert, ActivityIndicator, Platform } from "react-native";
+import { View, Text, StyleSheet, Switch, TouchableOpacity, ActivityIndicator } from "react-native";
 import { AdminScreenLayout } from "@/components/adminScreenLayout";
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
 import { API_URL } from '@/src/config/api';
+import { showAlert } from '@/src/utils/alert';
 
 const DangerToggle = ({ value, onValueChange }: { value: boolean; onValueChange: (v: boolean) => void }) => (
   <TouchableOpacity
@@ -54,22 +55,6 @@ export default function AdminSettingsScreen() {
       await axios.patch(`${API_URL}/system/config`, { key, value });
     } catch (error) {
       showAlert('Error', 'Failed to save setting.');
-    }
-  };
-
-  const showAlert = (title: string, message: string, buttons?: { text: string; style?: string; onPress?: () => void }[]) => {
-    if (Platform.OS === 'web') {
-      if (buttons && buttons.length > 1) {
-        const confirmed = window.confirm(`${title}\n\n${message}`);
-        if (confirmed) {
-          const confirmButton = buttons.find(b => b.style === 'destructive' || (b.style !== 'cancel' && !!b.onPress));
-          confirmButton?.onPress?.();
-        }
-      } else {
-        window.alert(`${title}\n\n${message}`);
-      }
-    } else {
-      Alert.alert(title, message, buttons as any);
     }
   };
 

@@ -7,8 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  Platform,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
@@ -17,31 +15,10 @@ import { AdminScreenLayout } from '@/components/adminScreenLayout';
 import { ReportCard, Report } from '@/components/ui/ReportCard';
 import { EmptyState } from '@/components/ui/StateComponents';
 import { API_URL } from '@/src/config/api';
+import { showAlert } from '@/src/utils/alert';
 
 type StatusFilter = 'all' | 'pending' | 'completed';
 type TypeFilter = 'all' | 'feedback' | 'issue';
-
-const showAlert = (
-  title: string,
-  message: string,
-  buttons?: { text: string; style?: string; onPress?: () => void }[],
-) => {
-  if (Platform.OS === 'web') {
-    if (buttons && buttons.length > 1) {
-      const confirmed = window.confirm(`${title}\n\n${message}`);
-      if (confirmed) {
-        const confirmButton = buttons.find(
-          b => b.style === 'destructive' || (b.style !== 'cancel' && !!b.onPress),
-        );
-        confirmButton?.onPress?.();
-      }
-    } else {
-      window.alert(`${title}\n\n${message}`);
-    }
-  } else {
-    Alert.alert(title, message, buttons as any);
-  }
-};
 
 export default function ReportsScreen() {
   const [reports, setReports] = useState<Report[]>([]);

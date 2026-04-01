@@ -80,7 +80,7 @@ export const ReportCard = ({ report, onComplete, onDelete }: ReportCardProps) =>
 
     {/* Body */}
     <View style={styles.cardBody}>
-      <Text style={styles.title}>{report.title}</Text>
+      <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">{report.title}</Text>
       <Text style={styles.description} numberOfLines={2}>{report.description}</Text>
 
       <View style={styles.metaRow}>
