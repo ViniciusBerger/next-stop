@@ -4,16 +4,19 @@ import { Badge } from '../schemas/badges.schema';
 import { CreateBadgeDTO } from '../DTOs/create.badge.DTO';
 import { UpdateBadgeDTO } from '../DTOs/update.badge.DTO';
 import { GetBadgeDTO } from '../DTOs/get.badge.DTO';
+import { BadgeProgressService } from './badge-progress.service'; // 👈 ADDED
 
 @Injectable()
 export class BadgeService {
-  constructor(private readonly badgeRepository: BadgeRepository) {}
+  constructor(
+    private readonly badgeRepository: BadgeRepository,
+    private readonly badgeProgressService: BadgeProgressService, // 👈 ADDED
+  ) {}
 
   /**
    * Creates a new badge (admin/seed only)
    */
   async createBadge(dto: CreateBadgeDTO): Promise<Badge> {
-    // Check if badgeId already exists
     const existingBadge = await this.badgeRepository.findByBadgeId(dto.badgeId);
 
     if (existingBadge) {
@@ -121,7 +124,6 @@ export class BadgeService {
     const totalBadges = allBadges.length;
     const totalAwarded = allBadges.reduce((sum, badge) => sum + badge.totalAwarded, 0);
 
-    // Group by category
     const categoryMap = new Map<string, number>();
     allBadges.forEach(badge => {
       const count = categoryMap.get(badge.category) || 0;
@@ -145,5 +147,10 @@ export class BadgeService {
    */
   async incrementAwardedCount(badgeId: string): Promise<void> {
     await this.badgeRepository.incrementTotalAwarded(badgeId);
+  }
+
+  //  ADDED - Get badges with progress for a user
+  async getBadgesWithProgress(userId: string): Promise<any[]> {
+    return await this.badgeProgressService.getBadgesWithProgress(userId);
   }
 }

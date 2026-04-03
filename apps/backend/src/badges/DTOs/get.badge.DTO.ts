@@ -20,4 +20,10 @@ export class GetBadgeDTO {
   @IsString()
   @IsNotEmpty()
   tier?: string;  // Filter by tier
+
+
+  @IsOptional()
+  @IsString()
+  userId?: string; //  ADDED
+
 }

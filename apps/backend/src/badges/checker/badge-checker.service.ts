@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User } from '../../user/schemas/user.schema';
 import { Badge } from '../schemas/badges.schema';
 import { Review } from '../../reviews/schema/review.schema';
 import { Event } from '../../events/schema/event.schema';
+
 
 @Injectable()
 export class BadgeCheckerService {
@@ -15,47 +16,32 @@ export class BadgeCheckerService {
     @InjectModel(Event.name) private readonly eventModel: Model<Event>,
   ) {}
 
-  /**
-   * Awards a badge to a user if they don't already have it
-   */
   async awardBadge(userId: string, badgeId: string): Promise<boolean> {
     const user = await this.userModel.findById(userId);
     const badge = await this.badgeModel.findOne({ badgeId });
 
-    if (!user || !badge) {
-      return false;
-    }
+    if (!user || !badge) return false;
 
-    // Check if user already has this badge
     const alreadyHas = user.badges.some(
       (b: any) => b.badge.toString() === badge._id.toString()
     );
 
-    if (alreadyHas) {
-      return false;
-    }
+    if (alreadyHas) return false;
 
-    // Award the badge
-    user.badges.push({
-      badge: badge._id,
-      earnedAt: new Date(),
-    } as any);
-
+    user.badges.push({ badge: badge._id, earnedAt: new Date() } as any);
     await user.save();
 
-    // Increment badge counter
     badge.totalAwarded += 1;
     await badge.save();
 
     return true;
   }
 
-  /**
-   * Check and award CONTRIBUTION badges after creating a review
-   */
   async checkReviewBadges(userId: string, reviewId: string): Promise<void> {
     const review = await this.reviewModel.findById(reviewId);
     if (!review) return;
+
+    const userObjectId = new Types.ObjectId(userId); // 👈 ADDED
 
     // THE CRITIC: Review with 100+ words
     if (review.reviewText && review.reviewText.split(' ').length >= 100) {
@@ -64,7 +50,7 @@ export class BadgeCheckerService {
 
     // PAPARAZZI: Photo in 10 different reviews
     const reviewsWithPhotos = await this.reviewModel.countDocuments({
-      author: userId,
+      author: userObjectId, // 👈 FIXED
       images: { $exists: true, $not: { $size: 0 } },
     });
 
@@ -83,7 +69,7 @@ export class BadgeCheckerService {
 
     // FRESH PERSPECTIVE EXPLORER: Reviewed 5 places with 0 previous reviews
     const firstReviewCount = await this.reviewModel.aggregate([
-      { $match: { author: userId } },
+      { $match: { author: userObjectId } }, // 👈 FIXED
       { $group: { _id: '$place', firstReview: { $min: '$createdAt' } } },
       { $count: 'total' },
     ]);
@@ -94,7 +80,7 @@ export class BadgeCheckerService {
 
     // CAFFEINE ADDICT: Reviewed 5 different cafes
     const cafeReviews = await this.reviewModel.aggregate([
-      { $match: { author: userId } },
+      { $match: { author: userObjectId } }, // 👈 FIXED
       {
         $lookup: {
           from: 'Place',
@@ -114,41 +100,30 @@ export class BadgeCheckerService {
     }
   }
 
-  /**
-   * Check and award badge when a review gets liked
-   */
   async checkReviewLikeBadges(reviewId: string): Promise<void> {
     const review = await this.reviewModel.findById(reviewId);
     if (!review) return;
 
-    // VIBE CHECK: Review liked by 20+ users
     if (review.likes >= 20) {
       await this.awardBadge(review.author.toString(), 'vibe-check');
     }
   }
 
-  /**
-   * Check and award EVENT badges after attending/creating events
-   */
   async checkEventBadges(userId: string): Promise<void> {
-    // SOCIAL BUTTERFLY: Attended 3+ events
+    const userObjectId = new Types.ObjectId(userId); // 👈 ADDED
+
     const attendedEvents = await this.eventModel.countDocuments({
-      attendees: userId,
+      attendees: userObjectId, // 👈 FIXED
       status: 'completed',
     });
 
-    if (attendedEvents >= 3) {
-      await this.awardBadge(userId, 'social-butterfly');
-    }
-
-    // REGULAR BADGES (Bronze, Silver, Gold)
+    if (attendedEvents >= 3) await this.awardBadge(userId, 'social-butterfly');
     if (attendedEvents >= 10) await this.awardBadge(userId, 'regular-bronze');
     if (attendedEvents >= 50) await this.awardBadge(userId, 'regular-silver');
     if (attendedEvents >= 100) await this.awardBadge(userId, 'regular-gold');
 
-    // TRENDSETTER: 10+ people attended event created by user
     const createdEvents = await this.eventModel.find({
-      host: userId,
+      host: userObjectId, // 👈 FIXED
       status: 'completed',
     });
 
@@ -159,36 +134,27 @@ export class BadgeCheckerService {
       }
     }
 
-    // NIGHT OWL: Attended 3+ events after 10 PM
     const nightEvents = await this.eventModel.countDocuments({
-      attendees: userId,
+      attendees: userObjectId, // 👈 FIXED
       status: 'completed',
       $expr: { $gte: [{ $hour: '$date' }, 22] },
     });
 
-    if (nightEvents >= 3) {
-      await this.awardBadge(userId, 'night-owl');
-    }
+    if (nightEvents >= 3) await this.awardBadge(userId, 'night-owl');
 
-    // WEEKEND WARRIOR (COMPLEX): Event every Saturday for 4 consecutive weeks
     await this.checkWeekendWarrior(userId);
-
-    // MONTHLY STREAK (COMPLEX): Event in 6 consecutive months
     await this.checkMonthlyStreak(userId);
-
-    // INNER CIRCLE (SIMPLE): At least 3 friends who each appeared in 5+ events
     await this.checkInnerCircle(userId);
   }
 
-  /**
-   * WEEKEND WARRIOR (COMPLEX): Event every Saturday for 4 consecutive weeks
-   */
   private async checkWeekendWarrior(userId: string): Promise<void> {
+    const userObjectId = new Types.ObjectId(userId); // 👈 ADDED
+
     const events = await this.eventModel
       .find({
-        attendees: userId,
+        attendees: userObjectId, // 👈 FIXED
         status: 'completed',
-        $expr: { $eq: [{ $dayOfWeek: '$date' }, 7] }, // Saturday only (7 = Saturday in MongoDB)
+        $expr: { $eq: [{ $dayOfWeek: '$date' }, 7] },
       })
       .sort({ date: 1 })
       .lean();
@@ -207,41 +173,34 @@ export class BadgeCheckerService {
         continue;
       }
 
-      // Calculate days difference
       const daysDiff = Math.floor(
         (eventDate.getTime() - lastSaturday.getTime()) / (1000 * 60 * 60 * 24)
       );
 
       if (daysDiff === 7) {
-        // Consecutive Saturday (exactly 7 days)
         consecutiveSaturdays++;
-
         if (consecutiveSaturdays >= 4) {
           await this.awardBadge(userId, 'weekend-warrior');
           return;
         }
       } else if (daysDiff > 7) {
-        // Missed a Saturday - reset counter
         consecutiveSaturdays = 1;
       }
-      // If daysDiff < 7, it's the same Saturday or error - ignore
 
       lastSaturday = eventDate;
     }
   }
 
-  /**
-   * MONTHLY STREAK (COMPLEX): Event in 6 consecutive months
-   */
   private async checkMonthlyStreak(userId: string): Promise<void> {
+    const userObjectId = new Types.ObjectId(userId); // 👈 ADDED
+
     const events = await this.eventModel
-      .find({ attendees: userId, status: 'completed' })
+      .find({ attendees: userObjectId, status: 'completed' }) // 👈 FIXED
       .sort({ date: 1 })
       .lean();
 
     if (events.length < 6) return;
 
-    // Group events by year-month
     const monthsSet = new Set<string>();
 
     for (const event of events) {
@@ -250,12 +209,9 @@ export class BadgeCheckerService {
       monthsSet.add(yearMonth);
     }
 
-    // Convert to sorted array
     const months = Array.from(monthsSet).sort();
-
     if (months.length < 6) return;
 
-    // Check for 6 consecutive months
     let consecutiveMonths = 1;
 
     for (let i = 1; i < months.length; i++) {
@@ -265,39 +221,33 @@ export class BadgeCheckerService {
       let isConsecutive = false;
 
       if (currYear === prevYear && currMonth === prevMonth + 1) {
-        // Same year, next month
         isConsecutive = true;
       } else if (currYear === prevYear + 1 && prevMonth === 12 && currMonth === 1) {
-        // Year transition (Dec -> Jan)
         isConsecutive = true;
       }
 
       if (isConsecutive) {
         consecutiveMonths++;
-
         if (consecutiveMonths >= 6) {
           await this.awardBadge(userId, 'monthly-streak');
           return;
         }
       } else {
-        // Not consecutive - reset counter
         consecutiveMonths = 1;
       }
     }
   }
 
-  /**
-   * INNER CIRCLE (SIMPLE): At least 3 friends who each appeared in 5+ events
-   */
   private async checkInnerCircle(userId: string): Promise<void> {
+    const userObjectId = new Types.ObjectId(userId); // 👈 ADDED
+
     const events = await this.eventModel
-      .find({ attendees: userId, status: 'completed' })
+      .find({ attendees: userObjectId, status: 'completed' }) // 👈 FIXED
       .select('attendees')
       .lean();
 
     if (events.length < 5) return;
 
-    // Count how many times each friend appeared
     const friendCount: Record<string, number> = {};
 
     for (const event of events) {
@@ -309,7 +259,6 @@ export class BadgeCheckerService {
       }
     }
 
-    // Check if at least 3 friends appeared in 5+ events
     const frequentFriends = Object.values(friendCount).filter(count => count >= 5);
 
     if (frequentFriends.length >= 3) {
@@ -317,19 +266,18 @@ export class BadgeCheckerService {
     }
   }
 
-  /**
-   * Manual check - run all badge checks for a user
-   */
   async checkAllBadges(userId: string): Promise<string[]> {
     const awarded: string[] = [];
 
-    // Check review badges
-    const userReviews = await this.reviewModel.find({ author: userId });
+    // 👇 FIXED - convert userId to ObjectId for proper MongoDB query
+    const userReviews = await this.reviewModel.find({ 
+      author: new Types.ObjectId(userId) 
+    });
+
     for (const review of userReviews) {
       await this.checkReviewBadges(userId, review._id.toString());
     }
 
-    // Check event badges
     await this.checkEventBadges(userId);
 
     return awarded;

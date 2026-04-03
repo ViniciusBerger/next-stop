@@ -4,6 +4,7 @@ import { BadgeController } from './controller/badge.controller';
 import { BadgeService } from './service/badge.service';
 import { BadgeRepository } from './repository/badge.repository';
 import { BadgeCheckerService } from './checker/badge-checker.service';
+import { BadgeProgressService } from './service/badge-progress.service'; //  ADDED
 import { Badge, badgeSchema } from './schemas/badges.schema';
 import { User, userSchema } from '../user/schemas/user.schema';
 import { Review, reviewSchema } from '../reviews/schema/review.schema';
@@ -19,7 +20,7 @@ import { Event, eventSchema } from '../events/schema/event.schema';
     ]),
   ],
   controllers: [BadgeController],
-  providers: [BadgeService, BadgeRepository, BadgeCheckerService],
-  exports: [BadgeService, BadgeCheckerService], // ← Export BadgeCheckerService
+  providers: [BadgeService, BadgeRepository, BadgeCheckerService, BadgeProgressService], //  ADDED
+  exports: [BadgeService, BadgeCheckerService],
 })
 export class BadgeModule {}
