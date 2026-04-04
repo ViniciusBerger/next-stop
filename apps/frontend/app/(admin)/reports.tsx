@@ -109,9 +109,6 @@ export default function ReportsScreen() {
 
   const renderHeader = () => (
     <View>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Report Management</Text>
-      </View>
 
       {/* Search */}
       <View style={styles.searchContainer}>
@@ -195,7 +192,7 @@ export default function ReportsScreen() {
   );
 
   return (
-    <AdminScreenLayout showBack={true}>
+    <AdminScreenLayout showBack={true} title="Report Management">
       <FlatList
         data={filteredReports}
         renderItem={({ item }) => (

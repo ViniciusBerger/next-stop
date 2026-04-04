@@ -125,6 +125,18 @@ export class ReviewService {
       .populate('author', 'username profilePicture')
       .populate('place', 'name address category customImages')
       .populate('event', 'name date')
+      .populate('likedBy', 'username profilePicture')
+      .sort({ createdAt: -1 })
+      .exec();
+  }
+
+  async getReviewsByMongoId(mongoId: string): Promise<Review[]> {
+    return await this.reviewModel
+      .find({ author: mongoId })
+      .populate('author', 'username profilePicture')
+      .populate('place', 'name address category customImages')
+      .populate('event', 'name date')
+      .populate('likedBy', 'username profilePicture')
       .sort({ createdAt: -1 })
       .exec();
   }

@@ -6,7 +6,8 @@ Get,
 Delete,
 Body,
 Query,
-Param
+Param,
+HttpCode
 
 }
 
@@ -109,6 +110,20 @@ respond(
 ){
 
 return this.service.respond(dto);
+
+}
+
+
+@Delete('unfriend')
+@HttpCode(200)
+unfriend(
+
+@Query('userId') userId:string,
+@Query('friendId') friendId:string
+
+){
+
+return this.service.unfriend(userId, friendId);
 
 }
 

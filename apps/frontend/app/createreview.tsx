@@ -193,9 +193,8 @@ export default function CreateReviewScreen() {
   };
 
   return (
-    <ScreenLayout showBack={true}>
+    <ScreenLayout showBack={true} title="Create Review">
       <View style={styles.contentContainer}>
-        <Text style={styles.headerTitle}>Create Review</Text>
 
         <View style={styles.reviewCard}>
           <Ionicons name="create-outline" size={70} color="#5962ff" style={styles.mainIcon} />

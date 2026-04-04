@@ -224,13 +224,12 @@ export default function EditInformationScreen() {
 
 };
   return (
-    <ScreenLayout showBack={true}>
+    <ScreenLayout showBack={true} title="Edit Information">
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>Edit Information</Text>
 
         <View style={styles.card}>
 

@@ -20,106 +20,6 @@ import { auth } from '@/src/config/firebase';
 import { API_URL } from '@/src/config/api';
 import { getToken } from '@/src/utils/auth';
 
-const { width } = Dimensions.get('window');
-
-// Mock data for friends
-const MOCK_FRIENDS = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    username: '@sarahj',
-    avatar: 'https://i.pravatar.cc/150?u=1',
-    mutualFriends: 12,
-    isOnline: true,
-    lastActive: 'Online',
-  },
-  {
-    id: '2',
-    name: 'Mike Ross',
-    username: '@mikeross',
-    avatar: 'https://i.pravatar.cc/150?u=2',
-    mutualFriends: 8,
-    isOnline: true,
-    lastActive: 'Online',
-  },
-  {
-    id: '3',
-    name: 'Jessica Pearson',
-    username: '@jpearson',
-    avatar: 'https://i.pravatar.cc/150?u=3',
-    mutualFriends: 5,
-    isOnline: false,
-    lastActive: '2h ago',
-  },
-  {
-    id: '4',
-    name: 'Harvey Specter',
-    username: '@hspecter',
-    avatar: 'https://i.pravatar.cc/150?u=4',
-    mutualFriends: 15,
-    isOnline: false,
-    lastActive: '1d ago',
-  },
-  {
-    id: '5',
-    name: 'Rachel Zane',
-    username: '@rzane',
-    avatar: 'https://i.pravatar.cc/150?u=5',
-    mutualFriends: 3,
-    isOnline: true,
-    lastActive: 'Online',
-  },
-  {
-    id: '6',
-    name: 'Louis Litt',
-    username: '@llitt',
-    avatar: 'https://i.pravatar.cc/150?u=6',
-    mutualFriends: 7,
-    isOnline: false,
-    lastActive: '3h ago',
-  },
-];
-
-// Mock data for friend requests
-const MOCK_REQUESTS = [
-  {
-    id: 'r1',
-    name: 'Donna Paulsen',
-    username: '@dpaulsend',
-    avatar: 'https://i.pravatar.cc/150?u=7',
-    mutualFriends: 4,
-    mutualPlaces: 3,
-  },
-  {
-    id: 'r2',
-    name: 'Robert Zane',
-    username: '@rzane',
-    avatar: 'https://i.pravatar.cc/150?u=8',
-    mutualFriends: 2,
-    mutualPlaces: 1,
-  },
-];
-
-// Mock data for suggestions
-const MOCK_SUGGESTIONS = [
-  {
-    id: 's1',
-    name: 'Katrina Bennett',
-    username: '@kbennett',
-    avatar: 'https://i.pravatar.cc/150?u=9',
-    mutualFriends: 6,
-    mutualPlaces: 4,
-  },
-  {
-    id: 's2',
-    name: 'Alex Williams',
-    username: '@awilliams',
-    avatar: 'https://i.pravatar.cc/150?u=10',
-    mutualFriends: 3,
-    mutualPlaces: 2,
-  },
-];
-
 export default function FriendsScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('friends'); // 'friends', 'requests', 'suggestions'
@@ -390,6 +290,23 @@ console.log("Accept failed", error);
     });
   };
 
+  const handleUnfriend = (friendId: string, friendName: string) => {
+    confirmAction(
+      'Unfriend',
+      `Are you sure you want to unfriend ${friendName}?`,
+      async () => {
+        try {
+          await axios.delete(`${API_URL}/friends/unfriend`, {
+            params: { userId: mongoUserId, friendId }
+          });
+          setFriends(prev => prev.filter(f => f.id !== friendId));
+        } catch (error) {
+          console.log("Unfriend failed", error);
+        }
+      }
+    );
+  };
+
   const handleAddFriend = async (id: string) => {
   const suggestion = suggestions.find(s => s.id === id);
   try {
@@ -411,7 +328,11 @@ console.log("Accept failed", error);
 
 
   const FriendCard = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.friendCard} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.friendCard}
+      activeOpacity={0.7}
+      onPress={() => router.push({ pathname: '/userprofile', params: { username: item.name, avatar: item.avatar } })}
+    >
       <View style={styles.friendCardContent}>
         <View style={styles.avatarContainer}>
           <Image source={{ uri: item.avatar }} style={styles.avatar} />
@@ -426,8 +347,11 @@ console.log("Accept failed", error);
           <Text style={[styles.activeText, item.isOnline && styles.onlineText]}>
             {item.lastActive}
           </Text>
-          <TouchableOpacity style={styles.menuButton}>
-            <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => handleUnfriend(item.id, item.name)}
+          >
+            <Ionicons name="person-remove-outline" size={20} color="#e10000" />
           </TouchableOpacity>
         </View>
       </View>
@@ -436,7 +360,11 @@ console.log("Accept failed", error);
 
   const RequestCard = ({ item }: { item: any }) => (
     <View style={styles.requestCard}>
-      <View style={styles.requestCardContent}>
+      <TouchableOpacity
+        style={styles.requestCardContent}
+        activeOpacity={0.7}
+        onPress={() => router.push({ pathname: '/userprofile', params: { username: item.name, avatar: item.avatar } })}
+      >
         <Image source={{ uri: item.avatar }} style={styles.requestAvatar} />
         <View style={styles.requestInfo}>
           <Text style={styles.requestName}>{item.name}</Text>
@@ -452,9 +380,9 @@ console.log("Accept failed", error);
             </View>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
       <View style={styles.requestActions}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.actionButton, styles.acceptButton]}
           onPress={() => handleAcceptRequest(item.id)}
         >
@@ -474,7 +402,11 @@ console.log("Accept failed", error);
 
   const OutgoingRequestCard = ({ item }: { item: any }) => (
     <View style={styles.requestCard}>
-      <View style={styles.requestCardContent}>
+      <TouchableOpacity
+        style={styles.requestCardContent}
+        activeOpacity={0.7}
+        onPress={() => router.push({ pathname: '/userprofile', params: { username: item.name, avatar: item.avatar } })}
+      >
         <Image source={{ uri: item.avatar }} style={styles.requestAvatar} />
         <View style={styles.requestInfo}>
           <Text style={styles.requestName}>{item.name}</Text>
@@ -486,7 +418,7 @@ console.log("Accept failed", error);
             </View>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
       <TouchableOpacity
         style={[styles.actionButton, styles.cancelButton]}
         onPress={() => handleCancelRequest(item.id)}
@@ -499,7 +431,11 @@ console.log("Accept failed", error);
 
   const SuggestionCard = ({ item }: { item: any }) => (
     <View style={styles.suggestionCard}>
-      <View style={styles.suggestionCardContent}>
+      <TouchableOpacity
+        style={styles.suggestionCardContent}
+        activeOpacity={0.7}
+        onPress={() => router.push({ pathname: '/userprofile', params: { username: item.name, avatar: item.avatar } })}
+      >
         <Image source={{ uri: item.avatar }} style={styles.suggestionAvatar} />
         <View style={styles.suggestionInfo}>
           <Text style={styles.suggestionName}>{item.name}</Text>
@@ -515,7 +451,7 @@ console.log("Accept failed", error);
             </View>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
       <TouchableOpacity 
         style={styles.addButton}
         onPress={() => handleAddFriend(item.id)}
@@ -618,7 +554,7 @@ console.log("Accept failed", error);
       default:
         return (
           <FlatList
-            data={friends}
+            data={filteredFriends}
             renderItem={({ item }) => <FriendCard item={item} />}
             keyExtractor={item => String(item.id)}
             contentContainerStyle={styles.listContent}
@@ -657,12 +593,8 @@ console.log("Accept failed", error);
   };
 
   return (
-    <ScreenLayout showBack={true}>
+    <ScreenLayout showBack={true} title="Friends">
       <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Friends</Text>
-        </View>
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
@@ -734,16 +666,6 @@ console.log("Accept failed", error);
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 20,
-    marginTop: 0,
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
   },
   searchContainer: {
     paddingHorizontal: 20,

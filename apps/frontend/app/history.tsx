@@ -105,14 +105,12 @@ export default function HistoryScreen() {
 }, [fetchHistory]);
 
   const Header = () => (
-    <View style={styles.headerBlock}>
-      <Text style={styles.headerTitle}>History</Text>
-    </View>
+    <View style={styles.headerBlock} />
   );
 
   if (loading) {
     return (
-      <ScreenLayout showBack={true}>
+      <ScreenLayout showBack={true} title="History">
         <Header />
         <View style={styles.stateWrapper}>
           <LoadingSpinner text="Loading your history..." />
@@ -123,7 +121,7 @@ export default function HistoryScreen() {
 
   if (error) {
     return (
-      <ScreenLayout showBack={true}>
+      <ScreenLayout showBack={true} title="History">
         <Header />
         <View style={styles.stateWrapper}>
           <ErrorState error={error} onRetry={handleRetry} />
@@ -133,7 +131,7 @@ export default function HistoryScreen() {
   }
 
   return (
-    <ScreenLayout showBack={true}>
+    <ScreenLayout showBack={true} title="History">
       <FlatList
         data={reviews}
         keyExtractor={(item) => item.id}

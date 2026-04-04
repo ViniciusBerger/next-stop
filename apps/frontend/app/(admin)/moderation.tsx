@@ -294,11 +294,7 @@ export default function ModerationScreen() {
   const modalConfig = getModalConfig();
 
   return (
-    <AdminScreenLayout showBack={true}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>User Moderation</Text>
-      </View>
+    <AdminScreenLayout showBack={true} title="User Moderation">
 
       {/* Tabs */}
       <View style={styles.tabRow}>

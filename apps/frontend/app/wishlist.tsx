@@ -45,9 +45,8 @@ export default function WishlistScreen() {
   );
 
   return (
-    <ScreenLayout showBack={true}>
+    <ScreenLayout showBack={true} title="Wishlist">
       <View style={styles.container}>
-        <Text style={styles.title}>Wishlist</Text>
 
         {loading ? (
           <ActivityIndicator size="large" color="#5962ff" />

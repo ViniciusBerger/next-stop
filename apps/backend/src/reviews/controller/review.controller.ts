@@ -83,6 +83,26 @@ export class ReviewController {
   }
 
   /**
+   * Retrieves all reviews by a user's MongoDB _id
+   * GET /reviews/profile/:mongoId
+   */
+  @Get('profile/:mongoId')
+  async getReviewsByMongoId(@Param('mongoId') mongoId: string) {
+    const reviews = await this.reviewService.getReviewsByMongoId(mongoId);
+
+    return reviews.map((review) => {
+      const obj = review.toObject();
+      obj._id = obj._id?.toString();
+      if (obj.author && typeof obj.author === 'object') {
+        obj.author._id = obj.author._id?.toString();
+      }
+      return plainToInstance(ReviewResponseDTO, obj, {
+        excludeExtraneousValues: true,
+      });
+    });
+  }
+
+  /**
    * Retrieves all reviews by a specific user (History)
    * GET /reviews/user/:userId
    */

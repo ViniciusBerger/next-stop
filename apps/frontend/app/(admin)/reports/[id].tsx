@@ -135,12 +135,8 @@ export default function ReportDetailScreen() {
   }
 
   return (
-    <AdminScreenLayout showBack={true}>
+    <AdminScreenLayout showBack={true} title="Report Details">
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Report Details</Text>
-        </View>
 
         {/* Status Banner */}
         <View style={[styles.statusBanner, { backgroundColor: getStatusColor(status) + '20' }]}>

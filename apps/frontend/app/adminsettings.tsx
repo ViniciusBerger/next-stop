@@ -103,9 +103,8 @@ export default function AdminSettingsScreen() {
   };
 
   return (
-    <AdminScreenLayout showBack={true}>
+    <AdminScreenLayout showBack={true} title="System Control">
       <View style={styles.contentContainer}>
-        <Text style={styles.titleText}>System Control</Text>
 
         <View style={styles.statusBanner}>
           <View style={[styles.statusDot, { backgroundColor: isMaintenanceMode ? '#dc2626' : '#37E9BB' }]} />

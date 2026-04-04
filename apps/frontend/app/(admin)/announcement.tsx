@@ -71,9 +71,8 @@ export default function AnnouncementScreen() {
   };
 
   return (
-    <AdminScreenLayout showBack={true}>
+    <AdminScreenLayout showBack={true} title="Schedule Announcement">
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <Text style={styles.pageTitle}>Schedule Announcement</Text>
 
         <View style={styles.card}>
           <Text style={styles.label}>Title</Text>

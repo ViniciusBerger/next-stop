@@ -72,9 +72,8 @@ export default function MyEvents() {
   ];
 
   return (
-    <ScreenLayout showBack={true}>
+    <ScreenLayout showBack={true} title="My Events">
       <View style={styles.contentContainer}>
-        <Text style={styles.titleText}>My Events</Text>
 
         <View style={styles.iconContainer}>
           <Ionicons name="calendar-outline" size={80} color="#ffffff" />

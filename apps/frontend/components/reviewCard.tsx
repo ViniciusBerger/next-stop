@@ -13,11 +13,13 @@ interface ReviewProps {
   userAvatar?: string | null; // ADDED
   text: string;
   isOwnReview?: boolean;
+  isLiked?: boolean;
   onDelete?: () => void;
+  onLike?: () => void;
 }
 
-export function ReviewCard({ 
-  userName, date, placeName, rating, likes, hasImage, imageUrl, userAvatar, text, onDelete, isOwnReview 
+export function ReviewCard({
+  userName, date, placeName, rating, likes, hasImage, imageUrl, text, onDelete, isOwnReview, isLiked, onLike
 }: ReviewProps) {
   
   const renderStars = (val: number) => {
@@ -59,10 +61,10 @@ export function ReviewCard({
 
       <View style={styles.ratingRow}>
         <View style={styles.starsContainer}>{renderStars(rating)}</View>
-        <View style={styles.likesContainer}>
-          <Ionicons name="heart" size={18} color="#ff4d4d" />
+        <TouchableOpacity style={styles.likesContainer} onPress={onLike} disabled={!onLike}>
+          <Ionicons name={isLiked ? "heart" : "heart-outline"} size={18} color={isLiked ? "#ff4d4d" : "#999"} />
           <Text style={styles.likesText}>{likes} likes</Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       <Text style={styles.reviewBodyText}>{text}</Text>

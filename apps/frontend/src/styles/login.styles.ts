@@ -161,7 +161,10 @@ export const styles = StyleSheet.create({
   menuButton: {
     width: 40,
     height: 40,
+    padding: 5,
+    marginLeft: 5,
     justifyContent: "center",
+    zIndex: 10,
   },
 
   avatarWrapper: {

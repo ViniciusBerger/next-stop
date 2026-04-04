@@ -45,9 +45,8 @@ export default function FavoritesScreen() {
   );
 
   return (
-    <ScreenLayout showBack={true}>
+    <ScreenLayout showBack={true} title="Favorites">
       <View style={styles.container}>
-        <Text style={styles.title}>Favorites</Text>
 
         {loading ? (
           <ActivityIndicator size="large" color="#5962ff" />

@@ -1,5 +1,5 @@
 import React from "react";
-import { ScrollView, View, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
+import { ScrollView, View, StyleSheet, KeyboardAvoidingView, Platform, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { styles as loginStyles } from "../src/styles/login.styles"; //Named to avoid confusion
 import { BackButton } from "./backButton";
@@ -7,9 +7,10 @@ import { BackButton } from "./backButton";
 interface ScreenLayoutProps {
   children: React.ReactNode;
   showBack?: boolean;
+  title?: string;
 }
 
-export function AdminScreenLayout({ children, showBack = true }: ScreenLayoutProps) {
+export function AdminScreenLayout({ children, showBack = true, title }: ScreenLayoutProps) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -27,9 +28,10 @@ export function AdminScreenLayout({ children, showBack = true }: ScreenLayoutPro
           {/*Background stays back */}
           <View style={[loginStyles.headerBackground, { position: 'absolute' }]} />
 
-          {/*Back Button on top*/}
-          <View style={[styles.topHeader, { paddingTop: insets.top + 8 }]}>
+          {/*Back Button and title on the same row */}
+          <View style={[styles.topHeader, { paddingTop: insets.top + 30 }]}>
             {showBack && <BackButton color="white" />}
+            {title && <Text style={styles.headerTitle}>{title}</Text>}
           </View>
 
           {children}
@@ -41,8 +43,19 @@ export function AdminScreenLayout({ children, showBack = true }: ScreenLayoutPro
 
 const styles = StyleSheet.create({
   topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
+    marginBottom: 18,
     zIndex: 10,
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginRight: 40,
   },
   scrollContent: {
     paddingHorizontal: 20,

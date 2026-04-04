@@ -14,6 +14,8 @@ export default function MyReviewsScreen() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [firebaseUid, setFirebaseUid] = useState<string | null>(null);
+  const [mongoUserId, setMongoUserId] = useState<string | null>(null);
 
 useEffect(() => {
   // Avoids waiting for async auth restore
@@ -47,6 +49,10 @@ const fetchReviews = async (uid: string) => {
       headers: { Authorization: `Bearer ${token}` }
     });
 
+    const currentMongoId = response.data[0]?.author?._id ?? null;
+    setFirebaseUid(uid);
+    setMongoUserId(currentMongoId);
+
     const mapped = response.data.map((review: any) => ({
       id: review._id,
       mongoAuthorId: review.author?._id ?? review.author,
@@ -57,6 +63,7 @@ const fetchReviews = async (uid: string) => {
       placeName: review.place?.name ?? review.place ?? "Unknown place",
       rating: review.rating,
       likes: review.likes ?? 0,
+      likedBy: review.likedBy ?? [],
       hasImage: review.images?.length > 0,
       imageUrl: review.images?.[0] ?? null,
       text: review.reviewText,
@@ -71,6 +78,23 @@ const fetchReviews = async (uid: string) => {
     setLoading(false);
   }
 };
+
+  const handleLike = async (reviewId: string) => {
+    if (!firebaseUid) return;
+    try {
+      const token = await getToken();
+      const res = await axios.post(
+        `${API_URL}/reviews/like`,
+        { reviewId, userId: firebaseUid },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setReviews(prev => prev.map(r =>
+        r.id === reviewId ? { ...r, likes: res.data.likes, likedBy: res.data.likedBy ?? [] } : r
+      ));
+    } catch (err: any) {
+      console.error("Failed to like review:", err.response?.data || err.message);
+    }
+  };
 
   const EmptyState = () => (
     <View style={styles.emptyContainer}>
@@ -96,7 +120,6 @@ const fetchReviews = async (uid: string) => {
   // 1. The Top of the Card
   const Header = () => (
     <View style={styles.cardTop}>
-      <Text style={styles.headerTitle}>My Reviews</Text>
       <View style={styles.whiteCardTop}>
         <Ionicons name="hand-right-outline" size={80} color="#5962ff" style={styles.topIcon} />
       </View>
@@ -108,7 +131,7 @@ const fetchReviews = async (uid: string) => {
 
   if (loading) {
     return (
-      <ScreenLayout showBack={true}>
+      <ScreenLayout showBack={true} title="My Reviews">
         <Header />
         <View style={styles.emptyContainer}>
           <Text style={styles.emptySubtitle}>Loading your reviews...</Text>
@@ -118,7 +141,7 @@ const fetchReviews = async (uid: string) => {
   }
 
   return (
-    <ScreenLayout showBack={true}>
+    <ScreenLayout showBack={true} title="My Reviews">
       <FlatList
         data={reviews}
         keyExtractor={(item) => item.id}
@@ -127,6 +150,8 @@ const fetchReviews = async (uid: string) => {
             <ReviewCard
               {...item}
               isOwnReview={true}
+              isLiked={item.likedBy?.some((u: any) => u._id === mongoUserId || u === mongoUserId)}
+              onLike={() => handleLike(item.id)}
               onDelete={() => showAlert(
                 "Delete Review",
                 "Are you sure you want to delete this review?",
