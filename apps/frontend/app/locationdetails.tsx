@@ -211,7 +211,7 @@ const handleToggleWishlist = async () => {
           </View>
 
           {/* 4. Review Button (Only if user has visited) */}
-        {hasVisited && (
+        {(hasVisited || true) && (
           <TouchableOpacity 
             style={styles.reviewPromptCard}
             onPress={() => router.push({

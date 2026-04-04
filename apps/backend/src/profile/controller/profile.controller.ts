@@ -17,63 +17,75 @@ import { plainToInstance } from 'class-transformer';
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
-  // GET /profile?firebaseUid=xxx or /profile?username=xxx
+  // GET profile
   @Get()
   async getProfile(@Query() getProfileDTO: GetProfileDTO) {
-    console.log('GET /profile hit', getProfileDTO);
-    // Validate if at least one parameter was provided
+
     const hasValues = Object.values(getProfileDTO).some(
       (value) => value !== undefined && value !== '',
     );
 
     if (!hasValues) {
       throw new BadRequestException(
-        'Please provide a valid firebaseUid or username',
+        'Please provide firebaseUid or username',
       );
     }
 
-    // Search profile
     const user = await this.profileService.getProfile(getProfileDTO);
 
     if (!user) {
       throw new NotFoundException('Profile not found');
     }
 
-    // Return using ResponseDTO (without sensitive data)
     return plainToInstance(ProfileResponseDTO, user.toObject(), {
       excludeExtraneousValues: true,
     });
   }
 
-  // PUT /profile?firebaseUid=xxx or /profile?username=xxx
+  // UPDATE profile
   @Put()
   async updateProfile(
     @Query() getProfileDTO: GetProfileDTO,
     @Body() updateProfileDTO: UpdateProfileDTO,
   ) {
-    // Validate if at least one identification parameter was provided
+    console.log("UPDATE BODY:", updateProfileDTO);
+
     const hasIdentifier = Object.values(getProfileDTO).some(
       (value) => value !== undefined && value !== '',
     );
 
     if (!hasIdentifier) {
       throw new BadRequestException(
-        'Please provide a valid firebaseUid or username',
+        'Please provide firebaseUid or username',
       );
     }
 
-    // Validate if there is any data to update
-    const hasUpdateData = 
+    // REMOVE empty strings (this was causing your error)
+    if (updateProfileDTO.username === '') {
+      delete updateProfileDTO.username;
+    }
+
+    if (updateProfileDTO.profilePicture === '') {
+      delete updateProfileDTO.profilePicture;
+    }
+
+    if (updateProfileDTO.bio === '') {
+      delete updateProfileDTO.bio;
+    }
+
+    const hasUpdateData =
       updateProfileDTO.preferences !== undefined ||
-      updateProfileDTO.privacy !== undefined;
+      updateProfileDTO.privacy !== undefined ||
+      updateProfileDTO.profilePicture !== undefined ||
+      updateProfileDTO.bio !== undefined ||
+      updateProfileDTO.username !== undefined;
 
     if (!hasUpdateData) {
       throw new BadRequestException(
-        'Please provide preferences or privacy settings to update',
+        'No valid fields to update',
       );
     }
 
-    // Update profile
     const updatedUser = await this.profileService.updateProfile(
       getProfileDTO,
       updateProfileDTO,
@@ -83,7 +95,6 @@ export class ProfileController {
       throw new NotFoundException('Profile not found');
     }
 
-    // Return using ResponseDTO
     return plainToInstance(ProfileResponseDTO, updatedUser.toObject(), {
       excludeExtraneousValues: true,
     });
