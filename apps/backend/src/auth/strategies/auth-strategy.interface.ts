@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { User } from "src/user/schemas/user.schema";
+import { User } from "../../user/schemas/user.schema";
 /**
  * Interface for Authentication Strategies.
  * 

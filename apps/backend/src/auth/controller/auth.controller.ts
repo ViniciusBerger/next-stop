@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Post, Query, Get } from "@nestjs/common";
 import { AuthService } from "../service/auth.service";
-import { UserResponseDTO } from "src/user/DTOs/user.response.DTO";
+import { UserResponseDTO } from "../../user/DTOs/user.response.DTO";
 import { RegisterUserDTO } from "../DTOs/register.user.DTO";
 import { ValidateUserDTO } from "../DTOs/validate.user.DTO";
 import { plainToInstance } from "class-transformer";
