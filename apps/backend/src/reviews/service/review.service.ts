@@ -40,7 +40,7 @@ export class ReviewService {
     // Populate before returning
     return await this.reviewModel
       .findById(newReview._id)
-      .populate('author', 'username profilePicture')
+      .populate('author')
       .populate('place', 'name address category')
       .populate('event', 'name date')
       .exec() as Review;
@@ -63,10 +63,10 @@ export class ReviewService {
     
     return await this.reviewModel
       .find({ _id: { $in: reviews.map(r => r._id) } })
-      .populate('author', 'username profilePicture')
+      .populate('author')
       .populate('place', 'name address category')
       .populate('event', 'name date')
-      .populate('likedBy', 'username profilePicture')
+      .populate('likedBy', 'username profile')
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -83,10 +83,10 @@ export class ReviewService {
 
     const review = await this.reviewModel
       .findById(id)
-      .populate('author', 'username profilePicture')
+      .populate('author')
       .populate('place', 'name address category')
       .populate('event', 'name date')
-      .populate('likedBy', 'username profilePicture')
+      .populate('likedBy', 'username profile')
       .exec();
 
     if (!review) {
@@ -106,9 +106,9 @@ export class ReviewService {
 
     return await this.reviewModel
       .find(query) // Cast to ObjectId for querying
-      .populate('author', 'username profilePicture')
+      .populate('author')
       .populate('event', 'name date')
-      .populate('likedBy', 'username profilePicture')
+      .populate('likedBy', 'username profile')
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -122,10 +122,10 @@ export class ReviewService {
 
     return await this.reviewModel
       .find({ author: user._id }) // matches the stored ObjectId
-      .populate('author', 'username profilePicture')
+      .populate('author')
       .populate('place', 'name address category customImages')
       .populate('event', 'name date')
-      .populate('likedBy', 'username profilePicture')
+      .populate('likedBy', 'username profile')
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -133,10 +133,10 @@ export class ReviewService {
   async getReviewsByMongoId(mongoId: string): Promise<Review[]> {
     return await this.reviewModel
       .find({ author: mongoId })
-      .populate('author', 'username profilePicture')
+      .populate('author')
       .populate('place', 'name address category customImages')
       .populate('event', 'name date')
-      .populate('likedBy', 'username profilePicture')
+      .populate('likedBy', 'username profile')
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -206,9 +206,9 @@ async deleteReview(
     // Populate before returning
     return await this.reviewModel
       .findById(saved._id)
-      .populate('author', 'username profilePicture')
+      .populate('author')
       .populate('place', 'name address category')
-      .populate('likedBy', 'username profilePicture')
+      .populate('likedBy', 'username profile')
       .exec() as Review;
   }
 
