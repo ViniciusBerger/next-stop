@@ -47,13 +47,11 @@ export default function EditPrivacyScreen() {
   };
 
   return (
-    <ScreenLayout showBack={true}>
+    <ScreenLayout showBack={true} title="Edit Privacy">
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
-        {/* Title */}
-        <Text style={styles.title}>Edit Privacy</Text>
 
         {/* Card */}
         <View style={styles.card}>

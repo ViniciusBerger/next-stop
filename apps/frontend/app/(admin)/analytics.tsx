@@ -223,7 +223,7 @@ export default function AnalyticsScreen() {
 
   if (loading && !refreshing) {
     return (
-      <AdminScreenLayout showBack={true}>
+      <AdminScreenLayout showBack={true} title="Analytics Dashboard">
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#7E9AFF" />
           <Text style={styles.loadingText}>Loading analytics...</Text>
@@ -234,7 +234,7 @@ export default function AnalyticsScreen() {
 
   if (!analytics) {
     return (
-      <AdminScreenLayout showBack={true}>
+      <AdminScreenLayout showBack={true} title="Analytics Dashboard">
         <EmptyState
           icon="bar-chart-outline"
           title="No Data Available"
@@ -247,7 +247,7 @@ export default function AnalyticsScreen() {
   }
 
   return (
-    <AdminScreenLayout showBack={true}>
+    <AdminScreenLayout showBack={true} title="Analytics Dashboard">
       <ScrollView
         contentContainerStyle={styles.container}
         refreshControl={
@@ -262,7 +262,6 @@ export default function AnalyticsScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Analytics Dashboard</Text>
           <Text style={styles.headerSubtitle}>
             {new Date().toLocaleDateString('en-US', { 
               month: 'long', 

@@ -69,7 +69,8 @@ export class ReviewResponseDTO {
   likes: number;
 
   @Expose()
-  likedBy: any[]; // Can be populated with User details
+  @Type(() => AuthorDTO)
+  likedBy: AuthorDTO[]; // Populated with User details
 
   @Expose()
   createdAt: Date;

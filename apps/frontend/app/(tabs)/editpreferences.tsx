@@ -28,14 +28,12 @@ export default function EditPreferencesScreen() {
   };
 
   return (
-    <ScreenLayout showBack={true}>
+    <ScreenLayout showBack={true} title="Edit Preferences">
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Title */}
-        <Text style={styles.title}>Edit Preferences</Text>
 
         {/* Card */}
         <View style={styles.card}>

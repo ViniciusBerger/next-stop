@@ -18,19 +18,20 @@ import { AiModule } from '../ai/ai.module';
 import { SystemModule } from '../system/system.module';
 import { AnnouncementModule } from '../announcements/announcement.module';
 import { AdminModule } from '../admin/admin.module';
+import { BadgeModule } from '../badges/badge.module';
 // Comment to push a change and test an update to render deployment
 
 @Module({
   imports: [
     // configuration module to inject environment variables
     ConfigModule.forRoot({
-      isGlobal: true, 
+      isGlobal: true,
       envFilePath: '.env', // ./backend/.env
     }),
 
     // mongoose module to connect to MongoDB
     MongooseConnectionModule.init(),
-    UserModule, 
+    UserModule,
     PlaceModule,
     FirebaseModule,
     AuthModule,
@@ -42,7 +43,8 @@ import { AdminModule } from '../admin/admin.module';
     AiModule,
     SystemModule,
     AnnouncementModule,
-    AdminModule
+    AdminModule,
+    BadgeModule
   ],
   controllers: [AppController],
 

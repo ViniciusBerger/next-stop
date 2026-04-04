@@ -176,10 +176,6 @@ export default function FeedbackScreen() {
 
   const renderHeader = () => (
     <View>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Feedback Management</Text>
-      </View>
 
       {/* Search */}
       <View style={styles.searchContainer}>
@@ -336,7 +332,7 @@ export default function FeedbackScreen() {
   );
 
   return (
-    <AdminScreenLayout showBack={true}>
+    <AdminScreenLayout showBack={true} title="Feedback Management">
       <FlatList
         data={filteredFeedback}
         renderItem={renderItem}

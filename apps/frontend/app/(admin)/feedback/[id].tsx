@@ -123,12 +123,8 @@ export default function FeedbackDetailScreen() {
   const typeIcon = getTypeIcon(feedback.type);
 
   return (
-    <AdminScreenLayout showBack={true}>
+    <AdminScreenLayout showBack={true} title="Feedback Details">
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Feedback Details</Text>
-        </View>
 
         {/* Status Banner */}
         <View style={[styles.statusBanner, { backgroundColor: getStatusColor(status) + '20' }]}>

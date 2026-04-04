@@ -140,9 +140,8 @@ export default function BadgesScreen() {
   };
 
   return (
-    <ScreenLayout showBack={true}>
+    <ScreenLayout showBack={true} title="My Badges">
       <View style={styles.container}>
-        <Text style={styles.headerTitle}>My Badges</Text>
 
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
@@ -185,7 +184,7 @@ export default function BadgesScreen() {
 
               <View style={[
                 styles.modalIconCircle,
-                { backgroundColor: selectedBadge?.earned ? '#45d5af' : '#D0D0D0' },
+                { backgroundColor: selectedBadge?.earned ? '#45d5af' : '#ffffff' },
                 selectedBadge?.earned && styles.glowCircle
               ]}>
                 {selectedBadge?.iconUrl ? (
@@ -219,7 +218,7 @@ export default function BadgesScreen() {
 
               {selectedBadge?.earned && selectedBadge?.earnedAt && (
                 <Text style={styles.modalEarnedAt}>
-                  🗓 {new Date(selectedBadge.earnedAt).toLocaleDateString([], {
+                  EARNED: {new Date(selectedBadge.earnedAt).toLocaleDateString([], {
                     day: 'numeric', month: 'long', year: 'numeric'
                   })}
                 </Text>
@@ -241,14 +240,14 @@ export default function BadgesScreen() {
 
               {!selectedBadge?.earned && (
                 <View style={styles.lockedInfo}>
-                  <Ionicons name="lock-closed" size={14} color="#AAA" />
+                  <Ionicons name="lock-closed" size={14} color="#ffffff" />
                   <Text style={styles.lockedText}>Keep going to unlock this badge!</Text>
                 </View>
               )}
 
               <TouchableOpacity style={[
                 styles.closeBtn,
-                !selectedBadge?.earned && { backgroundColor: '#AAAAAA' }
+                !selectedBadge?.earned && { backgroundColor: '#ffffff' }
               ]} onPress={closeBadge}>
                 <Text style={styles.closeBtnText}>Close</Text>
               </TouchableOpacity>
@@ -290,7 +289,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     width: '48%',
     borderRadius: 25,
-    padding: 15,
+    padding: 10,
     alignItems: 'center',
     marginBottom: 15,
     shadowColor: '#000',
@@ -325,11 +324,11 @@ const styles = StyleSheet.create({
     height: 30,
   },
   progressTrack: {
-    width: '100%',
+    width: '90%',
     height: 6,
     backgroundColor: '#E0E0E0',
     borderRadius: 3,
-    marginTop: 5,
+    marginTop: 15,
     overflow: 'hidden',
   },
   progressBar: {
@@ -340,7 +339,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
     color: '#AAA',
-    marginTop: 4,
+    marginTop: 10,
   },
   // Modal styles
   modalOverlay: {
@@ -408,6 +407,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#AAA',
     marginBottom: 20,
+    marginLeft: 90,
   },
   modalProgressContainer: {
     width: '100%',
@@ -442,6 +442,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#AAA',
     fontStyle: 'italic',
+    justifyContent: 'center',
+    marginLeft: 15,
   },
   closeBtn: {
     backgroundColor: '#45d5af',

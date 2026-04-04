@@ -18,7 +18,7 @@ export function HomeHeader({
 
   return (
     <View style={[styles.homeHeader, { paddingTop: insets.top + 8 }]}>
-      <TouchableOpacity onPress={onMenuPress} style={styles.menuButton}>
+      <TouchableOpacity onPress={onMenuPress} style={styles.menuButton} activeOpacity={0.7} hitSlop={25}>
         <Image source={icons.menu} />
       </TouchableOpacity>
 

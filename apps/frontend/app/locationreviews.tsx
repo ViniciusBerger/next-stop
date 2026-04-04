@@ -48,6 +48,22 @@ export default function LocationReviewsScreen() {
     if (placeId) fetchData();
   }, [placeId]);
 
+  const handleLike = async (reviewId: string) => {
+    try {
+      const firebaseUid = auth.currentUser?.uid;
+      if (!firebaseUid) return;
+      const token = await getToken();
+      const res = await axios.post(
+        `${API_URL}/reviews/like`,
+        { reviewId, userId: firebaseUid },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setReviews(prev => prev.map(r => r._id === reviewId ? res.data : r));
+    } catch (err: any) {
+      console.error("Failed to like review:", err.response?.data || err.message);
+    }
+  };
+
   const handleDelete = async (reviewId: string) => {
     try {
       const token = await getToken();
@@ -70,6 +86,7 @@ export default function LocationReviewsScreen() {
     placeName: placeName ?? '',
     rating: review.rating,
     likes: review.likes ?? 0,
+    isLiked: review.likedBy?.some((u: any) => u._id === mongoUserId || u === mongoUserId) ?? false,
     hasImage: review.images?.length > 0,
     imageUrl: review.images?.[0] ?? null,
     text: review.reviewText,
@@ -88,7 +105,6 @@ export default function LocationReviewsScreen() {
 
   const Header = () => (
     <View style={styles.cardTop}>
-      <Text style={styles.headerTitle}>{placeName ?? 'Reviews'}</Text>
       <View style={styles.whiteCardTop} />
     </View>
   );
@@ -96,7 +112,7 @@ export default function LocationReviewsScreen() {
   const Footer = () => <View style={styles.cardBottom} />;
 
   return (
-    <ScreenLayout showBack={true}>
+    <ScreenLayout showBack={true} title={placeName ?? 'Reviews'}>
       {loading ? (
         <View style={styles.emptyContainer}>
           <Text style={{ color: '#fff' }}>Loading reviews...</Text>
@@ -112,6 +128,7 @@ export default function LocationReviewsScreen() {
                 <ReviewCard
                   {...formatted}
                   onDelete={() => handleDelete(item._id)}
+                  onLike={() => handleLike(item._id)}
                 />
               </View>
             );

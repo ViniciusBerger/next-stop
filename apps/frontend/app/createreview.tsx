@@ -161,9 +161,8 @@ export default function CreateReviewScreen() {
   };
 
   return (
-    <ScreenLayout showBack={true}>
+    <ScreenLayout showBack={true} title="Create Review">
       <View style={styles.contentContainer}>
-        <Text style={styles.headerTitle}>Create Review</Text>
 
         {/* The Main Card */}
         <View style={styles.reviewCard}>

@@ -136,4 +136,30 @@ role: { $ne: 'admin' }
     return this.model.findByIdAndDelete(id);
   }
 
+  // Remove accepted friendship between two users
+  async unfriend(userId: string, friendId: string) {
+    const friendship = await this.model.findOne({
+      status: 'accepted',
+      $or: [
+        { requester: userId, recipient: friendId },
+        { requester: friendId, recipient: userId }
+      ]
+    });
+
+    if (!friendship) return null;
+
+    await this.model.findByIdAndDelete(friendship._id);
+
+    await this.userModel.updateOne(
+      { _id: userId },
+      { $pull: { friends: friendId } }
+    );
+    await this.userModel.updateOne(
+      { _id: friendId },
+      { $pull: { friends: userId } }
+    );
+
+    return { success: true };
+  }
+
 }

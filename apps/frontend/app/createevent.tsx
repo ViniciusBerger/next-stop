@@ -127,9 +127,8 @@ const handleCreate = async () => {
 };
 
   return (
-    <ScreenLayout showBack={true}>
+    <ScreenLayout showBack={true} title="Create Event">
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.headerTitle}>Create Event</Text>
 
         {/* 1. Privacy Toggle */}
         <View style={styles.inputGroup}>

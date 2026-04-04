@@ -59,9 +59,8 @@ export default function FeedbackReportScreen() {
   };
 
   return (
-    <ScreenLayout showBack={true}>
+    <ScreenLayout showBack={true} title="Feedback / Report">
       <View style={styles.contentContainer}>
-        <Text style={styles.headerTitle}>Feedback / Report</Text>
 
         {/* The Main Card Container */}
         <View style={styles.reportCard}>

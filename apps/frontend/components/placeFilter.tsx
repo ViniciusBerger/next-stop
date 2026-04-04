@@ -142,6 +142,7 @@ const styles = StyleSheet.create({
   wrapper: {
     position: 'relative',
     zIndex: 100,
+    marginRight: 16,
   },
   filterButton: {
     width: 48,

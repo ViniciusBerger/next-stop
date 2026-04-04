@@ -94,9 +94,8 @@ export default function EventDetailsScreen() {
   }
 
   return (
-    <ScreenLayout showBack={true}>
+    <ScreenLayout showBack={true} title="Event Details">
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.headerTitle}>Event Details</Text>
 
         {/* Main Info Card */}
         <View style={styles.card}>

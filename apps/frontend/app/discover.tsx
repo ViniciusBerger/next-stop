@@ -216,8 +216,9 @@ export default function DiscoverScreen() {
       <View style={[loginStyles.headerBackground, { position: 'absolute' }]} />
 
       {/* Back button — respects safe area */}
-      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 30 }]}>
         <BackButton color="white" />
+        <Text style={styles.headerTitle}>Discover</Text>
       </View>
 
       {/* AI Vibe Modal — opens when user taps the sparkles icon */}
@@ -285,7 +286,6 @@ export default function DiscoverScreen() {
 
       {/* 1. Header is now "above" the map visually */}
       <View style={styles.discoverHeader}>
-        <Text style={styles.headerTitle}>Discover</Text>
         <View style={styles.controlsRow}>
           <View style={styles.searchBar}>
             {/* Sparkles icon now opens the AI vibe modal instead of pure random */}
@@ -367,14 +367,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
+    marginBottom: 18,
     zIndex: 10,
   },
   headerTitle: {
-    fontSize: 28,
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 20,
+    marginRight: 40,
   },
   controlsRow: {
     flexDirection: 'row',
@@ -398,14 +403,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: '#000',
-  },
-  filterButton: {
-    width: 48,
-    height: 48,
-    backgroundColor: 'rgba(255,255,255,0.2)', // Semi-transparent to match branding
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   dragHandle: {
     width: 40,

@@ -123,4 +123,12 @@ return this.repo.delete(id);
 
 }
 
+
+// Unfriend by user IDs
+async unfriend(userId: string, friendId: string){
+
+return this.repo.unfriend(userId, friendId);
+
+}
+
 }

@@ -166,9 +166,8 @@ const handleToggleWishlist = async () => {
 };
 
   return (
-    <ScreenLayout showBack={true}>
+    <ScreenLayout showBack={true} title="Location Details">
       <View style={styles.container}>
-        <Text style={styles.headerTitle}>Location Details</Text>
 
         {/* 1. Map Placeholder */}
         <View style={styles.mapPlaceholder}>
