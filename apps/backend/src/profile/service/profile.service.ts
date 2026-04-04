@@ -34,8 +34,20 @@ export class ProfileService {
     if (firebaseUid) filter.firebaseUid = firebaseUid;
     if (username) filter.username = username;
 
-    // Build update object
     const updateData: any = {};
+
+    //  ADDED - handle profilePicture, bio, username
+  if (updateDto.profilePicture !== undefined) {
+  updateData['profile.profilePicture'] = updateDto.profilePicture; //  FIXED
+}
+
+if (updateDto.bio !== undefined) {
+  updateData['profile.bio'] = updateDto.bio; //  FIXED
+}
+
+if (updateDto.username !== undefined) {
+  updateData['username'] = updateDto.username;
+}
 
     if (updateDto.preferences) {
       if (updateDto.preferences.cuisine !== undefined) {

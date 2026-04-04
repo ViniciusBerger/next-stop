@@ -14,7 +14,7 @@ import { BottomTabBar } from "../../components/bottomTabBar";
 import { HomeHeader } from "../../components/homeHeader";
 import { styles } from "../../src/styles/login.styles";
 import HomeMenu from "../../components/homeMenu";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router"; // ADDED useFocusEffect
 import axios from "axios";
 import { auth } from "@/src/config/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -25,7 +25,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { API_URL } from "@/src/config/api";
 import { getToken } from "@/src/utils/auth";
 
-// Mock posts data for when offline or no real data
 const MOCK_POSTS = [
   {
     id: '1',
@@ -73,6 +72,7 @@ export default function Home() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [username, setUsername] = useState("Username");
+  const [profilePicture, setProfilePicture] = useState(''); // ADDED
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -97,6 +97,10 @@ useEffect(() => {
           if (response.data?.username) {
             setUsername(response.data.username);
           }
+          // ADDED
+          if (response.data?.profile?.profilePicture) {
+            setProfilePicture(response.data.profile.profilePicture);
+          }
         } catch (apiError: any) {
           console.error("API Error:", apiError.response?.status, apiError.response?.data);
         }
@@ -107,6 +111,30 @@ useEffect(() => {
 
   return () => unsubscribe();
 }, []);
+
+  // ADDED - reload profile picture every time home screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      const reloadProfile = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+        const token = await getToken();
+        if (!token) return;
+        try {
+          const response = await axios.get(`${API_URL}/profile?firebaseUid=${user.uid}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (response.data?.username) setUsername(response.data.username);
+          if (response.data?.profile?.profilePicture) {
+            setProfilePicture(response.data.profile.profilePicture);
+          }
+        } catch (err) {
+          console.log("Profile reload error:", err);
+        }
+      };
+      reloadProfile();
+    }, [])
+  );
 
   useEffect(() => {
     if (isInitialized && !isConnected) {
@@ -145,6 +173,7 @@ useEffect(() => {
         <View style={styles.headerBackground} />
         <HomeHeader 
           username={username}
+          avatarUrl={profilePicture} // 👈 ADDED
           onMenuPress={() => setIsMenuOpen(true)} 
         />
         <DiscoverCard onPress={() => router.push("/discover")} />
@@ -160,6 +189,7 @@ useEffect(() => {
         <View style={styles.headerBackground} />
         <HomeHeader 
           username={username}
+          avatarUrl={profilePicture} // ADDED
           onMenuPress={() => setIsMenuOpen(true)} 
         />
         <DiscoverCard onPress={() => router.push("/discover")} />
@@ -193,6 +223,7 @@ useEffect(() => {
         <View style={styles.headerBackground} />
         <HomeHeader 
           username={username}
+          avatarUrl={profilePicture} //  ADDED
           onMenuPress={() => setIsMenuOpen(true)} 
         />
 
