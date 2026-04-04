@@ -28,7 +28,7 @@ class AuthorDTO {
   username: string;
 
   @Expose()
-  profilePicture:string;
+  profile: { profilePicture?: string };
 }
 
 class PlaceDTO {

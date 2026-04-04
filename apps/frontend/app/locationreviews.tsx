@@ -50,8 +50,10 @@ export default function LocationReviewsScreen() {
   }, [placeId]);
 
   const handleLike = async (reviewId: string) => {
+    console.log("handleLike called with reviewId:", reviewId);
     try {
       const firebaseUid = auth.currentUser?.uid;
+      console.log("firebaseUid:", firebaseUid);
       if (!firebaseUid) return;
       const token = await getToken();
       const res = await axios.post(

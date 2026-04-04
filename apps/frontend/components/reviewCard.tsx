@@ -19,7 +19,7 @@ interface ReviewProps {
 }
 
 export function ReviewCard({
-  userName, date, placeName, rating, likes, hasImage, imageUrl, text, onDelete, isOwnReview, isLiked, onLike
+  userName, date, placeName, rating, likes, hasImage, imageUrl, userAvatar, text, onDelete, isOwnReview, isLiked, onLike
 }: ReviewProps) {
   
   const renderStars = (val: number) => {

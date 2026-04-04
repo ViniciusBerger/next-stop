@@ -57,6 +57,7 @@ const fetchReviews = async (uid: string) => {
       id: review._id,
       mongoAuthorId: review.author?._id ?? review.author,
       userName: review.author?.username ?? "Unknown",
+      userAvatar: review.author?.profile?.profilePicture ?? null,
       date: review.date
         ? new Date(review.date).toLocaleDateString("en-US", { month: "long", year: "numeric" })
         : "Unknown date",

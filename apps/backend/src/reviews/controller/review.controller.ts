@@ -29,8 +29,12 @@ export class ReviewController {
   @Post()
   async createReview(@Body() createReviewDTO: CreateReviewDTO) {
     const newReview = await this.reviewService.createReview(createReviewDTO);
-
-    return plainToInstance(ReviewResponseDTO, newReview.toObject(), {
+    const obj = newReview.toObject();
+    obj._id = obj._id?.toString();
+    if (obj.author && typeof obj.author === 'object') {
+      obj.author._id = obj.author._id?.toString();
+    }
+    return plainToInstance(ReviewResponseDTO, obj, {
       excludeExtraneousValues: true,
     });
   }
@@ -43,11 +47,16 @@ export class ReviewController {
   async getReviews(@Query() getReviewDTO?: GetReviewDTO) {
     const reviews = await this.reviewService.getAllReviews(getReviewDTO);
 
-    return reviews.map((review) =>
-      plainToInstance(ReviewResponseDTO, review.toObject(), {
+    return reviews.map((review) => {
+      const obj = review.toObject();
+      obj._id = obj._id?.toString();
+      if (obj.author && typeof obj.author === 'object') {
+        obj.author._id = obj.author._id?.toString();
+      }
+      return plainToInstance(ReviewResponseDTO, obj, {
         excludeExtraneousValues: true,
-      }),
-    );
+      });
+    });
   }
 
   /**
@@ -61,8 +70,12 @@ export class ReviewController {
     }
 
     const review = await this.reviewService.getReview(getReviewDTO);
-
-    return plainToInstance(ReviewResponseDTO, review.toObject(), {
+    const obj = review.toObject();
+    obj._id = obj._id?.toString();
+    if (obj.author && typeof obj.author === 'object') {
+      obj.author._id = obj.author._id?.toString();
+    }
+    return plainToInstance(ReviewResponseDTO, obj, {
       excludeExtraneousValues: true,
     });
   }
@@ -75,11 +88,16 @@ export class ReviewController {
   async getPlaceReviews(@Param('placeId') placeId: string) {
     const reviews = await this.reviewService.getPlaceReviews(placeId);
 
-    return reviews.map((review) =>
-      plainToInstance(ReviewResponseDTO, review.toObject(), {
+    return reviews.map((review) => {
+      const obj = review.toObject();
+      obj._id = obj._id?.toString();
+      if (obj.author && typeof obj.author === 'object') {
+        obj.author._id = obj.author._id?.toString();
+      }
+      return plainToInstance(ReviewResponseDTO, obj, {
         excludeExtraneousValues: true,
-      }),
-    );
+      });
+    });
   }
 
   /**
@@ -146,8 +164,12 @@ async deleteReview(
   @Post('like')
   async toggleLike(@Body() likeReviewDTO: LikeReviewDTO) {
     const updatedReview = await this.reviewService.toggleLike(likeReviewDTO);
-
-    return plainToInstance(ReviewResponseDTO, updatedReview.toObject(), {
+    const obj = updatedReview.toObject();
+    obj._id = obj._id?.toString();
+    if (obj.author && typeof obj.author === 'object') {
+      obj.author._id = obj.author._id?.toString();
+    }
+    return plainToInstance(ReviewResponseDTO, obj, {
       excludeExtraneousValues: true,
     });
   }
