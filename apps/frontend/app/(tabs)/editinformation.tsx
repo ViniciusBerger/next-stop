@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,21 +7,32 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenLayout } from '@/components/screenLayout';
+import * as ImagePicker from 'expo-image-picker';
+import { auth } from '@/src/config/firebase';
+import { API_URL } from '@/src/config/api';
+import { getToken } from '@/src/utils/auth';
+import axios from 'axios';
 
-const USER = {
-  avatar: 'https://i.pravatar.cc/150?img=12',
-};
+const SUPABASE_URL = 'https://nooqsabykmeoajdgefhg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_9tmTWqEKEeEH6Gnk_8UTtQ_TAB6Ynz-';
+const BUCKET = 'profile-pictures';
 
 export default function EditInformationScreen() {
   const router = useRouter();
 
+  const [avatar, setAvatar] = useState('https://i.pravatar.cc/150?img=12');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [firebaseUid, setFirebaseUid] = useState('');
 
   const [errors, setErrors] = useState({
     username: '',
@@ -29,12 +40,118 @@ export default function EditInformationScreen() {
     password: '',
   });
 
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        setFirebaseUid(user.uid);
+        const token = await getToken();
+
+        const res = await axios.get(
+          `${API_URL}/profile?firebaseUid=${user.uid}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        setUsername(res.data.username || '');
+        setEmail(res.data.email || '');
+        if (res.data.profile?.profilePicture) {
+          setAvatar(res.data.profile.profilePicture);
+        }
+      } catch (err) {
+        console.log("Load profile error:", err);
+      }
+    };
+
+    loadProfile();
+  }, []);
+
+  const handlePickImage = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission required', 'Please allow access to your photo library.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'], //  FIXED
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadToSupabase(result.assets[0].uri);
+      }
+    } catch (err) {
+      console.log("Image pick error:", err);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const uploadToSupabase = async (uri: string) => {
+  try {
+    setUploading(true);
+
+    // SAFE filename (avoid blob extension issue)
+    const fileName = `${firebaseUid}_${Date.now()}.jpg`;
+
+    // Convert image to blob
+    const response = await fetch(uri);
+    const blob = await response.blob();
+
+    // Upload to Supabase
+    const uploadRes = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${fileName}`,
+      {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'image/jpeg',
+          'x-upsert': 'true',
+        },
+        body: blob,
+      }
+    );
+
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      console.log("Supabase upload error:", errText);
+      throw new Error('Upload failed');
+    }
+
+    // Generate clean public URL
+    const publicUrl =
+`${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${fileName}`;
+
+    console.log("Image uploaded:", publicUrl);
+
+    // Update UI immediately
+    setAvatar(publicUrl);
+
+  } catch (err) {
+
+    console.log("Upload error:", err);
+
+    Alert.alert(
+      'Upload Failed',
+      'Image upload failed. Try again.'
+    );
+
+  } finally {
+    setUploading(false);
+  }
+};
+
   const validate = () => {
     const newErrors = { username: '', email: '', password: '' };
     let valid = true;
 
     if (!username || username.trim().length < 3) {
-      newErrors.username = 'Invalid username';
+      newErrors.username = 'Username must be at least 3 characters';
       valid = false;
     }
 
@@ -45,7 +162,7 @@ export default function EditInformationScreen() {
     }
 
     if (newPassword && newPassword !== confirmPassword) {
-      newErrors.password = 'Invalid Password';
+      newErrors.password = 'Passwords do not match';
       valid = false;
     }
 
@@ -53,12 +170,59 @@ export default function EditInformationScreen() {
     return valid;
   };
 
-  const handleSave = () => {
-    if (validate()) {
-      router.back();
-    }
-  };
+  const handleSave = async () => {
 
+  if (!validate()) return;
+
+  try {
+
+    setSaving(true);
+
+    const token = await getToken();
+
+    // SAFE payload (only send valid fields)
+    const payload:any = {};
+
+    if (username?.trim() && username.trim().length >= 3) {
+      payload.username = username.trim();
+    }
+
+    if (avatar) {
+      payload.profilePicture = avatar;
+    }
+
+    console.log("Sending profile update:", payload);
+    console.log("UID being sent:", firebaseUid);
+    await axios.put(
+      `${API_URL}/profile?firebaseUid=${firebaseUid}`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    Alert.alert('Success', 'Profile updated successfully!');
+
+    router.back();
+
+  } catch (err:any) {
+
+    console.log("Save error:", err?.response?.data || err);
+
+    Alert.alert(
+      'Error',
+      err?.response?.data?.message || 'Failed to save profile'
+    );
+
+  } finally {
+
+    setSaving(false);
+
+  }
+
+};
   return (
     <ScreenLayout showBack={true} title="Edit Information">
       <ScrollView
@@ -67,22 +231,29 @@ export default function EditInformationScreen() {
         keyboardShouldPersistTaps="handled"
       >
 
-        {/* Card */}
         <View style={styles.card}>
 
-          {/* Avatar */}
           <View style={styles.avatarWrapper}>
-            <Image source={{ uri: USER.avatar }} style={styles.avatar} />
+            <Image source={{ uri: avatar }} style={styles.avatar} />
+            {uploading && (
+              <View style={styles.uploadingOverlay}>
+                <ActivityIndicator color="#FFF" size="large" />
+              </View>
+            )}
           </View>
-          <Text style={styles.editPictureText}>Edit picture</Text>
 
-          {/* Username */}
+          <TouchableOpacity onPress={handlePickImage} disabled={uploading}>
+            <Text style={styles.editPictureText}>
+              {uploading ? 'Uploading...' : 'Edit picture'}
+            </Text>
+          </TouchableOpacity>
+
           <Text style={styles.fieldLabel}>Username</Text>
           <TextInput
             style={[styles.input, errors.username ? styles.inputError : null]}
             value={username}
             onChangeText={setUsername}
-            placeholder=""
+            placeholder="Enter username"
             placeholderTextColor="#9CA3AF"
             autoCapitalize="none"
           />
@@ -90,7 +261,6 @@ export default function EditInformationScreen() {
             <Text style={styles.fieldError}>{errors.username}</Text>
           ) : null}
 
-          {/* Email */}
           <Text style={styles.fieldLabel}>Email</Text>
           <TextInput
             style={[styles.input, errors.email ? styles.inputError : null]}
@@ -105,34 +275,39 @@ export default function EditInformationScreen() {
             <Text style={styles.fieldError}>{errors.email}</Text>
           ) : null}
 
-          {/* New Password */}
           <Text style={styles.fieldLabel}>New Password</Text>
           <TextInput
             style={styles.input}
             value={newPassword}
             onChangeText={setNewPassword}
             secureTextEntry
-            placeholder=""
+            placeholder="Leave blank to keep current"
             placeholderTextColor="#9CA3AF"
           />
 
-          {/* Confirm New Password */}
           <Text style={styles.fieldLabel}>Confirm New Password</Text>
           <TextInput
             style={[styles.input, errors.password ? styles.inputError : null]}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
-            placeholder=""
+            placeholder="Confirm new password"
             placeholderTextColor="#9CA3AF"
           />
           {errors.password ? (
             <Text style={styles.fieldError}>{errors.password}</Text>
           ) : null}
 
-          {/* Save Button */}
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Text style={styles.saveButtonText}>Save changes</Text>
+          <TouchableOpacity
+            style={[styles.saveButton, (saving || uploading) && { opacity: 0.7 }]}
+            onPress={handleSave}
+            disabled={saving || uploading}
+          >
+            {saving ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.saveButtonText}>Save changes</Text>
+            )}
           </TouchableOpacity>
 
         </View>
@@ -169,6 +344,7 @@ const styles = StyleSheet.create({
   avatarWrapper: {
     alignItems: 'center',
     marginBottom: 8,
+    position: 'relative',
   },
   avatar: {
     width: 160,
@@ -176,11 +352,21 @@ const styles = StyleSheet.create({
     borderRadius: 110,
     backgroundColor: '#B0B0B0',
   },
+  uploadingOverlay: {
+    position: 'absolute',
+    width: 160,
+    height: 160,
+    borderRadius: 110,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   editPictureText: {
     textAlign: 'center',
     fontSize: 13,
-    color: '#6B7280',
+    color: '#7E9AFF',
     marginBottom: 20,
+    fontWeight: '600',
   },
   fieldLabel: {
     fontSize: 14,
