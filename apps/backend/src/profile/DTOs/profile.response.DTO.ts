@@ -1,6 +1,5 @@
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
 
-// Response DTO for Preferences
 export class PreferencesResponseDTO {
   @Expose()
   cuisine: string;
@@ -15,7 +14,6 @@ export class PreferencesResponseDTO {
   activities: string;
 }
 
-// Response DTO for Privacy
 export class PrivacyResponseDTO {
   @Expose()
   activityFeed: string;
@@ -33,28 +31,21 @@ export class PrivacyResponseDTO {
   preferences: string;
 }
 
-// Main response DTO from Profile
 export class ProfileResponseDTO {
   @Expose()
-  @Type(() => PreferencesResponseDTO)
-  preferences: PreferencesResponseDTO;
+  @Transform(({ obj }) => obj._id?.toString())
+  _id: string;
 
-  @Expose()
-  @Type(() => PrivacyResponseDTO)
-  privacy: PrivacyResponseDTO;
-
-  // User fields that will be exposed
   @Expose()
   username: string;
 
   @Expose()
   email: string;
 
+  //  expose full profile object as-is
   @Expose()
-  bio: string;
-
-  @Expose()
-  profilePicture: string;
+  @Transform(({ obj }) => obj.profile)
+  profile: any;
 
   @Expose()
   badges: any[];
@@ -62,11 +53,6 @@ export class ProfileResponseDTO {
   @Expose()
   friends: any[];
 
-  @Expose()
-  @Transform(({ obj }) => obj._id?.toString()) // Convert MongoDB ObjectId to string
-  _id: string;
-
-  // Delete sensitive fields
   @Exclude()
   firebaseUid: string;
 

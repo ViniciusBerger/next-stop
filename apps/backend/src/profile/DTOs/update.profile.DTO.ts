@@ -1,14 +1,12 @@
 import { IsString, IsOptional, IsEnum, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
-// Enum for privacy validation
 export enum PrivacyOption {
   ALL = 'All',
   FRIENDS = 'Friends',
   NONE = 'None'
 }
 
-// DTO for Preferences
 export class PreferencesDTO {
   @IsOptional()
   @IsString()
@@ -27,7 +25,6 @@ export class PreferencesDTO {
   activities?: string;
 }
 
-// DTO for Privacy
 export class PrivacyDTO {
   @IsOptional()
   @IsEnum(PrivacyOption)
@@ -50,8 +47,19 @@ export class PrivacyDTO {
   preferences?: string;
 }
 
-// Main DTO principal for updates
 export class UpdateProfileDTO {
+  @IsOptional()
+  @IsString()
+  profilePicture?: string; //  ADDED
+
+  @IsOptional()
+  @IsString()
+  bio?: string; //  ADDED
+
+  @IsOptional()
+  @IsString()
+  username?: string; //  ADDED
+
   @IsOptional()
   @ValidateNested()
   @Type(() => PreferencesDTO)

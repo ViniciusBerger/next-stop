@@ -1,21 +1,28 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image } from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ActivityIndicator } from "react-native"; //  added ActivityIndicator
 import { ScreenLayout } from "@/components/screenLayout";
 import { Ionicons } from '@expo/vector-icons';
 import { auth } from "@/src/config/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import axios from "axios";
-import * as ImagePicker from 'expo-image-picker'; // Import picker
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { API_URL } from "@/src/config/api";
 import { showAlert } from '@/src/utils/alert';
 
+//  ADDED
+const SUPABASE_URL = 'https://nooqsabykmeoajdgefhg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_9tmTWqEKEeEH6Gnk_8UTtQ_TAB6Ynz-';
+const BUCKET = 'review-images';
+
 export default function CreateReviewScreen() {
-  const { placeId, placeName: initialPlaceName } = useLocalSearchParams(); // Catch the ID from navigation
+  const { placeId, placeName: initialPlaceName } = useLocalSearchParams();
   const [rating, setRating] = useState(0);
   const [placeName, setPlaceName] = useState((initialPlaceName as string) || "");
   const [reviewText, setReviewText] = useState("");
-  const [image, setImage] = useState<string | null>(null); // State for the image URI
+  const [image, setImage] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null); //  ADDED - stores Supabase URL
+  const [uploading, setUploading] = useState(false); //  ADDED
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const router = useRouter();
@@ -29,6 +36,47 @@ export default function CreateReviewScreen() {
     return () => unsubscribe();
   }, []);
 
+  //  ADDED - upload to Supabase
+  const uploadToSupabase = async (uri: string): Promise<string | null> => {
+    try {
+      setUploading(true);
+      const fileName = `review_${currentUser?.uid}_${Date.now()}.jpg`;
+
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      const uploadRes = await fetch(
+        `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${fileName}`,
+        {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'image/jpeg',
+            'x-upsert': 'true',
+          },
+          body: blob,
+        }
+      );
+
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text();
+        console.log("Supabase error:", errText);
+        return null;
+      }
+
+      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${fileName}`;
+      console.log("Review image uploaded:", publicUrl);
+      return publicUrl;
+
+    } catch (err) {
+      console.log("Upload error:", err);
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handlePost = async () => {
     if (!currentUser) {
       const msg = authLoading 
@@ -39,62 +87,53 @@ export default function CreateReviewScreen() {
     }
 
     if (reviewText.length < 10) {
-      const msg = "Review must be at least 10 characters long.";
-      showAlert("Too Short", msg);
+      showAlert("Too Short", "Review must be at least 10 characters long.");
       return;
     }
 
     if (rating < 1) {
-      const msg = "Please select a star rating.";
-      showAlert("Rating Required", msg);
+      showAlert("Rating Required", "Please select a star rating.");
       return;
     }
 
     try {
+      // ADDED - upload image to Supabase first if exists
+      let finalImageUrl = null;
+      if (image) {
+        finalImageUrl = await uploadToSupabase(image);
+      }
+
       const payload = {
-      // author must be string and not empty
-      author: String(currentUser.uid), 
-      // place must be string and not empty
-      place: String(placeId),          
-      // rating must be a number
-      rating: Number(rating),         
-      // reviewText must be string (min 10)
-      reviewText: String(reviewText), 
-      // date must be a valid ISO Date String
-      date: new Date().toISOString(), 
-      // images must be an array of strings (even if empty)
-      images: image ? [image] : [],   
-    };
+        author: String(currentUser.uid), 
+        place: String(placeId),          
+        rating: Number(rating),         
+        reviewText: String(reviewText), 
+        date: new Date().toISOString(), 
+        images: finalImageUrl ? [finalImageUrl] : [], // CHANGED - use Supabase URL
+      };
 
       const response = await axios.post(`${API_URL}/reviews`, payload);
 
       if (response.status === 201) {
-        const successMsg = "Review successfully posted!";
-        showAlert("Success", successMsg);
-        
-        // Reset form state
+        showAlert("Success", "Review successfully posted!");
         setPlaceName("");
         setReviewText("");
         setRating(0);
         setImage(null);
-
-        router.push("/home"); // Navigate back to the home screen
+        setImageUrl(null); // ADDED
+        router.push("/home");
       }
     } catch (error: any) {
-      // NestJS usually sends an array of error messages
       const serverMessage = error.response?.data?.message;
       console.error("SERVER SAYS:", serverMessage);
-
       const finalMsg = Array.isArray(serverMessage) 
         ? serverMessage.join("\n") 
         : serverMessage || "Unknown Error";
-
       showAlert("Validation Failed", finalMsg);
     }
   };
 
   const pickImage = async () => {
-    // Request permission first
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (status !== 'granted') {
@@ -102,9 +141,8 @@ export default function CreateReviewScreen() {
       return;
     }
 
-    // Open the picker
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'], // Updated for newer versions
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
@@ -121,7 +159,6 @@ export default function CreateReviewScreen() {
     return (
       <View style={styles.starRow}>
         {stars.map((index) => {
-          // Determine which icon to show for this specific star position
           let iconName: any = "star-outline";
           if (rating >= index) {
             iconName = "star";
@@ -131,22 +168,17 @@ export default function CreateReviewScreen() {
 
           return (
             <View key={index} style={styles.starContainer}>
-              {/* Star Icon */}
               <Ionicons 
                 name={iconName} 
                 size={35} 
                 color={rating >= index - 0.5 ? "#FFD700" : "#000"} 
               />
-
-              {/* Hidden Hitboxes for interaction */}
               <View style={StyleSheet.absoluteFill}>
                 <View style={styles.hitboxRow}>
-                  {/* Left Half Hitbox */}
                   <TouchableOpacity 
                     style={styles.halfHitbox} 
                     onPress={() => setRating(index - 0.5)} 
                   />
-                  {/* Right Half Hitbox */}
                   <TouchableOpacity 
                     style={styles.halfHitbox} 
                     onPress={() => setRating(index)} 
@@ -164,11 +196,9 @@ export default function CreateReviewScreen() {
     <ScreenLayout showBack={true} title="Create Review">
       <View style={styles.contentContainer}>
 
-        {/* The Main Card */}
         <View style={styles.reviewCard}>
           <Ionicons name="create-outline" size={70} color="#5962ff" style={styles.mainIcon} />
 
-          {/* Input: Place Name */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Place Name</Text>
             <TextInput 
@@ -179,31 +209,30 @@ export default function CreateReviewScreen() {
             />
           </View>
 
-          {/* Star Selector */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Rating</Text>
             <StarRating />
           </View>
 
-{/* Image Upload Section */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Add Photo</Text>
             <TouchableOpacity 
               style={styles.imageUploadBox} 
               activeOpacity={0.6} 
               onPress={pickImage}
+              disabled={uploading} //ADDED
             >
-              {image ? (
-                // If an image is selected, show it
+              {uploading ? ( //  ADDED - show spinner while uploading
+                <ActivityIndicator size="large" color="#5962ff" />
+              ) : image ? (
                 <View style={styles.imagePreviewContainer}>
                   <Image source={{ uri: image }} style={styles.selectedImage} />
                   <View style={styles.changeImageOverlay}>
-                     <Ionicons name="camera" size={24} color="#FFF" />
-                     <Text style={{color: '#FFF', fontWeight: 'bold'}}>Change</Text>
+                    <Ionicons name="camera" size={24} color="#FFF" />
+                    <Text style={{color: '#FFF', fontWeight: 'bold'}}>Change</Text>
                   </View>
                 </View>
               ) : (
-                // Otherwise show the placeholder
                 <>
                   <Ionicons name="camera-outline" size={40} color="#5962ff" />
                   <Text style={styles.uploadText}>Upload Image</Text>
@@ -212,7 +241,6 @@ export default function CreateReviewScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Input: Review Text */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Your Review</Text>
             <TextInput 
@@ -227,8 +255,11 @@ export default function CreateReviewScreen() {
           </View>
         </View>
 
-        {/* Post Button */}
-        <TouchableOpacity style={styles.postButton} onPress={handlePost}>
+        <TouchableOpacity
+          style={[styles.postButton, uploading && { opacity: 0.7 }]} //  ADDED opacity
+          onPress={handlePost}
+          disabled={uploading} // ADDED
+        >
           <Text style={styles.postButtonText}>Post Review</Text>
         </TouchableOpacity>
       </View>
@@ -294,7 +325,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   imageUploadBox: {
-    height: 150, // Slightly taller to fit the image nicely
+    height: 150,
     backgroundColor: '#C8D7FF',
     borderWidth: 2,
     borderColor: '#5962ff',
@@ -302,7 +333,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden', // Ensures the image doesn't bleed out of corners
+    overflow: 'hidden',
   },
   imagePreviewContainer: {
     width: '100%',
@@ -341,7 +372,7 @@ const styles = StyleSheet.create({
     borderColor: '#5962ff',
   },
   starContainer: {
-    position: 'relative', // Allows absolute positioning of hitboxes
+    position: 'relative',
     width: 35,
     height: 35,
     justifyContent: 'center',
@@ -352,7 +383,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   halfHitbox: {
-    flex: 1, // Each takes exactly 50% of the star's width
+    flex: 1,
     height: '100%',
   },
 });

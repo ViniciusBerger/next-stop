@@ -35,6 +35,7 @@ export default function LocationReviewsScreen() {
         const res = await axios.get(`${API_URL}/reviews/place/${mongoPlaceId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
+        console.log("REVIEW AUTHOR:", JSON.stringify(res.data[0]?.author, null, 2)); //ADD
         console.log("Reviews response:", res.data);
         console.log("Fetching reviews for mongoPlaceId:", mongoPlaceId);
         setReviews(res.data);
@@ -82,6 +83,7 @@ export default function LocationReviewsScreen() {
   const formatReview = (review: any) => ({
     id: review._id,
     userName: review.author?.username ?? 'Unknown',
+    userAvatar: review.author?.profile?.profilePicture ?? null, //  ADD THIS LINE
     date: new Date(review.date).toLocaleDateString([], { month: 'short', year: 'numeric' }),
     placeName: placeName ?? '',
     rating: review.rating,

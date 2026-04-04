@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react'; // add useCallback
 import {
   View,
   Text,
@@ -9,26 +9,14 @@ import {
   FlatList
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router'; //  add useFocusEffect
 import { ScreenLayout } from '@/components/screenLayout';
+import { auth } from '@/src/config/firebase'; //  ADD
+import { API_URL } from '@/src/config/api'; // ADD
+import { getToken } from '@/src/utils/auth'; //  ADD
+import axios from 'axios'; // ADD
 
-// Mock user data
-const USER = {
-  username: 'Username',
-  avatar: 'https://i.pravatar.cc/150?img=12',
-  friends: 128,
-  badges: [
-    { id: '1', name: 'Badge name' },
-    { id: '2', name: 'Badge name' }
-  ],
-  preferences: {
-    cuisine: 'Italian',
-    dietary: 'Vegan',
-    allergies: 'None'
-  }
-};
-
-// Mock posts data
+// Mock posts data - keep as is
 const POSTS = [
   {
     id: '1',
@@ -49,6 +37,57 @@ const POSTS = [
 export default function ProfileScreen() {
   const router = useRouter();
 
+  //  REPLACE mock USER state with real state
+  const [avatar, setAvatar] = useState('https://i.pravatar.cc/150?img=12');
+  const [username, setUsername] = useState('Username');
+  const [friendsCount, setFriendsCount] = useState(128);
+  const [badges, setBadges] = useState([
+    { id: '1', name: 'Badge name' },
+    { id: '2', name: 'Badge name' }
+  ]);
+  const [preferences, setPreferences] = useState({
+    cuisine: 'Italian',
+    dietary: 'Vegan',
+    allergies: 'None'
+  });
+
+  //   loads real data every time screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      const loadProfile = async () => {
+        try {
+          const user = auth.currentUser;
+          if (!user) return;
+
+          const token = await getToken();
+          const res = await axios.get(
+            `${API_URL}/profile?firebaseUid=${user.uid}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          setUsername(res.data.username || 'Username');
+          setFriendsCount(res.data.friends?.length || 0);
+
+          if (res.data.profile?.profilePicture) {
+            setAvatar(res.data.profile.profilePicture);
+          }
+          if (res.data.profile?.preferences) {
+            setPreferences({
+              cuisine: res.data.profile.preferences.cuisine || '',
+              dietary: res.data.profile.preferences.dietaryLabels || '',
+              allergies: res.data.profile.preferences.allergies || '',
+            });
+          }
+        } catch (err) {
+          console.log("Load profile error:", err);
+        }
+      };
+
+      loadProfile();
+    }, [])
+  );
+
+  // keep ALL the rest of your code exactly the same from here...
   const renderPost = ({ item }: { item: typeof POSTS[0] }) => (
     <View style={styles.postCard}>
       <Text style={styles.postPlaceName}>{item.placeName}</Text>
@@ -77,20 +116,20 @@ export default function ProfileScreen() {
       >
         {/* Profile Header */}
         <View style={styles.profileHeader}>
-          <Image source={{ uri: USER.avatar }} style={styles.avatar} />
-          <Text style={styles.username}>{USER.username}</Text>
+          <Image source={{ uri: avatar }} style={styles.avatar} />
+          <Text style={styles.username}>{username}</Text>
         </View>
 
         {/* Friends Count */}
         <View style={styles.friendsContainer}>
-          <Text style={styles.friendsCount}>{USER.friends} Friends</Text>
+          <Text style={styles.friendsCount}>{friendsCount} Friends</Text>
         </View>
 
         {/* Badges Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Badges</Text>
           <View style={styles.badgesContainer}>
-            {USER.badges.map((badge, index) => (
+            {badges.map((badge) => (
               <View key={badge.id} style={styles.badgeItem}>
                 <Text style={styles.badgeName}>{badge.name}</Text>
               </View>
@@ -104,17 +143,17 @@ export default function ProfileScreen() {
           
           <View style={styles.preferenceItem}>
             <Text style={styles.preferenceLabel}>Cuisine</Text>
-            <Text style={styles.preferenceValue}>{USER.preferences.cuisine}</Text>
+            <Text style={styles.preferenceValue}>{preferences.cuisine}</Text>
           </View>
           
           <View style={styles.preferenceItem}>
             <Text style={styles.preferenceLabel}>Dietary labels</Text>
-            <Text style={styles.preferenceValue}>{USER.preferences.dietary}</Text>
+            <Text style={styles.preferenceValue}>{preferences.dietary}</Text>
           </View>
           
           <View style={styles.preferenceItem}>
             <Text style={styles.preferenceLabel}>Allergies</Text>
-            <Text style={styles.preferenceValue}>{USER.preferences.allergies}</Text>
+            <Text style={styles.preferenceValue}>{preferences.allergies}</Text>
           </View>
         </View>
 
