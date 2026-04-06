@@ -177,7 +177,7 @@ export const styles = StyleSheet.create({
     backgroundColor: "#9E9E9E",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 40,
   },
 
   avatar: {
@@ -208,7 +208,7 @@ export const styles = StyleSheet.create({
   },
 
   headerGreeting: {
-    marginTop: 32,
+    marginTop: 45,
     fontSize: 32,
     fontWeight: "700",
     color: "#ffffff",
@@ -220,6 +220,7 @@ export const styles = StyleSheet.create({
     color: "#ffffff",
     alignSelf: "center",
     paddingTop: 8,
+    marginTop: 30, 
   },
 
   scrollContent: {
