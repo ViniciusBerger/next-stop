@@ -77,6 +77,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   
   const { isConnected, isInitialized } = useNetworkStatus();
 
@@ -128,6 +129,12 @@ useEffect(() => {
           if (response.data?.profile?.profilePicture) {
             setProfilePicture(response.data.profile.profilePicture);
           }
+          // Fetch unread notification count
+          const mongoId = response.data._id;
+          if (mongoId) {
+            const countRes = await axios.get(`${API_URL}/notifications/unread-count?userId=${mongoId}`);
+            setUnreadNotifications(countRes.data);
+          }
         } catch (err) {
           console.log("Profile reload error:", err);
         }
@@ -174,7 +181,9 @@ useEffect(() => {
         <HomeHeader 
           username={username}
           avatarUrl={profilePicture} // 👈 ADDED
-          onMenuPress={() => setIsMenuOpen(true)} 
+          onMenuPress={() => setIsMenuOpen(true)}
+          onNotificationsPress={() => router.push('/notifications')}
+          unreadCount={unreadNotifications}
         />
         <DiscoverCard onPress={() => router.push("/discover")} />
         <SimpleFeedSkeleton count={5} />
@@ -190,7 +199,9 @@ useEffect(() => {
         <HomeHeader 
           username={username}
           avatarUrl={profilePicture} // ADDED
-          onMenuPress={() => setIsMenuOpen(true)} 
+          onMenuPress={() => setIsMenuOpen(true)}
+          onNotificationsPress={() => router.push('/notifications')}
+          unreadCount={unreadNotifications}
         />
         <DiscoverCard onPress={() => router.push("/discover")} />
         <View style={localStyles.errorContainer}>
@@ -224,7 +235,9 @@ useEffect(() => {
         <HomeHeader 
           username={username}
           avatarUrl={profilePicture} //  ADDED
-          onMenuPress={() => setIsMenuOpen(true)} 
+          onMenuPress={() => setIsMenuOpen(true)}
+          onNotificationsPress={() => router.push('/notifications')}
+          unreadCount={unreadNotifications}
         />
 
         <DiscoverCard onPress={() => router.push("/discover")} />

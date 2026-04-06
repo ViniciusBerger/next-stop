@@ -19,6 +19,7 @@ import { SystemModule } from '../system/system.module';
 import { AnnouncementModule } from '../announcements/announcement.module';
 import { AdminModule } from '../admin/admin.module';
 import { BadgeModule } from '../badges/badge.module';
+import { NotificationModule } from '../notifications/notification.module';
 // Comment to push a change and test an update to render deployment
 
 @Module({
@@ -44,7 +45,8 @@ import { BadgeModule } from '../badges/badge.module';
     SystemModule,
     AnnouncementModule,
     AdminModule,
-    BadgeModule
+    BadgeModule,
+    NotificationModule
   ],
   controllers: [AppController],
 

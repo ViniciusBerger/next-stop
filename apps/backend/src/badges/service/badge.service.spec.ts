@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadgeService } from './badge.service';
 import { BadgeRepository } from '../repository/badge.repository';
+import { BadgeProgressService } from './badge-progress.service';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 
 /**
@@ -41,6 +42,12 @@ describe('BadgeService - Unit Test', () => {
             update: jest.fn(),
             delete: jest.fn(),
             incrementTotalAwarded: jest.fn(),
+          },
+        },
+        {
+          provide: BadgeProgressService,
+          useValue: {
+            getBadgesWithProgress: jest.fn(),
           },
         },
       ],

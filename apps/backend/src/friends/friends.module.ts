@@ -31,10 +31,15 @@ FriendsRepository
 }
 from './repository/friends.repository';
 
+import { NotificationModule }
+from '../notifications/notification.module';
+
 
 @Module({
 
 imports:[
+
+NotificationModule,
 
 MongooseModule.forFeature([
 

@@ -19,10 +19,15 @@ import { AttendEventDTO } from '../DTOs/attend.event.DTO';
 import { InviteEventDTO } from '../DTOs/invite.event.DTO';
 import { plainToInstance } from 'class-transformer';
 import { EventResponseDTO } from '../DTOs/event.response.DTO';
+import { NotificationService } from '../../notifications/service/notification.service';
+import { NotificationType } from '../../notifications/schema/notification.schema';
 
 @Controller('events')
 export class EventController {
-  constructor(private readonly eventService: EventService) {}
+  constructor(
+    private readonly eventService: EventService,
+    private readonly notificationService: NotificationService,
+  ) {}
 
   /**
    * Creates a new event
@@ -31,6 +36,18 @@ export class EventController {
   @Post()
   async createEvent(@Body() createEventDTO: CreateEventDTO) {
     const newEvent = await this.eventService.createEvent(createEventDTO);
+
+    if (createEventDTO.invitedFriends?.length) {
+      for (const friendId of createEventDTO.invitedFriends) {
+        await this.notificationService.create({
+          recipient: friendId,
+          sender: createEventDTO.host,
+          type: NotificationType.EVENT_INVITE,
+          message: `invited you to ${createEventDTO.name}`,
+          relatedId: newEvent._id.toString(),
+        });
+      }
+    }
 
     return plainToInstance(EventResponseDTO, newEvent.toObject(), {
       excludeExtraneousValues: true,
@@ -165,6 +182,16 @@ export class EventController {
       { eventId, friendIds: body.friendIds },
       userId,
     );
+
+    for (const friendId of body.friendIds) {
+      await this.notificationService.create({
+        recipient: friendId,
+        sender: userId,
+        type: NotificationType.EVENT_INVITE,
+        message: `invited you to an event`,
+        relatedId: eventId,
+      });
+    }
 
     return plainToInstance(EventResponseDTO, updatedEvent.toObject(), {
       excludeExtraneousValues: true,

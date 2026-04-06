@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventController } from './event.controller';
 import { EventService } from '../service/event.service';
+import { NotificationService } from '../../notifications/service/notification.service';
 import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 
 /**
@@ -44,6 +45,16 @@ describe('EventController - Unit Test', () => {
             deleteEvent: jest.fn(),
             toggleAttendance: jest.fn(),
             inviteFriends: jest.fn(),
+          },
+        },
+        {
+          provide: NotificationService,
+          useValue: {
+            create: jest.fn(),
+            getByRecipient: jest.fn(),
+            getUnreadCount: jest.fn(),
+            markAsRead: jest.fn(),
+            markAllAsRead: jest.fn(),
           },
         },
       ],

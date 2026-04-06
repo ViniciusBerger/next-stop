@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { auth } from "@/src/config/firebase";
 import axios from "axios";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Platform } from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Platform, Modal, Image, FlatList } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenLayout } from "@/components/screenLayout";
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { API_URL } from "@/src/config/api";
 import { getToken } from "@/src/utils/auth";
+import { showAlert } from "@/src/utils/alert";
 
 export default function CreateEventScreen() {
   const router = useRouter();
@@ -23,8 +24,11 @@ export default function CreateEventScreen() {
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
 
-  // Future logic: This would hold an array of User IDs
-  // const [invitedFriends, setInvitedFriends] = useState([]);
+  // Friends / Invite State
+  const [friends, setFriends] = useState<any[]>([]);
+  const [selectedFriends, setSelectedFriends] = useState<any[]>([]);
+  const [showFriendsModal, setShowFriendsModal] = useState(false);
+  const [mongoUserId, setMongoUserId] = useState<string | null>(null);
 
   // Date State
   const [date, setDate] = useState(new Date());
@@ -42,6 +46,46 @@ export default function CreateEventScreen() {
   useEffect(() => {
     if (rawPlaceName) setLocationName(rawPlaceName);
   }, [rawPlaceName]);
+
+  // Load friends list for invite modal
+  useEffect(() => {
+    const loadFriends = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+        const token = await getToken();
+        const profileRes = await axios.get(`${API_URL}/profile?firebaseUid=${user.uid}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const id = profileRes.data._id;
+        setMongoUserId(id);
+
+        const friendsRes = await axios.get(`${API_URL}/friends?userId=${id}`);
+        const formatted = friendsRes.data.map((f: any) => ({
+          id: f._id,
+          name: f.username || "User",
+          username: f.username ? `@${f.username}` : "",
+          avatar: f.profile?.profilePicture || `https://i.pravatar.cc/150?u=${f._id}`,
+        }));
+        setFriends(formatted);
+      } catch (err) {
+        console.log("Failed to load friends:", err);
+      }
+    };
+    loadFriends();
+  }, []);
+
+  const toggleFriendSelection = (friend: any) => {
+    setSelectedFriends((prev) => {
+      const isSelected = prev.some((f) => f.id === friend.id);
+      if (isSelected) return prev.filter((f) => f.id !== friend.id);
+      return [...prev, friend];
+    });
+  };
+
+  const handleInviteFriends = () => {
+    setShowFriendsModal(true);
+  };
 
   // Helper to format the date for the UI
   const formatDisplayDate = (date: Date) => {
@@ -66,63 +110,64 @@ export default function CreateEventScreen() {
     }
   };
 
-  const handleInviteFriends = () => {
-    // Placeholder alert until the friends system is built
-    Alert.alert("Friends List", "This will open your friends list once the feature is ready!");
-  };
-
 const handleCreate = async () => {
   // Validation
   if (!eventName.trim()) {
-    Alert.alert("Missing Info", "Please enter an event name.");
+    showAlert("Missing Info", "Please enter an event name.");
     return;
   }
   if (!hasPickedDate) {
-    Alert.alert("Missing Info", "Please select a date and time.");
+    showAlert("Missing Info", "Please select a date and time.");
     return;
   }
   if (!locationId) {
-    Alert.alert("Missing Info", "No location selected. Please go back and select a place.");
+    showAlert("Missing Info", "No location selected. Please go back and select a place.");
     return;
   }
   if (description.trim().length < 10) {
-  Alert.alert("Missing Info", "Description must be at least 10 characters.");
+  showAlert("Missing Info", "Description must be at least 10 characters.");
   return;
 }
 
   try {
     const token = await getToken();
     const user = auth.currentUser;
-    if (!user) { Alert.alert("Not Logged In", "You must be logged in."); return; }
+    if (!user) { showAlert("Not Logged In", "You must be logged in."); return; }
 
-    // Resolve Firebase UID → MongoDB _id
-    const profileResponse = await axios.get(`${API_URL}/profile?firebaseUid=${user.uid}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    console.log("Profile data:", profileResponse.data);
-    const mongoUserId = profileResponse.data._id;
+    // Use already-fetched mongoUserId, or resolve it now
+    let hostId = mongoUserId;
+    if (!hostId) {
+      const profileResponse = await axios.get(`${API_URL}/profile?firebaseUid=${user.uid}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      hostId = profileResponse.data._id;
+    }
 
-    const payload = {
+    const payload: any = {
       name: eventName.trim(),
       description: description.trim(),
       place: locationId,
-      location: locationName.trim(), // ← text location field
+      location: locationName.trim(),
       date: date.toISOString(),
-      privacy: isPublic ? "Public Event" : "Private Event", // ← enum value
-      host: mongoUserId, // ← MongoDB _id
+      privacy: isPublic ? "Public Event" : "Private Event",
+      host: hostId,
     };
+
+    if (selectedFriends.length > 0) {
+      payload.invitedFriends = selectedFriends.map((f) => f.id);
+    }
 
     const response = await axios.post(`${API_URL}/events`, payload, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
     if (response.status === 201) {
-      Alert.alert("Success", "Event created!");
+      showAlert("Success", "Event created!");
       router.replace("/home");
     }
   } catch (error: any) {
     console.error("Create event error:", JSON.stringify(error.response?.data, null, 2));
-    Alert.alert("Error", "Failed to create event. Please try again.");
+    showAlert("Error", "Failed to create event. Please try again.");
   }
 };
 
@@ -207,11 +252,11 @@ const handleCreate = async () => {
           )}
         </View>
 
-        {/* 3. Invite Friends Placeholder */}
+        {/* 3. Invite Friends */}
         <View style={styles.inputGroup}>
           <Text style={styles.labelDark}>Invite</Text>
-          <TouchableOpacity 
-            style={styles.invitePlaceholder} 
+          <TouchableOpacity
+            style={styles.invitePlaceholder}
             onPress={handleInviteFriends}
             activeOpacity={0.7}
           >
@@ -219,11 +264,91 @@ const handleCreate = async () => {
               <View style={styles.iconCircleSmall}>
                 <Ionicons name="people" size={20} color="#5962ff" />
               </View>
-              <Text style={styles.inviteText}>Select friends to invite...</Text>
+              <Text style={styles.inviteText}>
+                {selectedFriends.length > 0
+                  ? `${selectedFriends.length} friend${selectedFriends.length > 1 ? 's' : ''} selected`
+                  : "Select friends to invite..."}
+              </Text>
             </View>
             <Ionicons name="add-circle" size={24} color="#45d5af" />
           </TouchableOpacity>
+
+          {/* Selected friends chips */}
+          {selectedFriends.length > 0 && (
+            <View style={styles.selectedChipsContainer}>
+              {selectedFriends.map((friend) => (
+                <View key={friend.id} style={styles.selectedChip}>
+                  <Image source={{ uri: friend.avatar }} style={styles.chipAvatar} />
+                  <Text style={styles.chipName}>{friend.name}</Text>
+                  <TouchableOpacity onPress={() => toggleFriendSelection(friend)}>
+                    <Ionicons name="close-circle" size={18} color="#999" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
+
+        {/* Friends Selection Modal */}
+        <Modal
+          visible={showFriendsModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowFriendsModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Invite Friends</Text>
+                <TouchableOpacity onPress={() => setShowFriendsModal(false)}>
+                  <Ionicons name="close" size={24} color="#333" />
+                </TouchableOpacity>
+              </View>
+
+              {friends.length === 0 ? (
+                <View style={styles.emptyFriends}>
+                  <Ionicons name="people-outline" size={48} color="#ccc" />
+                  <Text style={styles.emptyFriendsText}>No friends yet</Text>
+                  <Text style={styles.emptyFriendsSubtext}>Add friends to invite them to events</Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={friends}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => {
+                    const isSelected = selectedFriends.some((f) => f.id === item.id);
+                    return (
+                      <TouchableOpacity
+                        style={[styles.friendRow, isSelected && styles.friendRowSelected]}
+                        onPress={() => toggleFriendSelection(item)}
+                        activeOpacity={0.7}
+                      >
+                        <Image source={{ uri: item.avatar }} style={styles.friendAvatar} />
+                        <View style={styles.friendInfo}>
+                          <Text style={styles.friendName}>{item.name}</Text>
+                          <Text style={styles.friendUsername}>{item.username}</Text>
+                        </View>
+                        <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+                          {isSelected && <Ionicons name="checkmark" size={16} color="#FFF" />}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  }}
+                  contentContainerStyle={styles.friendsList}
+                />
+              )}
+
+              <TouchableOpacity
+                style={styles.modalDoneButton}
+                onPress={() => setShowFriendsModal(false)}
+              >
+                <Text style={styles.modalDoneText}>
+                  Done{selectedFriends.length > 0 ? ` (${selectedFriends.length})` : ''}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
 
         {/* 4. Event Details */}
         <View style={styles.inputGroup}>
@@ -407,10 +532,143 @@ privacyContainer: {
     alignItems: 'center',
     marginRight: 12,
   },
-  inviteText: { 
-    color: '#999', 
-    fontSize: 15 
-},
+  inviteText: {
+    color: '#999',
+    fontSize: 15,
+    flex: 1,
+  },
+  selectedChipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 10,
+    gap: 8,
+  },
+  selectedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F3FF',
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingLeft: 6,
+    paddingRight: 10,
+    gap: 6,
+  },
+  chipAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  chipName: {
+    fontSize: 13,
+    color: '#333',
+    fontWeight: '500',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '75%',
+    paddingBottom: 30,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+  },
+  friendsList: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  friendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  friendRowSelected: {
+    backgroundColor: '#F0F3FF',
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderBottomColor: 'transparent',
+  },
+  friendAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: '#DEE4FF',
+  },
+  friendInfo: {
+    flex: 1,
+  },
+  friendName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+  },
+  friendUsername: {
+    fontSize: 13,
+    color: '#999',
+    marginTop: 2,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#DDD',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: '#5962ff',
+    borderColor: '#5962ff',
+  },
+  modalDoneButton: {
+    backgroundColor: '#5962ff',
+    marginHorizontal: 20,
+    marginTop: 15,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalDoneText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  emptyFriends: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyFriendsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 12,
+  },
+  emptyFriendsSubtext: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 4,
+  },
 datePickerBar: { 
     flexDirection: 'row', 
     alignItems: 'center', 

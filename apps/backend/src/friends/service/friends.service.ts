@@ -8,12 +8,19 @@ from '@nestjs/common';
 import { FriendsRepository }
 from '../repository/friends.repository';
 
+import { NotificationService }
+from '../../notifications/service/notification.service';
+
+import { NotificationType }
+from '../../notifications/schema/notification.schema';
+
 @Injectable()
 
 export class FriendsService{
 
 constructor(
-private repo:FriendsRepository
+private repo:FriendsRepository,
+private notificationService:NotificationService
 ){}
 
 
@@ -35,13 +42,23 @@ throw new ConflictException(
 
 }
 
-return this.repo.create({
+const request = await this.repo.create({
 
 requester:dto.requester,
 recipient:dto.recipient,
 status:"pending"
 
 });
+
+await this.notificationService.create({
+recipient: dto.recipient,
+sender: dto.requester,
+type: NotificationType.FRIEND_REQUEST,
+message: 'sent you a friend request',
+relatedId: request._id.toString(),
+});
+
+return request;
 
 }
 
@@ -108,6 +125,14 @@ await this.repo.addFriendToUsers(
 request.requester.toString(),
 request.recipient.toString()
 );
+
+await this.notificationService.create({
+recipient: request.requester.toString(),
+sender: request.recipient.toString(),
+type: NotificationType.FRIEND_ACCEPTED,
+message: 'accepted your friend request',
+relatedId: request._id.toString(),
+});
 
 }
 
