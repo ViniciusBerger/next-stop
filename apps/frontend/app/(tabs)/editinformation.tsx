@@ -76,7 +76,7 @@ export default function EditInformationScreen() {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ['images'], //  FIXED
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.7,
@@ -92,38 +92,59 @@ export default function EditInformationScreen() {
   };
 
   const uploadToSupabase = async (uri: string) => {
-    try {
-      setUploading(true);
-      const fileName = `${firebaseUid}_${Date.now()}.jpg`;
-      const response = await fetch(uri);
-      const blob = await response.blob();
+  try {
+    setUploading(true);
 
-      const uploadRes = await fetch(
-        `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${fileName}`,
-        {
-          method: 'POST',
-          headers: {
-            apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'image/jpeg',
-            'x-upsert': 'true',
-          },
-          body: blob,
-        }
-      );
+    // SAFE filename (avoid blob extension issue)
+    const fileName = `${firebaseUid}_${Date.now()}.jpg`;
 
-      if (!uploadRes.ok) {
-        throw new Error('Upload failed');
+    // Convert image to blob
+    const response = await fetch(uri);
+    const blob = await response.blob();
+
+    // Upload to Supabase
+    const uploadRes = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${fileName}`,
+      {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'image/jpeg',
+          'x-upsert': 'true',
+        },
+        body: blob,
       }
+    );
 
-      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${fileName}`;
-      setAvatar(publicUrl);
-    } catch (err) {
-      Alert.alert('Upload Failed', 'Image upload failed. Try again.');
-    } finally {
-      setUploading(false);
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      console.log("Supabase upload error:", errText);
+      throw new Error('Upload failed');
     }
-  };
+
+    // Generate clean public URL
+    const publicUrl =
+`${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${fileName}`;
+
+    console.log("Image uploaded:", publicUrl);
+
+    // Update UI immediately
+    setAvatar(publicUrl);
+
+  } catch (err) {
+
+    console.log("Upload error:", err);
+
+    Alert.alert(
+      'Upload Failed',
+      'Image upload failed. Try again.'
+    );
+
+  } finally {
+    setUploading(false);
+  }
+};
 
   const validate = () => {
     const newErrors = { username: '', email: '', password: '' };
@@ -150,32 +171,58 @@ export default function EditInformationScreen() {
   };
 
   const handleSave = async () => {
-    if (!validate()) return;
 
-    try {
-      setSaving(true);
-      const token = await getToken();
+  if (!validate()) return;
 
-      const payload: any = {};
-      if (username?.trim() && username.trim().length >= 3) {
-        payload.username = username.trim();
-      }
+  try {
 
-      await axios.put(
-        `${API_URL}/profile?firebaseUid=${firebaseUid}`,
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    setSaving(true);
 
-      Alert.alert('Success', 'Profile updated successfully!');
-      router.back();
-    } catch (err: any) {
-      Alert.alert('Error', 'Failed to save profile');
-    } finally {
-      setSaving(false);
+    const token = await getToken();
+
+    // SAFE payload (only send valid fields)
+    const payload:any = {};
+
+    if (username?.trim() && username.trim().length >= 3) {
+      payload.username = username.trim();
     }
-  };
 
+    if (avatar) {
+      payload.profilePicture = avatar;
+    }
+
+    console.log("Sending profile update:", payload);
+    console.log("UID being sent:", firebaseUid);
+    await axios.put(
+      `${API_URL}/profile?firebaseUid=${firebaseUid}`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    Alert.alert('Success', 'Profile updated successfully!');
+
+    router.back();
+
+  } catch (err:any) {
+
+    console.log("Save error:", err?.response?.data || err);
+
+    Alert.alert(
+      'Error',
+      err?.response?.data?.message || 'Failed to save profile'
+    );
+
+  } finally {
+
+    setSaving(false);
+
+  }
+
+};
   return (
     <ScreenLayout showBack={true} title="Edit Information">
       <ScrollView
@@ -183,7 +230,9 @@ export default function EditInformationScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+
         <View style={styles.card}>
+
           <View style={styles.avatarWrapper}>
             <Image source={{ uri: avatar }} style={styles.avatar} />
             {uploading && (
@@ -208,7 +257,9 @@ export default function EditInformationScreen() {
             placeholderTextColor="#9CA3AF"
             autoCapitalize="none"
           />
-          {errors.username ? <Text style={styles.fieldError}>{errors.username}</Text> : null}
+          {errors.username ? (
+            <Text style={styles.fieldError}>{errors.username}</Text>
+          ) : null}
 
           <Text style={styles.fieldLabel}>Email</Text>
           <TextInput
@@ -220,7 +271,9 @@ export default function EditInformationScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
           />
-          {errors.email ? <Text style={styles.fieldError}>{errors.email}</Text> : null}
+          {errors.email ? (
+            <Text style={styles.fieldError}>{errors.email}</Text>
+          ) : null}
 
           <Text style={styles.fieldLabel}>New Password</Text>
           <TextInput
@@ -241,15 +294,22 @@ export default function EditInformationScreen() {
             placeholder="Confirm new password"
             placeholderTextColor="#9CA3AF"
           />
-          {errors.password ? <Text style={styles.fieldError}>{errors.password}</Text> : null}
+          {errors.password ? (
+            <Text style={styles.fieldError}>{errors.password}</Text>
+          ) : null}
 
           <TouchableOpacity
             style={[styles.saveButton, (saving || uploading) && { opacity: 0.7 }]}
             onPress={handleSave}
             disabled={saving || uploading}
           >
-            {saving ? <ActivityIndicator color="#FFF" /> : <Text style={styles.saveButtonText}>Save changes</Text>}
+            {saving ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.saveButtonText}>Save changes</Text>
+            )}
           </TouchableOpacity>
+
         </View>
       </ScrollView>
     </ScreenLayout>
