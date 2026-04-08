@@ -15,6 +15,7 @@ import { AdminScreenLayout } from '@/components/adminScreenLayout';
 import { ReportCard, Report } from '@/components/ui/ReportCard';
 import { EmptyState } from '@/components/ui/StateComponents';
 import { API_URL } from '@/src/config/api';
+import { getToken } from '@/src/utils/auth';
 import { showAlert } from '@/src/utils/alert';
 
 type StatusFilter = 'all' | 'pending' | 'completed';
@@ -31,7 +32,10 @@ export default function ReportsScreen() {
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get<Report[]>(`${API_URL}/reports`);
+      const token = await getToken();
+      const { data } = await axios.get<Report[]>(`${API_URL}/reports`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setReports(data);
     } catch (err) {
       showAlert('Error', 'Failed to load reports.');
@@ -49,7 +53,10 @@ export default function ReportsScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const { data } = await axios.get<Report[]>(`${API_URL}/reports`);
+      const token = await getToken();
+      const { data } = await axios.get<Report[]>(`${API_URL}/reports`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setReports(data);
     } catch (err) {
       showAlert('Error', 'Failed to refresh reports.');
@@ -58,9 +65,12 @@ export default function ReportsScreen() {
     }
   };
 
-  const handleComplete = (id: string) => {
+  const handleComplete = async (id: string) => {
+    const token = await getToken();
     axios
-      .put(`${API_URL}/reports/${id}/complete`)
+      .put(`${API_URL}/reports/${id}/complete`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
       .then(({ data }) => {
         setReports(prev => prev.map(r => (r._id === id ? data : r)));
       })
@@ -78,7 +88,10 @@ export default function ReportsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await axios.delete(`${API_URL}/reports/${id}`);
+              const token = await getToken();
+              await axios.delete(`${API_URL}/reports/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
               setReports(prev => prev.filter(r => r._id !== id));
             } catch (err) {
               showAlert('Error', 'Failed to delete report.');

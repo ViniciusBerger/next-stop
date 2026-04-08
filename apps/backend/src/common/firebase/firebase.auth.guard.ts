@@ -22,10 +22,7 @@ export class FirebaseAuthGuard implements CanActivate {
         return true;
     } catch (error) {
         // invalid token
-        console.error('--- Auth Error ---');
-        console.error('Message:', error.message);
-        console.error('Reason:', error.code); // specific error reasons
-        console.error('------------------------');
+        console.error('Firebase auth failed:', error.message);
         throw new UnauthorizedException()
     }
   }

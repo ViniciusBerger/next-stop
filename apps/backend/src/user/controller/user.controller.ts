@@ -19,7 +19,6 @@ export class UserController {
 
   @Patch('me/wishlist/:placeId')
   async toggleWishlist(@Req() req, @Param('placeId') placeId: string) {
-    console.log('🔖 Wishlist hit:', placeId);
     return this.userService.toggleArrayField(req.user.uid, 'wishlist', placeId);
   }
 

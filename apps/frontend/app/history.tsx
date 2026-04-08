@@ -20,18 +20,13 @@ export default function HistoryScreen() {
     try {
       setLoading(true);
       setError(null);
-      console.log("📚 Fetching history for:", uid);
-
 
       const token = await getToken();
-      console.log("🔑 Token:", token ? "EXISTS" : "NULL");
-
 
       // Get MongoDB _id from profile
       const profileRes = await axios.get(`${API_URL}/profile?firebaseUid=${uid}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      console.log("👤 Profile:", profileRes.data._id);
 
       const mongoId = profileRes.data._id;
 
@@ -39,7 +34,6 @@ export default function HistoryScreen() {
       const eventsRes = await axios.get(`${API_URL}/events/user/${mongoId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      console.log("📅 Events:", eventsRes.data);
 
       const now = new Date();
 

@@ -7,7 +7,8 @@ Delete,
 Body,
 Query,
 Param,
-HttpCode
+HttpCode,
+UseGuards
 
 }
 
@@ -25,7 +26,10 @@ import { RespondFriendDTO }
 
 from '../DTOs/respond.friend.DTO';
 
+import { FirebaseAuthGuard } from '../../common/firebase/firebase.auth.guard';
+
 @Controller('friends')
+@UseGuards(FirebaseAuthGuard)
 
 export class FriendsController{
 

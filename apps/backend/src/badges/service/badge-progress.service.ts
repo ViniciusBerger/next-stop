@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User } from '../../user/schemas/user.schema';
 import { Badge } from '../schemas/badges.schema';
 import { Review } from '../../reviews/schema/review.schema';
@@ -53,7 +53,7 @@ export class BadgeProgressService {
       }),
       // Cafe reviews
       this.reviewModel.aggregate([
-        { $match: { author: userId } },
+        { $match: { author: new Types.ObjectId(userId) } },
         {
           $lookup: {
             from: 'Place',
@@ -103,7 +103,7 @@ export class BadgeProgressService {
 
     // Fresh perspective explorer
     const firstReviewCount = await this.reviewModel.aggregate([
-      { $match: { author: userId } },
+      { $match: { author: new Types.ObjectId(userId) } },
       { $group: { _id: '$place', firstReview: { $min: '$createdAt' } } },
       { $count: 'total' },
     ]);
