@@ -34,7 +34,7 @@ export class AuthService {
 
     async handleValidate( validateUserDTO: ValidateUserDTO) {
         const user = await this.strategy.validate(validateUserDTO)
-        if (!user) throw new BadRequestException
+        if (!user) throw new BadRequestException()
         return user;
     }
 

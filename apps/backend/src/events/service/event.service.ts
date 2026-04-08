@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { EventRepository } from '../repository/event.repository';
 import { Event } from '../schema/event.schema';
 import { CreateEventDTO } from '../DTOs/create.event.DTO';
@@ -201,7 +201,9 @@ async toggleAttendance(dto: AttendEventDTO): Promise<Event> {
     }
   }
 
-  const userIndex = event.attendees.indexOf(dto.userId as any);
+  const userIndex = event.attendees.findIndex(
+    (id) => id.toString() === dto.userId,
+  );
   let didAddAttendance = false;
 
   if (userIndex > -1) {
@@ -209,7 +211,10 @@ async toggleAttendance(dto: AttendEventDTO): Promise<Event> {
     event.attendees.splice(userIndex, 1);
   } else {
     // Add attendance
-    event.attendees.push(dto.userId as any);
+    const userId = Types.ObjectId.isValid(dto.userId)
+      ? new Types.ObjectId(dto.userId)
+      : dto.userId;
+    event.attendees.push(userId as any);
     didAddAttendance = true;
   }
 

@@ -9,8 +9,10 @@ import {
   Put,
   Query,
   Param,
-  Headers,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
+import { FirebaseAuthGuard } from '../../common/firebase/firebase.auth.guard';
 import { EventService } from '../service/event.service';
 import { CreateEventDTO } from '../DTOs/create.event.DTO';
 import { UpdateEventDTO } from '../DTOs/update.event.DTO';
@@ -21,19 +23,33 @@ import { plainToInstance } from 'class-transformer';
 import { EventResponseDTO } from '../DTOs/event.response.DTO';
 import { NotificationService } from '../../notifications/service/notification.service';
 import { NotificationType } from '../../notifications/schema/notification.schema';
+import { UserService } from '../../user/service/user.service';
 
 @Controller('events')
 export class EventController {
   constructor(
     private readonly eventService: EventService,
     private readonly notificationService: NotificationService,
+    private readonly userService: UserService,
   ) {}
+
+  /**
+   * Resolves the authenticated Firebase UID to a MongoDB _id
+   */
+  private async resolveUserId(req: any): Promise<string> {
+    const firebaseUid = req.user?.uid;
+    if (!firebaseUid) throw new BadRequestException('User not authenticated');
+    const user = await this.userService.findById({ firebaseUid });
+    if (!user) throw new NotFoundException('User not found');
+    return user._id.toString();
+  }
 
   /**
    * Creates a new event
    * POST /events
    */
   @Post()
+  @UseGuards(FirebaseAuthGuard)
   async createEvent(@Body() createEventDTO: CreateEventDTO) {
     const newEvent = await this.eventService.createEvent(createEventDTO);
 
@@ -97,10 +113,12 @@ export class EventController {
    * GET /events/:id
    */
   @Get(':id')
+  @UseGuards(FirebaseAuthGuard)
   async getEvent(
     @Param('id') id: string,
-    @Headers('user-id') userId?: string,
+    @Req() req: any,
   ) {
+    const userId = await this.resolveUserId(req);
     const event = await this.eventService.getEvent(id, userId);
 
     return plainToInstance(EventResponseDTO, event.toObject(), {
@@ -113,15 +131,13 @@ export class EventController {
    * PUT /events/:id
    */
   @Put(':id')
+  @UseGuards(FirebaseAuthGuard)
   async updateEvent(
     @Param('id') id: string,
     @Body() updateEventDTO: UpdateEventDTO,
-    @Headers('user-id') userId: string,
+    @Req() req: any,
   ) {
-    if (!userId) {
-      throw new BadRequestException('User ID is required');
-    }
-
+    const userId = await this.resolveUserId(req);
     const updatedEvent = await this.eventService.updateEvent(id, userId, updateEventDTO);
 
     return plainToInstance(EventResponseDTO, updatedEvent.toObject(), {
@@ -134,14 +150,12 @@ export class EventController {
    * DELETE /events/:id
    */
   @Delete(':id')
+  @UseGuards(FirebaseAuthGuard)
   async deleteEvent(
     @Param('id') id: string,
-    @Headers('user-id') userId: string,
+    @Req() req: any,
   ) {
-    if (!userId) {
-      throw new BadRequestException('User ID is required');
-    }
-
+    const userId = await this.resolveUserId(req);
     return await this.eventService.deleteEvent(id, userId);
   }
 
@@ -150,6 +164,7 @@ export class EventController {
    * POST /events/:id/attend
    */
   @Post(':id/attend')
+  @UseGuards(FirebaseAuthGuard)
   async toggleAttendance(
     @Param('id') eventId: string,
     @Body() body: { userId: string },
@@ -169,15 +184,13 @@ export class EventController {
    * POST /events/:id/invite
    */
   @Post(':id/invite')
+  @UseGuards(FirebaseAuthGuard)
   async inviteFriends(
     @Param('id') eventId: string,
     @Body() body: { friendIds: string[] },
-    @Headers('user-id') userId: string,
+    @Req() req: any,
   ) {
-    if (!userId) {
-      throw new BadRequestException('User ID is required');
-    }
-
+    const userId = await this.resolveUserId(req);
     const updatedEvent = await this.eventService.inviteFriends(
       { eventId, friendIds: body.friendIds },
       userId,

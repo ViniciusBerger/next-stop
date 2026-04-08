@@ -127,14 +127,12 @@ export default function EditInformationScreen() {
     const publicUrl =
 `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${fileName}`;
 
-    console.log("Image uploaded:", publicUrl);
-
     // Update UI immediately
     setAvatar(publicUrl);
 
   } catch (err) {
 
-    console.log("Upload error:", err);
+    console.error("Upload error:", err);
 
     Alert.alert(
       'Upload Failed',
@@ -191,8 +189,6 @@ export default function EditInformationScreen() {
       payload.profilePicture = avatar;
     }
 
-    console.log("Sending profile update:", payload);
-    console.log("UID being sent:", firebaseUid);
     await axios.put(
       `${API_URL}/profile?firebaseUid=${firebaseUid}`,
       payload,
@@ -209,7 +205,7 @@ export default function EditInformationScreen() {
 
   } catch (err:any) {
 
-    console.log("Save error:", err?.response?.data || err);
+    console.error("Save error:", err?.response?.data || err);
 
     Alert.alert(
       'Error',

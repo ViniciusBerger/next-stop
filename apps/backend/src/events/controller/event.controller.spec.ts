@@ -2,16 +2,22 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EventController } from './event.controller';
 import { EventService } from '../service/event.service';
 import { NotificationService } from '../../notifications/service/notification.service';
+import { UserService } from '../../user/service/user.service';
 import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { FirebaseAuthGuard } from '../../common/firebase/firebase.auth.guard';
 
 /**
  * EventController Unit Tests
  * 
  * To run: npm test -- apps/backend/src/events/controller/event.controller.spec.ts
  */
+const mockReq = (uid = 'firebase_123') => ({ user: { uid } });
+
 describe('EventController - Unit Test', () => {
   let controller: EventController;
   let service: EventService;
+
+  const mockUser = { _id: 'user_123', firebaseUid: 'firebase_123', role: 'member', toString() { return 'user_123'; } };
 
   const mockEvent = {
     _id: 'event_123',
@@ -35,6 +41,10 @@ describe('EventController - Unit Test', () => {
       controllers: [EventController],
       providers: [
         {
+          provide: FirebaseAuthGuard,
+          useValue: { canActivate: jest.fn().mockReturnValue(true) },
+        },
+        {
           provide: EventService,
           useValue: {
             createEvent: jest.fn(),
@@ -55,6 +65,12 @@ describe('EventController - Unit Test', () => {
             getUnreadCount: jest.fn(),
             markAsRead: jest.fn(),
             markAllAsRead: jest.fn(),
+          },
+        },
+        {
+          provide: UserService,
+          useValue: {
+            findById: jest.fn().mockResolvedValue(mockUser),
           },
         },
       ],
@@ -115,16 +131,7 @@ describe('EventController - Unit Test', () => {
     it('should return event by id', async () => {
       jest.spyOn(service, 'getEvent').mockResolvedValue(mockEvent as any);
 
-      const result = await controller.getEvent('event_123');
-
-      expect(result).toBeDefined();
-      expect(service.getEvent).toHaveBeenCalledWith('event_123', undefined);
-    });
-
-    it('should return event with userId for access control', async () => {
-      jest.spyOn(service, 'getEvent').mockResolvedValue(mockEvent as any);
-
-      const result = await controller.getEvent('event_123', 'user_123');
+      const result = await controller.getEvent('event_123', mockReq());
 
       expect(result).toBeDefined();
       expect(service.getEvent).toHaveBeenCalledWith('event_123', 'user_123');
@@ -154,17 +161,10 @@ describe('EventController - Unit Test', () => {
 
       jest.spyOn(service, 'updateEvent').mockResolvedValue(mockEvent as any);
 
-      const result = await controller.updateEvent('event_123', updateDto, 'user_123');
+      const result = await controller.updateEvent('event_123', updateDto, mockReq());
 
       expect(result).toBeDefined();
       expect(service.updateEvent).toHaveBeenCalledWith('event_123', 'user_123', updateDto);
-    });
-
-    it('should throw BadRequestException if userId not provided', async () => {
-      const updateDto = { name: 'Updated' } as any;
-
-      await expect(controller.updateEvent('event_123', updateDto, ''))
-        .rejects.toThrow(BadRequestException);
     });
   });
 
@@ -174,15 +174,10 @@ describe('EventController - Unit Test', () => {
 
       jest.spyOn(service, 'deleteEvent').mockResolvedValue(deleteResult);
 
-      const result = await controller.deleteEvent('event_123', 'user_123');
+      const result = await controller.deleteEvent('event_123', mockReq());
 
       expect(result.deleted).toBe(true);
       expect(service.deleteEvent).toHaveBeenCalledWith('event_123', 'user_123');
-    });
-
-    it('should throw BadRequestException if userId not provided', async () => {
-      await expect(controller.deleteEvent('event_123', ''))
-        .rejects.toThrow(BadRequestException);
     });
   });
 
@@ -207,7 +202,7 @@ describe('EventController - Unit Test', () => {
       const result = await controller.inviteFriends(
         'event_123',
         { friendIds: ['friend_1', 'friend_2'] },
-        'user_123'
+        mockReq()
       );
 
       expect(result).toBeDefined();
@@ -215,12 +210,6 @@ describe('EventController - Unit Test', () => {
         { eventId: 'event_123', friendIds: ['friend_1', 'friend_2'] },
         'user_123'
       );
-    });
-
-    it('should throw BadRequestException if userId not provided', async () => {
-      await expect(
-        controller.inviteFriends('event_123', { friendIds: ['friend_1'] }, '')
-      ).rejects.toThrow(BadRequestException);
     });
   });
 });
