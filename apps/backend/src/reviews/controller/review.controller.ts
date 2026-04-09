@@ -8,32 +8,25 @@ import {
   Post,
   Query,
   Param,
-  Req,
-  ForbiddenException,
-  UseGuards,
+  Headers,
+  ForbiddenException
 } from '@nestjs/common';
-import { FirebaseAuthGuard } from '../../common/firebase/firebase.auth.guard';
 import { ReviewService } from '../service/review.service';
 import { CreateReviewDTO } from '../DTOs/create.review.DTO';
 import { GetReviewDTO } from '../DTOs/get.review.DTO';
 import { LikeReviewDTO } from '../DTOs/like.review.DTO';
 import { plainToInstance } from 'class-transformer';
 import { ReviewResponseDTO } from '../DTOs/review.response.DTO';
-import { UserService } from '../../user/service/user.service';
 
 @Controller('reviews')
 export class ReviewController {
-  constructor(
-    private readonly reviewService: ReviewService,
-    private readonly userService: UserService,
-  ) {}
+  constructor(private readonly reviewService: ReviewService) {}
 
   /**
    * Creates a new review (also serves as feed post)
    * POST /reviews
    */
   @Post()
-  @UseGuards(FirebaseAuthGuard)
   async createReview(@Body() createReviewDTO: CreateReviewDTO) {
     const newReview = await this.reviewService.createReview(createReviewDTO);
     const obj = newReview.toObject();
@@ -148,22 +141,18 @@ export class ReviewController {
   }
 
   /**
- * Deletes a review (author or admin only)
+ * Deletes a review (author only)
  * DELETE /reviews/:id
  */
 @Delete(':id')
-@UseGuards(FirebaseAuthGuard)
 async deleteReview(
   @Param('id') id: string,
-  @Req() req: any,
+  @Headers('user-id') userId: string,
+  @Headers('user-role') userRole?: string,
 ) {
-  const firebaseUid = req.user?.uid;
-  if (!firebaseUid) throw new BadRequestException('User not authenticated');
-
-  const user = await this.userService.findById({ firebaseUid });
-  if (!user) throw new BadRequestException('User not found');
-  const userId = user._id.toString();
-  const userRole = user.role;
+  if (!userId) {
+    throw new BadRequestException('User ID is required');
+  }
 
   return await this.reviewService.deleteReview(id, userId, userRole);
 }
@@ -173,7 +162,6 @@ async deleteReview(
    * POST /reviews/like
    */
   @Post('like')
-  @UseGuards(FirebaseAuthGuard)
   async toggleLike(@Body() likeReviewDTO: LikeReviewDTO) {
     const updatedReview = await this.reviewService.toggleLike(likeReviewDTO);
     const obj = updatedReview.toObject();

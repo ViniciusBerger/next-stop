@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { SystemConfig } from '../schemas/system-config.schema';
@@ -27,7 +27,7 @@ export class SystemConfigService {
 
   async updateConfig(key: string, value: boolean): Promise<SystemConfig> {
     if (!ALLOWED_KEYS.includes(key as keyof SystemConfig)) {
-      throw new BadRequestException(`Unknown config key: ${key}`);
+      throw new Error(`Unknown config key: ${key}`);
     }
     let config = await this.configModel.findOne();
     if (!config) {

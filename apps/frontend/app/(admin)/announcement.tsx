@@ -13,7 +13,6 @@ import {
 import { AdminScreenLayout } from '@/components/adminScreenLayout';
 import axios from 'axios';
 import { API_URL } from '@/src/config/api';
-import { getToken } from '@/src/utils/auth';
 
 type Announcement = {
   _id: string;
@@ -39,10 +38,7 @@ export default function AnnouncementScreen() {
 
   const fetchPast = async () => {
     try {
-      const token = await getToken();
-      const { data } = await axios.get<Announcement[]>(`${API_URL}/announcements`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const { data } = await axios.get<Announcement[]>(`${API_URL}/announcements`);
       setPast(data);
     } catch (err) {
       console.error('Failed to fetch announcements:', err);
@@ -62,10 +58,7 @@ export default function AnnouncementScreen() {
     }
     setSending(true);
     try {
-      const token = await getToken();
-      await axios.post(`${API_URL}/announcements`, { title: title.trim(), message: message.trim() }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.post(`${API_URL}/announcements`, { title: title.trim(), message: message.trim() });
       showAlert('Sent', 'Announcement sent to all users.');
       setTitle('');
       setMessage('');

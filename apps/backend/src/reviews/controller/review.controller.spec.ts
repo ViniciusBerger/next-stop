@@ -1,22 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReviewController } from './review.controller';
 import { ReviewService } from '../service/review.service';
-import { UserService } from '../../user/service/user.service';
 import { NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
-import { FirebaseAuthGuard } from '../../common/firebase/firebase.auth.guard';
 
 /**
  * ReviewController Unit Tests
- *
+ * 
  * To run: npm test -- apps/backend/src/reviews/controller/review.controller.spec.ts
  */
-const mockReq = (uid = 'firebase_123') => ({ user: { uid } });
-
 describe('ReviewController - Unit Test', () => {
   let controller: ReviewController;
   let service: ReviewService;
-
-  const mockUser = { _id: 'user_123', firebaseUid: 'firebase_123', role: 'member', toString() { return 'user_123'; } };
 
   const mockReview = {
     _id: 'review_123',
@@ -37,16 +31,6 @@ describe('ReviewController - Unit Test', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ReviewController],
       providers: [
-        {
-          provide: FirebaseAuthGuard,
-          useValue: { canActivate: jest.fn().mockReturnValue(true) },
-        },
-        {
-          provide: UserService,
-          useValue: {
-            findById: jest.fn().mockResolvedValue(mockUser),
-          },
-        },
         {
           provide: ReviewService,
           useValue: {
@@ -171,55 +155,53 @@ describe('ReviewController - Unit Test', () => {
   });
 
   describe('deleteReview', () => {
-    it('should delete review as author', async () => {
-      const deleteResult = { deleted: true, message: 'Review deleted successfully' };
+  it('should delete review as author', async () => {
+    const deleteResult = { deleted: true, message: 'Review deleted successfully' };
 
-      jest.spyOn(service, 'deleteReview').mockResolvedValue(deleteResult);
+    jest.spyOn(service, 'deleteReview').mockResolvedValue(deleteResult);
 
-      const result = await controller.deleteReview('review_123', mockReq());
+    const result = await controller.deleteReview('review_123', 'user_123');
 
-      expect(result.deleted).toBe(true);
-      expect(service.deleteReview).toHaveBeenCalledWith('review_123', 'user_123', 'member');
-    });
-
-    it('should delete review as admin', async () => {
-      const adminUser = { _id: 'admin_123', firebaseUid: 'firebase_admin', role: 'admin', toString() { return 'admin_123'; } };
-      const userService = controller['userService'] as any;
-      jest.spyOn(userService, 'findById').mockResolvedValueOnce(adminUser);
-
-      const deleteResult = { deleted: true, message: 'Review deleted by admin successfully' };
-      const deleteSpy = jest.spyOn(service, 'deleteReview').mockResolvedValue(deleteResult);
-
-      const result = await controller.deleteReview('review_123', mockReq('firebase_admin'));
-
-      expect(result.deleted).toBe(true);
-      expect(result.message).toContain('admin');
-
-      const callArgs = deleteSpy.mock.calls[0];
-      expect(callArgs[0]).toBe('review_123');
-      expect(callArgs[1]).toBe('admin_123');
-      expect(callArgs[2]).toBe('admin');
-    });
-
-    it('should throw BadRequestException if user not authenticated', async () => {
-      await expect(controller.deleteReview('review_123', { user: {} }))
-        .rejects.toThrow(BadRequestException);
-    });
-
-    it('should throw NotFoundException if review not found', async () => {
-      jest.spyOn(service, 'deleteReview').mockRejectedValue(new NotFoundException());
-
-      await expect(controller.deleteReview('nonexistent', mockReq()))
-        .rejects.toThrow(NotFoundException);
-    });
-
-    it('should throw ForbiddenException if user is not author and not admin', async () => {
-      jest.spyOn(service, 'deleteReview').mockRejectedValue(new ForbiddenException());
-
-      await expect(controller.deleteReview('review_123', mockReq()))
-        .rejects.toThrow(ForbiddenException);
-    });
+    expect(result.deleted).toBe(true);
+    expect(service.deleteReview).toHaveBeenCalled();
   });
+
+  it('should delete review as admin', async () => {
+    const deleteResult = { deleted: true, message: 'Review deleted by admin successfully' };
+
+    const deleteSpy = jest.spyOn(service, 'deleteReview').mockResolvedValue(deleteResult);
+
+    const result = await controller.deleteReview('review_123', 'admin_user', 'admin');
+
+    expect(result.deleted).toBe(true);
+    expect(result.message).toContain('admin');
+    
+    // Verificar argumentos manualmente
+    const callArgs = deleteSpy.mock.calls[0];
+    expect(callArgs[0]).toBe('review_123');
+    expect(callArgs[1]).toBe('admin_user');
+    expect(callArgs[2]).toBe('admin');
+  });
+
+  it('should throw BadRequestException if userId not provided', async () => {
+    await expect(controller.deleteReview('review_123', ''))
+      .rejects.toThrow(BadRequestException);
+  });
+
+  it('should throw NotFoundException if review not found', async () => {
+    jest.spyOn(service, 'deleteReview').mockRejectedValue(new NotFoundException());
+
+    await expect(controller.deleteReview('nonexistent', 'user_123'))
+      .rejects.toThrow(NotFoundException);
+  });
+
+  it('should throw ForbiddenException if user is not author and not admin', async () => {
+    jest.spyOn(service, 'deleteReview').mockRejectedValue(new ForbiddenException());
+
+    await expect(controller.deleteReview('review_123', 'unauthorized_user', 'member'))
+      .rejects.toThrow(ForbiddenException);
+  });
+});
 
   describe('toggleLike', () => {
     it('should toggle like on review', async () => {

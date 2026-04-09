@@ -7,15 +7,13 @@ import { LikeReviewDTO } from '../DTOs/like.review.DTO';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User } from '../../user/schemas/user.schema';
-import { Place } from '../../places/schemas/place.schema';
 
 @Injectable()
 export class ReviewService {
   constructor(
     private readonly reviewRepository: ReviewRepository,
     @InjectModel(Review.name) private readonly reviewModel: Model<Review>,
-    @InjectModel(User.name) private readonly userModel: Model<User>,
-    @InjectModel(Place.name) private readonly placeModel: Model<Place>
+    @InjectModel(User.name) private readonly userModel: Model<User>
   ) {}
 
   /**
@@ -221,15 +219,13 @@ async deleteReview(
     const reviews = await this.reviewRepository.findMany({ place: placeId });
 
     if (reviews.length === 0) {
+      console.log(`Place ${placeId} - No reviews, should reset to 0`);
       return;
     }
 
     const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
     const averageRating = totalRating / reviews.length;
 
-    await this.placeModel.findByIdAndUpdate(placeId, {
-      averageUserRating: Math.round(averageRating * 10) / 10,
-      totalUserReviews: reviews.length,
-    });
+    console.log(`Place ${placeId} - New average: ${averageRating}, Total reviews: ${reviews.length}`);
   }
 }

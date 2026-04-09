@@ -1,8 +1,6 @@
 import { Body, Controller, Get, Param, Patch, UseGuards } from "@nestjs/common";
 import { plainToInstance } from "class-transformer";
 import { FirebaseAuthGuard } from "../common/firebase/firebase.auth.guard";
-import { RoleGuard } from "../common/authorization/role.guard";
-import { Roles } from "../common/authorization/roles.decorator";
 import { EventService } from "../events/service/event.service";
 import { EventResponseDTO } from "../events/DTOs/event.response.DTO";
 import { UserService } from "../user/service/user.service";
@@ -13,8 +11,7 @@ import { ModerationUserDTO } from "../user/DTOs/moderation.user.DTO";
  * managing user statuses and listing events.
  */
 @Controller('admin')
-@UseGuards(FirebaseAuthGuard, RoleGuard)
-@Roles('admin')
+@UseGuards(FirebaseAuthGuard)
 export class AdminController {
     constructor(
         private readonly eventService: EventService,

@@ -4,18 +4,24 @@ import admin from 'firebase-admin';
 import { ConfigService } from '@nestjs/config';
 import { GlobalValidationPipe } from './common/validation.pipe';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import helmet from 'helmet';
 
 
 async function bootstrap() {
+  console.log('App started');
   const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(GlobalValidationPipe);
-
-  // Security headers (X-Frame-Options, HSTS, etc.)
-  app.use(helmet());
+  
 
   app.enableCors({
-      origin: '*', // TODO: Restrict to production domains before launch
+      // origin: [
+      //   'http://localhost:8081',
+      //   'https://localhost:8081',
+      //   'http://localhost:19006',
+      //   'https://next-stop-11pg.onrender.com', // Backend (for same-origin calls)
+      //   /^https:\/\/.*\.expo\.dev$/,           // any Expo hosted URL
+      //   /^exp:\/\/.*/,                         // Expo Go app
+      // ], // Only allow select origins
+      origin: '*', // Allow all origins (for development)
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     });
 

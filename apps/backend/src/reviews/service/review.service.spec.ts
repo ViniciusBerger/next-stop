@@ -5,7 +5,6 @@ import { NotFoundException, BadRequestException, ForbiddenException } from '@nes
 import { getModelToken } from '@nestjs/mongoose';
 import { Review } from '../schema/review.schema';
 import { User } from '../../user/schemas/user.schema';
-import { Place } from '../../places/schemas/place.schema';
 
 /**
  * ReviewService Unit Tests
@@ -74,12 +73,6 @@ describe('ReviewService - Unit Test', () => {
                 username: 'testuser',
               }),
             }),
-          },
-        },
-        {
-          provide: getModelToken(Place.name),
-          useValue: {
-            findByIdAndUpdate: jest.fn().mockResolvedValue({}),
           },
         },
       ],

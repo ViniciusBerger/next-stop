@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import axios from "axios";
 import { auth } from "@/src/config/firebase";
 import { API_URL } from "@/src/config/api";
+import { Platform, Linking } from 'react-native';
 import { getToken } from "@/src/utils/auth";
 import { showAlert } from '@/src/utils/alert';
 
@@ -34,7 +35,10 @@ export default function EventDetailsScreen() {
 
         // Get event details
         const eventRes = await axios.get(`${API_URL}/events/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}`,
+                    'user-id': mongoId
+                    }
+          
         });
 
         setEvent(eventRes.data);
@@ -131,10 +135,15 @@ export default function EventDetailsScreen() {
         <TouchableOpacity
             style={styles.detailRow}
             onPress={() => {
-              router.push({
-                pathname: "/locationdetails",
-                params: { place: JSON.stringify(event.place) },
-              });
+            const destination = encodeURIComponent(
+                `${event.place.name}, ${event.place.address ?? ''}`
+            );
+            const url = Platform.select({
+                ios: `maps://0,0?q=${destination}`,
+                android: `geo:0,0?q=${destination}`,
+                default: `https://www.google.com/maps/search/?api=1&query=${destination}`
+            });
+            Linking.openURL(url);
             }}
             activeOpacity={0.7}
         >
@@ -194,9 +203,13 @@ export default function EventDetailsScreen() {
                 { text: "Yes, cancel", style: "destructive", onPress: async () => {
                   try {
                     const token = await getToken();
-                    await axios.delete(`${API_URL}/events/${id}`, {
-                      headers: { Authorization: `Bearer ${token}` }
+                    const res = await axios.delete(`${API_URL}/events/${id}`, {
+                      headers: { 
+                        Authorization: `Bearer ${token}`,
+                        'user-id': mongoUserId 
+                      }
                     });
+                    console.log("Delete response:", res.data);
                     showAlert("Cancelled", "Event has been cancelled.");
                     router.back();
                   } catch (err: any) {
@@ -222,9 +235,13 @@ export default function EventDetailsScreen() {
                 { text: "Yes, delete", style: "destructive", onPress: async () => {
                 try {
                     const token = await getToken();
-                    await axios.delete(`${API_URL}/events/${id}`, {
-                      headers: { Authorization: `Bearer ${token}` }
+                    const res = await axios.delete(`${API_URL}/events/${id}`, {
+                    headers: { 
+                        Authorization: `Bearer ${token}`,
+                        'user-id': mongoUserId 
+                    }
                     });
+                    console.log("Delete response:", res.data);
                     showAlert("Deleted", "Event has been deleted.", [{ text: "OK" }]);
                     router.back();
                 } catch (err: any) {

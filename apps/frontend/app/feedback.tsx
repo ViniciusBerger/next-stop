@@ -6,7 +6,6 @@ import axios from "axios";
 import { showAlert } from '@/src/utils/alert';
 import { auth } from "@/src/config/firebase";
 import { API_URL } from "@/src/config/api";
-import { getToken } from "@/src/utils/auth";
 
 export default function FeedbackReportScreen() {
   const [type, setType] = useState<"feedback" | "issue" | null>(null);
@@ -40,10 +39,7 @@ export default function FeedbackReportScreen() {
           reportedBy: auth.currentUser?.uid, 
         };
 
-        const token = await getToken();
-        const response = await axios.post(`${API_URL}/reports`, payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await axios.post(`${API_URL}/reports`, payload);
 
         if (response.status === 201 || response.status === 200) {
           // Success logic for platforms

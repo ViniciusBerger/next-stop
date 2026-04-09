@@ -4,8 +4,6 @@ import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GlobalExceptionFilter } from '../common/errors/global.error.filter';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
 import { UserModule } from '../user/user.module';
 import { PlaceModule } from '../places/place.module';
 import { AuthModule } from '../auth/auth.module';
@@ -22,6 +20,7 @@ import { AnnouncementModule } from '../announcements/announcement.module';
 import { AdminModule } from '../admin/admin.module';
 import { BadgeModule } from '../badges/badge.module';
 import { NotificationModule } from '../notifications/notification.module';
+// Comment to push a change and test an update to render deployment
 
 @Module({
   imports: [
@@ -30,12 +29,6 @@ import { NotificationModule } from '../notifications/notification.module';
       isGlobal: true,
       envFilePath: '.env', // ./backend/.env
     }),
-
-    // Rate limiting: 100 requests per 60 seconds per IP
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
-    }]),
 
     // mongoose module to connect to MongoDB
     MongooseConnectionModule.init(),
@@ -59,17 +52,12 @@ import { NotificationModule } from '../notifications/notification.module';
 
   //providers are services that the module provides
   providers: [
-    AppService,
+    AppService, 
     {
       // Global exception filter to handle errors across app
       provide: `APP_FILTER`,
       useClass: GlobalExceptionFilter
-    },
-    {
-      // Global rate limiting guard
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
+    }
   ], 
 })
 export class AppModule {}
