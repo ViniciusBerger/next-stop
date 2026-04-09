@@ -162,7 +162,6 @@ export default function BadgesScreen() {
           contentContainerStyle={styles.listContent}
           columnWrapperStyle={styles.columnWrapper}
           showsVerticalScrollIndicator={false}
-          scrollEnabled={false}
         />
       </View>
 
