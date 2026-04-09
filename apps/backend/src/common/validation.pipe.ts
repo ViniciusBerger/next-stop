@@ -29,6 +29,8 @@ export const GlobalValidationPipe = new ValidationPipe({
     },
     disableErrorMessages: false,
     exceptionFactory: (errors) => {
+       
+        console.log('VALIDATION FAILED:', JSON.stringify(errors, null, 2));
         return new ExceptionFactory().createException(errors);
     }
 });

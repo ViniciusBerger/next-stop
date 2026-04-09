@@ -9,7 +9,6 @@ import axios from "axios";
 import { API_URL } from "@/src/config/api";
 import { getToken } from "@/src/utils/auth";
 import { showAlert } from '@/src/utils/alert';
-import { AppMap } from '@/components/AppMap';
 
 export default function LocationDetailsScreen() {
   const [isFavorited, setIsFavorited] = useState(false);
@@ -170,11 +169,12 @@ const handleToggleWishlist = async () => {
     <ScreenLayout showBack={true} title="Location Details">
       <View style={styles.container}>
 
-        {/* 1. Map */}
-        <AppMap
-          focusedPlace={place ? { ...place, id: placeId } : undefined}
-          style={styles.mapContainer}
-        />
+        {/* 1. Map Placeholder */}
+        <View style={styles.mapPlaceholder}>
+          <Ionicons name="map" size={40} color="#5962ff" />
+          <Text style={styles.mapText}>Map Preview Placeholder</Text>
+          <Text style={styles.mapSubText}>(Google Maps SDK Integration)</Text>
+        </View>
 
         {/* 2. Main Info Card */}
         <View style={styles.infoCard}>
@@ -210,7 +210,7 @@ const handleToggleWishlist = async () => {
           </View>
 
           {/* 4. Review Button (Only if user has visited) */}
-        {hasVisited && (
+        {(hasVisited || true) && (
           <TouchableOpacity 
             style={styles.reviewPromptCard}
             onPress={() => router.push({
@@ -299,11 +299,25 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginTop: 0
   },
-  mapContainer: {
+  mapPlaceholder: {
     height: 200,
+    backgroundColor: '#F0F3FF',
     borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 20,
-    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#E1E8FF',
+    borderStyle: 'dashed',
+  },
+  mapText: {
+    marginTop: 10,
+    color: '#5962ff',
+    fontWeight: 'bold',
+  },
+  mapSubText: {
+    color: '#A0AEC0',
+    fontSize: 12,
   },
   infoCard: {
     backgroundColor: '#FFF',

@@ -21,6 +21,7 @@ useEffect(() => {
   // Avoids waiting for async auth restore
   const currentUser = auth.currentUser;
   if (currentUser) {
+    console.log("Immediate user found:", currentUser.uid);
     fetchReviews(currentUser.uid);
     setLoading(false);
     return;
@@ -28,6 +29,7 @@ useEffect(() => {
 
   // Fallback, wait for Firebase to restore session
   const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    console.log("MyReviews auth user:", user?.uid ?? "NULL");
     if (!user) {
       setLoading(false);
       return;
@@ -41,6 +43,8 @@ useEffect(() => {
 const fetchReviews = async (uid: string) => {
   try {
     const token = await getToken();
+    console.log("Fetching reviews for:", uid);
+    
     const response = await axios.get(`${API_URL}/reviews/user/${uid}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -66,6 +70,7 @@ const fetchReviews = async (uid: string) => {
       text: review.reviewText,
     }));
 
+    console.log("Mapped reviews:", mapped.length);
     setReviews(mapped);
   } catch (err: any) {
     console.error("Reviews fetch error:", err.response?.status, err.response?.data);
@@ -157,7 +162,10 @@ const fetchReviews = async (uid: string) => {
                     try {
                       const token = await getToken();
                       await axios.delete(`${API_URL}/reviews/${item.id}`, {
-                        headers: { Authorization: `Bearer ${token}` }
+                        headers: {
+                          "user-id": item.mongoAuthorId,
+                          Authorization: `Bearer ${token}`
+                        }
                       });
                       setReviews(prev => prev.filter(r => r.id !== item.id));
                       showAlert("Deleted", "Your review has been deleted.");

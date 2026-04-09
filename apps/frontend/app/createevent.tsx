@@ -60,9 +60,7 @@ export default function CreateEventScreen() {
         const id = profileRes.data._id;
         setMongoUserId(id);
 
-        const friendsRes = await axios.get(`${API_URL}/friends?userId=${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const friendsRes = await axios.get(`${API_URL}/friends?userId=${id}`);
         const formatted = friendsRes.data.map((f: any) => ({
           id: f._id,
           name: f.username || "User",
@@ -71,7 +69,7 @@ export default function CreateEventScreen() {
         }));
         setFriends(formatted);
       } catch (err) {
-        console.error("Failed to load friends:", err);
+        console.log("Failed to load friends:", err);
       }
     };
     loadFriends();

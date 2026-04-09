@@ -8,7 +8,6 @@ import axios from "axios";
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { API_URL } from "@/src/config/api";
-import { getToken } from "@/src/utils/auth";
 import { showAlert } from '@/src/utils/alert';
 
 //  ADDED
@@ -30,6 +29,7 @@ export default function CreateReviewScreen() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log("CreateReview auth user:", user?.uid ?? "NULL");
       setCurrentUser(user);
       setAuthLoading(false);
     });
@@ -61,15 +61,16 @@ export default function CreateReviewScreen() {
 
       if (!uploadRes.ok) {
         const errText = await uploadRes.text();
-        console.error("Supabase error:", errText);
+        console.log("Supabase error:", errText);
         return null;
       }
 
       const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${fileName}`;
+      console.log("Review image uploaded:", publicUrl);
       return publicUrl;
 
     } catch (err) {
-      console.error("Upload error:", err);
+      console.log("Upload error:", err);
       return null;
     } finally {
       setUploading(false);
@@ -111,10 +112,7 @@ export default function CreateReviewScreen() {
         images: finalImageUrl ? [finalImageUrl] : [], // CHANGED - use Supabase URL
       };
 
-      const token = await getToken();
-      const response = await axios.post(`${API_URL}/reviews`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.post(`${API_URL}/reviews`, payload);
 
       if (response.status === 201) {
         showAlert("Success", "Review successfully posted!");

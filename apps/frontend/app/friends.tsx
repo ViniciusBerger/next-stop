@@ -33,11 +33,12 @@ export default function FriendsScreen() {
 
 const loadFriends = async (userId: string) => {
   try {
-    const token = await getToken();
+
     const res = await axios.get(
-      `${API_URL}/friends?userId=${userId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
+      `${API_URL}/friends?userId=${userId}`
     );
+
+    console.log("Friends:", res.data);
 
     const formattedFriends = res.data.map((user: any) => ({
 
@@ -61,7 +62,7 @@ const loadFriends = async (userId: string) => {
 
   } catch (err) {
 
-    console.error("Friends error:", err);
+    console.log("Friends error:", err);
 
   }
 };
@@ -69,11 +70,11 @@ const loadFriends = async (userId: string) => {
 // Load pending requests
 const loadRequests = async (userId: string) => {
   try {
-    const token = await getToken();
     const res = await axios.get(
-      `${API_URL}/friends/requests?userId=${userId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
+      `${API_URL}/friends/requests?userId=${userId}`
     );
+
+    console.log("Requests:", res.data);
 
     if (res.data && Array.isArray(res.data)) {
       const backendRequests = res.data.map((req: any) => {
@@ -96,7 +97,7 @@ const loadRequests = async (userId: string) => {
       setRequests([]);
     }
   } catch (error) {
-    console.error("Requests load failed", error);
+    console.log("Requests load failed", error);
     setRequests([]);
   }
 };
@@ -104,11 +105,12 @@ const loadRequests = async (userId: string) => {
 const loadSuggestions = async (userId: string) => {
 
 try{
-const token = await getToken();
+
 const res = await axios.get(
-`${API_URL}/friends/suggestions?userId=${userId}`,
-{ headers: { Authorization: `Bearer ${token}` } }
+`${API_URL}/friends/suggestions?userId=${userId}`
 );
+
+console.log("Suggestions:",res.data);
 
 if(res.data){
 
@@ -135,7 +137,7 @@ setSuggestions(backendSuggestions);
 
 }catch(error){
 
-console.error("Suggestions failed", error);
+console.log("Suggestions failed");
 
 }
 
@@ -144,10 +146,7 @@ console.error("Suggestions failed", error);
 
 const loadOutgoingRequests = async (userId: string) => {
   try {
-    const token = await getToken();
-    const res = await axios.get(`${API_URL}/friends/outgoing?userId=${userId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const res = await axios.get(`${API_URL}/friends/outgoing?userId=${userId}`);
     if (res.data && Array.isArray(res.data)) {
       const formatted = res.data.map((req: any) => ({
         id: String(req._id),
@@ -160,7 +159,7 @@ const loadOutgoingRequests = async (userId: string) => {
       setOutgoingRequests([]);
     }
   } catch (error) {
-    console.error("Outgoing requests failed", error);
+    console.log("Outgoing requests failed", error);
     setOutgoingRequests([]);
   }
 };
@@ -181,7 +180,7 @@ useEffect(() => {
       loadOutgoingRequests(id);
       loadSuggestions(id);
     } catch (err) {
-      console.error("Failed to get user profile:", err);
+      console.log("Failed to get user profile:", err);
     }
   };
 
@@ -209,14 +208,12 @@ const handleAcceptRequest = async (id: string) => {
 
 try{
 
-const token = await getToken();
 await axios.post(
 `${API_URL}/friends/respond`,
 {
 requestId: id,
 status: "accepted"
-},
-{ headers: { Authorization: `Bearer ${token}` } }
+}
 );
 
 // remove from UI immediately
@@ -224,8 +221,7 @@ setRequests(prev => prev.filter(r => r.id !== id));
 
 // force fresh backend reload
 const friendsRes = await axios.get(
-`${API_URL}/friends?userId=${mongoUserId}`,
-{ headers: { Authorization: `Bearer ${token}` } }
+`${API_URL}/friends?userId=${mongoUserId}`
 );
 
 if(friendsRes.data){
@@ -262,7 +258,7 @@ setActiveTab('friends');
 
 }catch(error){
 
-console.error("Accept failed", error);
+console.log("Accept failed", error);
 
 }
 
@@ -271,14 +267,13 @@ console.error("Accept failed", error);
  const handleDeclineRequest = (id: string) => {
     confirmAction('Decline Request', 'Are you sure you want to decline this friend request?', async () => {
       try {
-        const token = await getToken();
         await axios.post(`${API_URL}/friends/respond`, {
           requestId: id,
           status: "rejected"
-        }, { headers: { Authorization: `Bearer ${token}` } });
+        });
         if (mongoUserId) loadRequests(mongoUserId);
       } catch (error) {
-        console.error("Decline failed", error);
+        console.log("Decline failed", error);
       }
     });
   };
@@ -286,14 +281,11 @@ console.error("Accept failed", error);
   const handleCancelRequest = (requestId: string) => {
     confirmAction('Cancel Request', 'Are you sure you want to cancel this friend request?', async () => {
       try {
-        const token = await getToken();
-        await axios.delete(`${API_URL}/friends/${requestId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await axios.delete(`${API_URL}/friends/${requestId}`);
         setOutgoingRequests(prev => prev.filter(r => r.id !== requestId));
         if (mongoUserId) loadSuggestions(mongoUserId);
       } catch (error) {
-        console.error("Cancel request failed", error);
+        console.log("Cancel request failed", error);
       }
     });
   };
@@ -304,14 +296,12 @@ console.error("Accept failed", error);
       `Are you sure you want to unfriend ${friendName}?`,
       async () => {
         try {
-          const token = await getToken();
           await axios.delete(`${API_URL}/friends/unfriend`, {
-            params: { userId: mongoUserId, friendId },
-            headers: { Authorization: `Bearer ${token}` }
+            params: { userId: mongoUserId, friendId }
           });
           setFriends(prev => prev.filter(f => f.id !== friendId));
         } catch (error) {
-          console.error("Unfriend failed", error);
+          console.log("Unfriend failed", error);
         }
       }
     );
@@ -320,11 +310,10 @@ console.error("Accept failed", error);
   const handleAddFriend = async (id: string) => {
   const suggestion = suggestions.find(s => s.id === id);
   try {
-    const token = await getToken();
     await axios.post(`${API_URL}/friends`, {
       requester: mongoUserId,
       recipient: id
-    }, { headers: { Authorization: `Bearer ${token}` } });
+    });
 
     setSuggestions(prev => prev.filter(sug => sug.id !== id));
 
@@ -333,7 +322,7 @@ console.error("Accept failed", error);
 
     if (mongoUserId) loadOutgoingRequests(mongoUserId);
   } catch (error) {
-    console.error("Friend request failed", error);
+    console.log("Friend request failed");
   }
 };
 

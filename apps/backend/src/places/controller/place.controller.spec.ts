@@ -4,7 +4,6 @@ import { PlaceService } from '../service/place.service';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GooglePlacesService } from '../service/google-places.service';
-import { FirebaseAuthGuard } from '../../common/firebase/firebase.auth.guard';
 
 /**
  * PlaceController Unit Tests
@@ -57,10 +56,6 @@ describe('PlaceController - Unit Test', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PlaceController],
       providers: [
-        {
-          provide: FirebaseAuthGuard,
-          useValue: { canActivate: jest.fn().mockReturnValue(true) },
-        },
         {
           provide: PlaceService,
           useValue: mockPlaceService,

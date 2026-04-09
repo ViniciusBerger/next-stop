@@ -6,14 +6,12 @@ import {
   NotFoundException,
   Put,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { ProfileService } from '../service/profile.service';
 import { GetProfileDTO } from '../DTOs/get.profile.DTO';
 import { UpdateProfileDTO } from '../DTOs/update.profile.DTO';
 import { ProfileResponseDTO } from '../DTOs/profile.response.DTO';
 import { plainToInstance } from 'class-transformer';
-import { FirebaseAuthGuard } from '../../common/firebase/firebase.auth.guard';
 
 @Controller('profile')
 export class ProfileController {
@@ -46,11 +44,12 @@ export class ProfileController {
 
   // UPDATE profile
   @Put()
-  @UseGuards(FirebaseAuthGuard)
   async updateProfile(
     @Query() getProfileDTO: GetProfileDTO,
     @Body() updateProfileDTO: UpdateProfileDTO,
   ) {
+    console.log("UPDATE BODY:", updateProfileDTO);
+
     const hasIdentifier = Object.values(getProfileDTO).some(
       (value) => value !== undefined && value !== '',
     );

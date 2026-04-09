@@ -5,8 +5,6 @@ import { ReviewService } from './service/review.service';
 import { ReviewRepository } from './repository/review.repository';
 import { Review, reviewSchema } from './schema/review.schema';
 import { User, userSchema } from '../user/schemas/user.schema';
-import { Place, placeSchema } from '../places/schemas/place.schema';
-import { UserModule } from '../user/user.module';
 
 /**
  * Review Module
@@ -16,10 +14,8 @@ import { UserModule } from '../user/user.module';
   imports: [
     MongooseModule.forFeature([
       { name: Review.name, schema: reviewSchema },
-      { name: User.name, schema: userSchema },
-      { name: Place.name, schema: placeSchema }
+      { name: User.name, schema: userSchema }
     ]),
-    UserModule,
   ],
   controllers: [ReviewController],
   providers: [ReviewService, ReviewRepository],

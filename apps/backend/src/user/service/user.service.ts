@@ -150,9 +150,11 @@ export class UserService {
     }
 
     async toggleArrayField(userId: string, field: 'wishlist' | 'favorites', placeId: string) {
+        console.log('🔍 Looking for firebaseUid:', userId);
         const objectId = new Types.ObjectId(placeId);
 
         const user = await this.userRepository.findOne({ firebaseUid: userId });
+        console.log('👤 User found:', user ? 'YES' : 'NULL');
         if (!user) throw new NotFoundException("User not found");
 
         const index = user[field].findIndex((id: Types.ObjectId) => id.equals(objectId));

@@ -22,7 +22,6 @@ import { useRouter } from 'expo-router';
 import axios from "axios";
 import { API_URL } from '@/src/config/api';
 import { auth } from '@/src/config/firebase';
-import { getToken } from '@/src/utils/auth';
 import { styles as loginStyles } from '@/src/styles/login.styles';
 
 export default function DiscoverScreen() {
@@ -103,6 +102,10 @@ export default function DiscoverScreen() {
 
       // Map backend data to match frontend interface
       const formattedPlaces = response.data
+        .map((item: any) => {
+          console.log(`📍 ${item.name} → category: "${item.category}"`);
+          return item;
+        })
         .filter((item: any) => {
           const category = (item.category ?? item.type ?? '').toLowerCase();
           // Exclude unwanted categories
@@ -162,7 +165,6 @@ export default function DiscoverScreen() {
 
     try {
       // 2. Call endpoint
-      const token = await getToken();
       const response = await axios.post(`${API_URL}/ai/pick`, {
         vibe: vibeInput,
         places: filteredPlaces.map(p => ({
@@ -171,7 +173,7 @@ export default function DiscoverScreen() {
           category: p.category || p.type
         })),
         userId: auth.currentUser?.uid //Now logging who searched what
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      });
 
       const { id, reason } = response.data; // Matches backend response
 

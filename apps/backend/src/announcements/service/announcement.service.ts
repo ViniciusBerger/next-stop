@@ -36,17 +36,13 @@ export class AnnouncementService {
       sound: 'default',
     }));
 
-    try {
-      await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify(messages),
-      });
-    } catch (err) {
-      console.error('Failed to send push notifications:', err);
-    }
+    await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(messages),
+    });
   }
 }

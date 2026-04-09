@@ -4,9 +4,6 @@ import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet,
 import HeaderBackground from "@/src/svgs/HeaderBackground";
 import { useRouter } from "expo-router";
 import { BackButton } from "@/components/backButton";
-import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "@/src/config/firebase";
-import { showAlert } from "@/src/utils/alert";
 
 const EMAIL_REGEX = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
 
@@ -30,19 +27,10 @@ export default function ForgotPasswordScreen() {
     setError("");
     setLoading(true);
 
-    try {
-      await sendPasswordResetEmail(auth, email);
-      showAlert("Success", "Password reset email sent. Check your inbox.");
-      router.back();
-    } catch (err: any) {
-      if (err.code === "auth/user-not-found") {
-        setError("No account found with that email");
-      } else {
-        setError("Failed to send reset email. Please try again.");
-      }
-    } finally {
+    setTimeout(() => {
       setLoading(false);
-    }
+      router.back();
+    }, 1500);
   }
 
   return (
