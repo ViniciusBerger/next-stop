@@ -418,10 +418,12 @@ const styles = StyleSheet.create({
     height: 20,
     backgroundColor: '#E0E0E0',
   },
-  ratingContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginLeft: 12 
+  ratingContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    marginLeft: 12
 },
   starRow: { 
     flexDirection: 'row', 
