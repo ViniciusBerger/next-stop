@@ -35,9 +35,6 @@ export default function LocationReviewsScreen() {
         const res = await axios.get(`${API_URL}/reviews/place/${mongoPlaceId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        console.log("REVIEW AUTHOR:", JSON.stringify(res.data[0]?.author, null, 2)); //ADD
-        console.log("Reviews response:", res.data);
-        console.log("Fetching reviews for mongoPlaceId:", mongoPlaceId);
         setReviews(res.data);
       } catch (err: any) {
         console.error("Failed to fetch reviews:", err.response?.data || err.message);
@@ -50,10 +47,8 @@ export default function LocationReviewsScreen() {
   }, [placeId]);
 
   const handleLike = async (reviewId: string) => {
-    console.log("handleLike called with reviewId:", reviewId);
     try {
       const firebaseUid = auth.currentUser?.uid;
-      console.log("firebaseUid:", firebaseUid);
       if (!firebaseUid) return;
       const token = await getToken();
       const res = await axios.post(
@@ -71,10 +66,7 @@ export default function LocationReviewsScreen() {
     try {
       const token = await getToken();
       await axios.delete(`${API_URL}/reviews/${reviewId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'user-id': mongoUserId
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
       setReviews(prev => prev.filter(r => r._id !== reviewId));
     } catch (err: any) {

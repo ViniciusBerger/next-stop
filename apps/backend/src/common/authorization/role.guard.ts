@@ -37,12 +37,18 @@ export class RoleGuard implements CanActivate {
 
 
         // if no roles are required, allow access
-        if (!requiredRoles || requiredRoles.length == 0) { return true;}
-        const {user} = context.switchToHttp().getRequest().user;
+        if (!requiredRoles || requiredRoles.length === 0) { return true;}
 
+        // retrieve the authenticated user set by FirebaseAuthGuard (request.user = { uid })
+        const request = context.switchToHttp().getRequest();
+        const user = request.user;
+
+        if (!user?.uid) {
+            throw new UnauthorizedException('User not authenticated');
+        }
 
         // fetch database to look for roles
-        const mongooseUser = await mongoose.model('User').findById(user.firebaseId).exec();
+        const mongooseUser = await mongoose.model('User').findOne({ firebaseUid: user.uid }).exec();
 
         if (!mongooseUser) {
             throw new UnauthorizedException('User not found');

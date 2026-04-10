@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
 import { API_URL } from '@/src/config/api';
+import { getToken } from '@/src/utils/auth';
 import { showAlert } from '@/src/utils/alert';
 
 const DangerToggle = ({ value, onValueChange }: { value: boolean; onValueChange: (v: boolean) => void }) => (
@@ -41,18 +42,30 @@ export default function AdminSettingsScreen() {
   const [isLocationHistoryActive, setIsLocationHistoryActive] = useState(true);
 
   useEffect(() => {
-    axios.get(`${API_URL}/system/config`).then(({ data }) => {
-      setIsGoogleApiActive(data.googleMapsEnabled);
-      setIsGeminiActive(data.geminiEnabled);
-      setIsMaintenanceMode(data.maintenanceMode);
-      setIsAnonymizeData(data.anonymizeData);
-      setIsLocationHistoryActive(data.locationHistoryEnabled);
-    }).catch(err => console.error('Failed to load system config:', err));
+    const loadConfig = async () => {
+      try {
+        const token = await getToken();
+        const { data } = await axios.get(`${API_URL}/system/config`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setIsGoogleApiActive(data.googleMapsEnabled);
+        setIsGeminiActive(data.geminiEnabled);
+        setIsMaintenanceMode(data.maintenanceMode);
+        setIsAnonymizeData(data.anonymizeData);
+        setIsLocationHistoryActive(data.locationHistoryEnabled);
+      } catch (err) {
+        console.error('Failed to load system config:', err);
+      }
+    };
+    loadConfig();
   }, []);
 
   const updateSystemConfig = async (key: string, value: boolean) => {
     try {
-      await axios.patch(`${API_URL}/system/config`, { key, value });
+      const token = await getToken();
+      await axios.patch(`${API_URL}/system/config`, { key, value }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
     } catch (error) {
       showAlert('Error', 'Failed to save setting.');
     }
@@ -74,7 +87,10 @@ export default function AdminSettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const { data } = await axios.delete(`${API_URL}/ai/logs`);
+              const token = await getToken();
+              const { data } = await axios.delete(`${API_URL}/ai/logs`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
               showAlert('Done', `${data.deleted} log entries cleared.`);
             } catch (err) {
               showAlert('Error', 'Failed to purge cached data.');

@@ -18,6 +18,7 @@ import { showToast } from '@/components/ui/Toast';
 import Svg_SVG, { Polyline as SVGPolyline } from 'react-native-svg';
 import axios from 'axios';
 import { API_URL } from '@/src/config/api';
+import { getToken } from '@/src/utils/auth';
 
 type AiStats = {
   total: number;
@@ -74,7 +75,10 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const { data } = await axios.get<AiStats>(`${API_URL}/ai/stats`);
+      const token = await getToken();
+      const { data } = await axios.get<AiStats>(`${API_URL}/ai/stats`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setStats(data);
     } catch (err) {
       console.error('Failed to fetch AI stats:', err);
