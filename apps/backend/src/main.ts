@@ -11,13 +11,15 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(GlobalValidationPipe);
 
-  // Security headers (X-Frame-Options, HSTS, etc.)
-  app.use(helmet());
-
   app.enableCors({
       origin: '*', // TODO: Restrict to production domains before launch
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     });
+
+  // Security headers (X-Frame-Options, HSTS, etc.) — must come after CORS
+  app.use(helmet({
+    crossOriginResourcePolicy: false,
+  }));
 
     // ADD THIS ONLY ↓↓↓
 
