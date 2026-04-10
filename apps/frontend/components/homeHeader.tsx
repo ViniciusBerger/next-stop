@@ -43,7 +43,10 @@ export function HomeHeader({
       </View>
 
       <View style={styles.headerTextWrapper}>
-        <Text style={styles.headerGreeting}>Hello, {"\n"}{username}</Text>
+        <View style={styles.headerGreetingWrapper}>
+          <Text style={styles.headerGreeting}>Hello,</Text>
+          <Text style={styles.headerGreeting} numberOfLines={1} ellipsizeMode="tail">{username}</Text>
+        </View>
         <Text style={styles.headerSubtitle}>Ready for your next outing?</Text>
       </View>
 

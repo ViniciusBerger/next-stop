@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import MapView, { Marker, Callout, PROVIDER_GOOGLE } from 'react-native-maps';
 
@@ -29,6 +29,9 @@ function getCoords(place: Place): { latitude: number; longitude: number } | null
 }
 
 export function AppMap({ places, focusedPlace, userLocation, onMarkerPress, style }: Props) {
+  const mapRef = useRef<MapView>(null);
+  const hasAnimated = useRef(false);
+
   // Determine which location to center on
   const center = focusedPlace
     ? getCoords(focusedPlace)
@@ -43,10 +46,24 @@ export function AppMap({ places, focusedPlace, userLocation, onMarkerPress, styl
       }
     : undefined;
 
+  // When location resolves after mount, animate the map to it once
+  useEffect(() => {
+    if (center && !hasAnimated.current && mapRef.current) {
+      hasAnimated.current = true;
+      mapRef.current.animateToRegion({
+        latitude: center.latitude,
+        longitude: center.longitude,
+        latitudeDelta: focusedPlace ? 0.01 : 0.05,
+        longitudeDelta: focusedPlace ? 0.01 : 0.05,
+      }, 1000);
+    }
+  }, [center?.latitude, center?.longitude]);
+
   const markers = focusedPlace ? [focusedPlace] : (places ?? []);
 
   return (
     <MapView
+      ref={mapRef}
       style={[styles.map, style]}
       provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
       initialRegion={initialRegion}

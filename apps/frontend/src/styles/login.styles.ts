@@ -86,13 +86,13 @@ export const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     marginHorizontal: 30,
     marginVertical: 40,
+    justifyContent: "center",
   },
 
   text: {
     fontSize: 30,
     fontWeight: "600",
     color: "#000000",
-    marginLeft: 20,
   },
 
   post: {
@@ -208,10 +208,14 @@ export const styles = StyleSheet.create({
   },
 
   headerGreeting: {
-    marginTop: 45,
     fontSize: 32,
     fontWeight: "700",
     color: "#ffffff",
+  },
+
+  headerGreetingWrapper: {
+    marginTop: 45,
+    marginRight: 134,
   },
 
   headerSubtitle: {
@@ -220,7 +224,7 @@ export const styles = StyleSheet.create({
     color: "#ffffff",
     alignSelf: "center",
     paddingTop: 8,
-    marginTop: 30, 
+    marginTop: 15, 
   },
 
   scrollContent: {
