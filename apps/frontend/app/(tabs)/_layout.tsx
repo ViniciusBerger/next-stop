@@ -5,8 +5,7 @@ export default function TabsLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="home" />
       <Stack.Screen name="profile" />
-      <Stack.Screen name="search" />
-      <Stack.Screen name="friends" />
+      <Stack.Screen name="discover" />
     </Stack>
   );
 }

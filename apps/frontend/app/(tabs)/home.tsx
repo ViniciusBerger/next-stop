@@ -83,12 +83,8 @@ export default function Home() {
 
 useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, async (user) => {
-    console.log("onAuthStateChanged launched. User:", user?.uid ?? "NULL");
-    console.log("auth.currentUser:", auth.currentUser?.uid ?? "NULL");
-
     if (user) {
       const token = await getToken();
-      console.log("Token:", token ? "EXISTS" : "MISSING");
 
       if (token) {
         try {
@@ -132,11 +128,13 @@ useEffect(() => {
           // Fetch unread notification count
           const mongoId = response.data._id;
           if (mongoId) {
-            const countRes = await axios.get(`${API_URL}/notifications/unread-count?userId=${mongoId}`);
+            const countRes = await axios.get(`${API_URL}/notifications/unread-count?userId=${mongoId}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
             setUnreadNotifications(countRes.data);
           }
         } catch (err) {
-          console.log("Profile reload error:", err);
+          console.error("Profile reload error:", err);
         }
       };
       reloadProfile();

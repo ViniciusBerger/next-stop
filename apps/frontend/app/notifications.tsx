@@ -47,10 +47,12 @@ export default function NotificationsScreen() {
         const id = profileRes.data._id;
         setMongoUserId(id);
 
-        const res = await axios.get(`${API_URL}/notifications?userId=${id}`);
+        const res = await axios.get(`${API_URL}/notifications?userId=${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setNotifications(res.data);
       } catch (err) {
-        console.log('Failed to load notifications:', err);
+        console.error('Failed to load notifications:', err);
       } finally {
         setLoading(false);
       }
@@ -60,22 +62,28 @@ export default function NotificationsScreen() {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      await axios.patch(`${API_URL}/notifications/${notificationId}/read`);
+      const token = await getToken();
+      await axios.patch(`${API_URL}/notifications/${notificationId}/read`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setNotifications((prev) =>
         prev.map((n) => (n._id === notificationId ? { ...n, read: true } : n)),
       );
     } catch (err) {
-      console.log('Failed to mark as read:', err);
+      console.error('Failed to mark as read:', err);
     }
   };
 
   const markAllAsRead = async () => {
     if (!mongoUserId) return;
     try {
-      await axios.patch(`${API_URL}/notifications/read-all?userId=${mongoUserId}`);
+      const token = await getToken();
+      await axios.patch(`${API_URL}/notifications/read-all?userId=${mongoUserId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch (err) {
-      console.log('Failed to mark all as read:', err);
+      console.error('Failed to mark all as read:', err);
     }
   };
 

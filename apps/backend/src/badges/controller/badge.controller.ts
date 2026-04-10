@@ -9,6 +9,7 @@ import {
   Post,
   Put,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { BadgeService } from '../service/badge.service';
 import { BadgeCheckerService } from '../checker/badge-checker.service';
@@ -17,6 +18,9 @@ import { UpdateBadgeDTO } from '../DTOs/update.badge.DTO';
 import { GetBadgeDTO } from '../DTOs/get.badge.DTO';
 import { plainToInstance } from 'class-transformer';
 import { BadgeResponseDTO } from '../DTOs/badge.response.DTO';
+import { FirebaseAuthGuard } from '../../common/firebase/firebase.auth.guard';
+import { RoleGuard } from '../../common/authorization/role.guard';
+import { Roles } from '../../common/authorization/roles.decorator';
 
 @Controller('badges')
 export class BadgeController {
@@ -26,6 +30,8 @@ export class BadgeController {
   ) {}
 
   @Post()
+  @UseGuards(FirebaseAuthGuard, RoleGuard)
+  @Roles('admin')
   async createBadge(@Body() createBadgeDTO: CreateBadgeDTO) {
     const newBadge = await this.badgeService.createBadge(createBadgeDTO);
     return plainToInstance(BadgeResponseDTO, newBadge.toObject(), {
@@ -67,6 +73,8 @@ export class BadgeController {
   }
 
   @Put(':badgeId')
+  @UseGuards(FirebaseAuthGuard, RoleGuard)
+  @Roles('admin')
   async updateBadge(
     @Param('badgeId') badgeId: string,
     @Body() updateBadgeDTO: UpdateBadgeDTO,
@@ -78,11 +86,14 @@ export class BadgeController {
   }
 
   @Delete(':badgeId')
+  @UseGuards(FirebaseAuthGuard, RoleGuard)
+  @Roles('admin')
   async deleteBadge(@Param('badgeId') badgeId: string) {
     return await this.badgeService.deleteBadge(badgeId);
   }
 
   @Post('recalculate/:userId')
+  @UseGuards(FirebaseAuthGuard)
   async recalculateBadges(@Param('userId') userId: string) {
     await this.badgeCheckerService.checkAllBadges(userId);
     return {

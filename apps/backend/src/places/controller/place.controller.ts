@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Put, Delete, Body, Query, Param, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Query, Param, BadRequestException, UseGuards } from '@nestjs/common';
+import { FirebaseAuthGuard } from '../../common/firebase/firebase.auth.guard';
 import { PlaceService } from '../service/place.service';
 import { GooglePlacesService } from '../service/google-places.service';
 import { Place } from '../schemas/place.schema';
@@ -15,6 +16,7 @@ export class PlaceController {
   ) {}
 
   @Post()
+  @UseGuards(FirebaseAuthGuard)
   async createPlace(@Body() dto: CreatePlaceDTO) {
     return await this.placeService.createPlace(dto);
   }
@@ -30,11 +32,13 @@ export class PlaceController {
   }
 
   @Put()
+  @UseGuards(FirebaseAuthGuard)
   async updatePlace(@Body() dto: UpdatePlaceDTO) {
     return await this.placeService.updatePlace(dto);
   }
 
   @Delete()
+  @UseGuards(FirebaseAuthGuard)
   async deletePlace(@Query('googlePlaceId') googlePlaceId: string) {
     if (!googlePlaceId) {
       throw new BadRequestException('googlePlaceId is required');
