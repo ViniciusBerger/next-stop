@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { ScreenLayout } from '@/components/screenLayout';
+import { auth } from '@/src/config/firebase';
 import axios from 'axios';
 import { API_URL } from '@/src/config/api';
 import { getToken } from '@/src/utils/auth';
@@ -20,19 +21,36 @@ export default function UserProfileScreen() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isFriend, setIsFriend] = useState(false);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const token = await getToken();
-        const res = await axios.get(`${API_URL}/profile?username=${username}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setProfile(res.data);
+        const headers = { Authorization: `Bearer ${token}` };
+        const currentUser = auth.currentUser;
 
-        const reviewsRes = await axios.get(`${API_URL}/reviews/profile/${res.data._id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // Fetch viewed profile and viewer's profile in parallel
+        const [profileRes, viewerRes] = await Promise.all([
+          axios.get(`${API_URL}/profile?username=${username}`, { headers }),
+          currentUser
+            ? axios.get(`${API_URL}/profile?firebaseUid=${currentUser.uid}`, { headers })
+            : Promise.resolve(null),
+        ]);
+
+        const profileData = profileRes.data;
+        setProfile(profileData);
+
+        // Determine friendship and own-profile status
+        const viewerMongoId = viewerRes?.data?._id?.toString();
+        if (viewerMongoId) {
+          setIsOwnProfile(viewerMongoId === profileData._id?.toString());
+          const friendIds = (profileData.friends || []).map((id: any) => id.toString());
+          setIsFriend(friendIds.includes(viewerMongoId));
+        }
+
+        const reviewsRes = await axios.get(`${API_URL}/reviews/profile/${profileData._id}`, { headers });
         setReviews(Array.isArray(reviewsRes.data) ? reviewsRes.data : []);
       } catch (err) {
         console.log('UserProfile fetch error:', err);
@@ -79,7 +97,18 @@ export default function UserProfileScreen() {
   const prefs = profile.preferences || profile.profile?.preferences;
   const privacy = profile.privacy || profile.profile?.privacy;
 
-  const showPreferences = privacy?.preferences !== 'private';
+  // Match backend isVisible logic: All=everyone, Friends=friends only, None=hidden
+  const isVisible = (setting: string | undefined): boolean => {
+    if (isOwnProfile) return true; // Owner always sees everything
+    if (!setting) return true;     // No setting = visible by default
+    if (setting === 'None') return false;
+    if (setting === 'Friends') return isFriend;
+    return true; // 'All' or any other value
+  };
+
+  const showBadges = isVisible(privacy?.badges);
+  const showReviews = isVisible(privacy?.activityFeed);
+  const showPreferences = isVisible(privacy?.preferences);
 
   return (
     <ScreenLayout showBack={true} title={profile.username ?? username}>
@@ -99,48 +128,52 @@ export default function UserProfileScreen() {
         </View>
 
         {/* Badges */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Badges</Text>
-          {profile.badges?.length > 0 ? (
-            <View style={styles.emptyRow}>
-              <Ionicons name="ribbon-outline" size={20} color="#7E9AFF" />
-              <Text style={styles.emptySubText}>
-                {profile.badges.length} badge{profile.badges.length !== 1 ? 's' : ''} earned
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.emptyRow}>
-              <Ionicons name="ribbon-outline" size={20} color="#ccc" />
-              <Text style={styles.emptySubText}>No badges yet</Text>
-            </View>
-          )}
-        </View>
+        {showBadges && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Badges</Text>
+            {profile.badges?.length > 0 ? (
+              <View style={styles.emptyRow}>
+                <Ionicons name="ribbon-outline" size={20} color="#7E9AFF" />
+                <Text style={styles.emptySubText}>
+                  {profile.badges.length} badge{profile.badges.length !== 1 ? 's' : ''} earned
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.emptyRow}>
+                <Ionicons name="ribbon-outline" size={20} color="#ccc" />
+                <Text style={styles.emptySubText}>No badges yet</Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Reviews */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Reviews</Text>
-          {reviews.length > 0 ? (
-            reviews.map((review: any) => (
-              <View key={review._id} style={styles.reviewItem}>
-                <View style={styles.reviewHeader}>
-                  <Text style={styles.reviewPlace}>{review.place?.name ?? 'Unknown place'}</Text>
-                  <View style={styles.reviewRating}>
-                    <Ionicons name="star" size={13} color="#F59E0B" />
-                    <Text style={styles.reviewRatingText}>{review.rating}</Text>
+        {showReviews && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Reviews</Text>
+            {reviews.length > 0 ? (
+              reviews.map((review: any) => (
+                <View key={review._id} style={styles.reviewItem}>
+                  <View style={styles.reviewHeader}>
+                    <Text style={styles.reviewPlace}>{review.place?.name ?? 'Unknown place'}</Text>
+                    <View style={styles.reviewRating}>
+                      <Ionicons name="star" size={13} color="#F59E0B" />
+                      <Text style={styles.reviewRatingText}>{review.rating}</Text>
+                    </View>
                   </View>
+                  {review.reviewText ? (
+                    <Text style={styles.reviewText} numberOfLines={2}>{review.reviewText}</Text>
+                  ) : null}
                 </View>
-                {review.reviewText ? (
-                  <Text style={styles.reviewText} numberOfLines={2}>{review.reviewText}</Text>
-                ) : null}
+              ))
+            ) : (
+              <View style={styles.emptyRow}>
+                <Ionicons name="chatbubble-outline" size={20} color="#ccc" />
+                <Text style={styles.emptySubText}>No reviews yet</Text>
               </View>
-            ))
-          ) : (
-            <View style={styles.emptyRow}>
-              <Ionicons name="chatbubble-outline" size={20} color="#ccc" />
-              <Text style={styles.emptySubText}>No reviews yet</Text>
-            </View>
-          )}
-        </View>
+            )}
+          </View>
+        )}
 
         {/* Preferences */}
         {showPreferences && prefs && (

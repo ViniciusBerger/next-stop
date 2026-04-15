@@ -6,10 +6,9 @@ import {
   RefreshControl,
   TouchableOpacity,
   StyleSheet,
-  Platform
 } from "react-native";
 import { DiscoverCard } from "../../components/discoverCard";
-import { PostCard } from "../../components/postCard";
+import { ActivityCard, FeedItem } from "../../components/activityCard";
 import { BottomTabBar } from "../../components/bottomTabBar";
 import { HomeHeader } from "../../components/homeHeader";
 import { styles } from "../../src/styles/login.styles";
@@ -25,55 +24,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { API_URL } from "@/src/config/api";
 import { getToken } from "@/src/utils/auth";
 
-const MOCK_POSTS = [
-  {
-    id: '1',
-    username: 'Sarah K.',
-    date: 'March 2026',
-    imageUrl: '',
-    likes: 88,
-    description: 'Beautiful sunset at the beach! 🌅 #sunset #beachday'
-  },
-  {
-    id: '2',
-    username: 'Mike R.',
-    date: 'March 2026',
-    imageUrl: '',
-    likes: 42,
-    description: 'Great coffee at this new spot ☕ #coffeelover'
-  },
-  {
-    id: '3',
-    username: 'Alex P.',
-    date: 'Feb 2026',
-    imageUrl: '',
-    likes: 156,
-    description: 'Amazing hiking trails! 🥾 #nature #hiking'
-  },
-  {
-    id: '4',
-    username: 'Jessica L.',
-    date: 'Feb 2026',
-    imageUrl: '',
-    likes: 67,
-    description: 'Live music night was incredible! 🎸 #music'
-  },
-  {
-    id: '5',
-    username: 'David C.',
-    date: 'Jan 2026',
-    imageUrl: '',
-    likes: 93,
-    description: 'Food festival was amazing! 🍔 #foodie'
-  }
-];
-
 export default function Home() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [username, setUsername] = useState("Username");
-  const [profilePicture, setProfilePicture] = useState(''); // ADDED
-  const [posts, setPosts] = useState<any[]>([]);
+  const [profilePicture, setProfilePicture] = useState('');
+  const [mongoId, setMongoId] = useState<string | null>(null);
+  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,22 +51,23 @@ useEffect(() => {
           if (response.data?.username) {
             setUsername(response.data.username);
           }
-          // ADDED
           if (response.data?.profile?.profilePicture) {
             setProfilePicture(response.data.profile.profilePicture);
+          }
+          if (response.data?._id) {
+            setMongoId(response.data._id);
           }
         } catch (apiError: any) {
           console.error("API Error:", apiError.response?.status, apiError.response?.data);
         }
       }
     }
-    loadPosts();
   });
 
   return () => unsubscribe();
 }, []);
 
-  // ADDED - reload profile picture every time home screen is focused
+  // Reload profile + feed every time home screen is focused
   useFocusEffect(
     useCallback(() => {
       const reloadProfile = async () => {
@@ -125,10 +83,10 @@ useEffect(() => {
           if (response.data?.profile?.profilePicture) {
             setProfilePicture(response.data.profile.profilePicture);
           }
-          // Fetch unread notification count
-          const mongoId = response.data._id;
-          if (mongoId) {
-            const countRes = await axios.get(`${API_URL}/notifications/unread-count?userId=${mongoId}`, {
+          const id = response.data._id;
+          if (id) {
+            setMongoId(id);
+            const countRes = await axios.get(`${API_URL}/notifications/unread-count?userId=${id}`, {
               headers: { Authorization: `Bearer ${token}` }
             });
             setUnreadNotifications(countRes.data);
@@ -141,35 +99,64 @@ useEffect(() => {
     }, [])
   );
 
+  // Load feed when mongoId becomes available
+  useEffect(() => {
+    if (mongoId) loadFeed();
+  }, [mongoId]);
+
   useEffect(() => {
     if (isInitialized && !isConnected) {
-      showToast('You are offline. Showing cached content.', 'warning', 5000);
+      showToast('You are offline. Some content may not be available.', 'warning', 5000);
     }
   }, [isConnected, isInitialized]);
 
-  const loadPosts = async () => {
+  const loadFeed = async () => {
+    if (!mongoId) return;
     setLoading(true);
     setError(null);
-    
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setPosts(MOCK_POSTS);
+      const token = await getToken();
+      const response = await axios.get(`${API_URL}/feed?userId=${mongoId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setFeedItems(response.data);
     } catch (err) {
-      setError('Failed to load posts');
-      showToast('Failed to load posts', 'error');
+      setError('Failed to load activity feed');
+      showToast('Failed to load activity feed', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
+  const handleLike = async (reviewId: string) => {
+    const firebaseUid = auth.currentUser?.uid;
+    if (!firebaseUid) return;
+    try {
+      const token = await getToken();
+      const res = await axios.post(
+        `${API_URL}/reviews/like`,
+        { reviewId, userId: firebaseUid },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setFeedItems(prev => prev.map(item =>
+        item.id === reviewId
+          ? { ...item, likes: res.data.likes, likedBy: (res.data.likedBy ?? []).map((u: any) => u._id?.toString?.() ?? u.toString()) }
+          : item
+      ));
+    } catch (err: any) {
+      console.error("Failed to like review:", err.response?.data || err.message);
+    }
+  };
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    loadPosts();
-  }, []);
+    loadFeed();
+  }, [mongoId]);
 
   const handleRetry = () => {
-    loadPosts();
+    loadFeed();
   };
 
   if (loading && !refreshing) {
@@ -190,7 +177,7 @@ useEffect(() => {
     );
   }
 
-  if (error && !refreshing && posts.length === 0) {
+  if (error && !refreshing && feedItems.length === 0) {
     return (
       <View style={{ flex: 1, backgroundColor: '#F8F9FA' }}>
         <View style={styles.headerBackground} />
@@ -243,34 +230,37 @@ useEffect(() => {
         {isInitialized && !isConnected && (
           <View style={localStyles.offlineBanner}>
             <Ionicons name="cloud-offline-outline" size={18} color="#D32F2F" />
-            <Text style={localStyles.offlineBannerText}>You're offline. Showing cached content.</Text>
+            <Text style={localStyles.offlineBannerText}>You're offline. Some content may not be available.</Text>
           </View>
         )}
 
-        {posts.length > 0 ? (
-          posts.map((post) => (
-            <PostCard
-              key={post.id}
-              username={post.username}
-              date={post.date}
-              imageUrl={post.imageUrl}
-              likes={post.likes}
-              description={post.description}
+        {feedItems.length > 0 ? (
+          feedItems.map((item) => (
+            <ActivityCard
+              key={item.id}
+              item={item}
+              currentUserId={mongoId}
+              onLike={(reviewId) => handleLike(reviewId)}
+              onEventPress={(eventId) => router.push(`/events/${eventId}`)}
+              onPlacePress={(place) => router.push({
+                pathname: '/locationdetails',
+                params: { place: JSON.stringify(place) }
+              })}
             />
           ))
         ) : (
           !loading && (
             <View style={localStyles.emptyContainer}>
-              <Ionicons name="images-outline" size={64} color="#ccc" />
-              <Text style={localStyles.emptyTitle}>No Posts Yet</Text>
+              <Ionicons name="people-outline" size={64} color="#ccc" />
+              <Text style={localStyles.emptyTitle}>No Activity Yet</Text>
               <Text style={localStyles.emptyMessage}>
-                Be the first to share your outing with the community!
+                Follow friends and favorite places to see activity here!
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={localStyles.emptyButton}
-                onPress={() => router.push("/createreview")}
+                onPress={() => router.push("/discover")}
               >
-                <Text style={localStyles.emptyButtonText}>Create Post</Text>
+                <Text style={localStyles.emptyButtonText}>Discover Places</Text>
               </TouchableOpacity>
             </View>
           )

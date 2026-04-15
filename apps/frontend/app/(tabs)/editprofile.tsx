@@ -105,7 +105,7 @@ export default function EditProfileScreen() {
           />
         </SectionCard>
 
-        <SectionCard>
+        {/* <SectionCard>
           <Text style={styles.sectionTitle}>Preferences</Text>
           <RowItem label="Cuisine" value={preferences.cuisine} />
           <View style={styles.divider} />
@@ -118,7 +118,7 @@ export default function EditProfileScreen() {
             title="Edit Preferences"
             onPress={() => router.push('/editpreferences')}
           />
-        </SectionCard>
+        </SectionCard> */}
 
         <SectionCard>
           <Text style={styles.sectionTitle}>Privacy</Text>

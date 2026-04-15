@@ -11,7 +11,10 @@ export class ProfileRepository {
   ) {}
 
   async findOne(filter: IprofileData): Promise<User | null> {
-    return await this.userModel.findOne(filter).exec();
+    return await this.userModel
+      .findOne(filter)
+      .populate('badges.badge', 'badgeId name description category iconUrl tier')
+      .exec();
   }
 
   async update(
