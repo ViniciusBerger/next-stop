@@ -22,6 +22,7 @@ import { AnnouncementModule } from '../announcements/announcement.module';
 import { AdminModule } from '../admin/admin.module';
 import { BadgeModule } from '../badges/badge.module';
 import { NotificationModule } from '../notifications/notification.module';
+import { FeedModule } from '../feed/feed.module';
 
 @Module({
   imports: [
@@ -53,7 +54,8 @@ import { NotificationModule } from '../notifications/notification.module';
     AnnouncementModule,
     AdminModule,
     BadgeModule,
-    NotificationModule
+    NotificationModule,
+    FeedModule
   ],
   controllers: [AppController],
 

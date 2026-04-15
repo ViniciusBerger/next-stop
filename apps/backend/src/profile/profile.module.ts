@@ -4,10 +4,14 @@ import { ProfileController } from './controller/profile.controller';
 import { ProfileService } from './service/profile.service';
 import { ProfileRepository } from './repository/profile.repository';
 import { User, userSchema } from '../user/schemas/user.schema';
+import { Badge, badgeSchema } from '../badges/schemas/badges.schema';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: User.name, schema: userSchema }]),
+    MongooseModule.forFeature([
+      { name: User.name, schema: userSchema },
+      { name: Badge.name, schema: badgeSchema },
+    ]),
   ],
   controllers: [ProfileController],
   providers: [ProfileService, ProfileRepository],

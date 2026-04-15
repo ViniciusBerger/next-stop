@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'; // add useCallback
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  FlatList
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router'; //  add useFocusEffect
@@ -16,42 +15,21 @@ import { API_URL } from '@/src/config/api'; // ADD
 import { getToken } from '@/src/utils/auth'; //  ADD
 import axios from 'axios'; // ADD
 
-// Mock posts data - keep as is
-const POSTS = [
-  {
-    id: '1',
-    placeName: "Place's name",
-    date: 'Month - year',
-    likes: 88,
-    description: 'Description of outing here'
-  },
-  {
-    id: '2',
-    placeName: "Place's name",
-    date: 'Month - year',
-    likes: 42,
-    description: 'Description of outing here'
-  }
-];
-
 export default function ProfileScreen() {
   const router = useRouter();
 
-  //  REPLACE mock USER state with real state
   const [avatar, setAvatar] = useState('https://i.pravatar.cc/150?img=12');
   const [username, setUsername] = useState('Username');
-  const [friendsCount, setFriendsCount] = useState(128);
-  const [badges, setBadges] = useState([
-    { id: '1', name: 'Badge name' },
-    { id: '2', name: 'Badge name' }
-  ]);
+  const [bio, setBio] = useState('');
+  const [friendsCount, setFriendsCount] = useState(0);
+  const [badges, setBadges] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [preferences, setPreferences] = useState({
-    cuisine: 'Italian',
-    dietary: 'Vegan',
-    allergies: 'None'
+    cuisine: '',
+    dietary: '',
+    allergies: ''
   });
 
-  //   loads real data every time screen is focused
   useFocusEffect(
     useCallback(() => {
       const loadProfile = async () => {
@@ -60,24 +38,49 @@ export default function ProfileScreen() {
           if (!user) return;
 
           const token = await getToken();
-          const res = await axios.get(
-            `${API_URL}/profile?firebaseUid=${user.uid}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
+          const headers = { Authorization: `Bearer ${token}` };
 
-          setUsername(res.data.username || 'Username');
-          setFriendsCount(res.data.friends?.length || 0);
+          // Fetch profile and reviews in parallel
+          const [profileRes, reviewsRes] = await Promise.all([
+            axios.get(`${API_URL}/profile?firebaseUid=${user.uid}`, { headers }),
+            axios.get(`${API_URL}/reviews/user/${user.uid}`, { headers }),
+          ]);
 
-          if (res.data.profile?.profilePicture) {
-            setAvatar(res.data.profile.profilePicture);
+          const data = profileRes.data;
+          setUsername(data.username || 'Username');
+          setFriendsCount(data.friends?.length || 0);
+          setBio(data.profile?.bio || '');
+
+          if (data.profile?.profilePicture) {
+            setAvatar(data.profile.profilePicture);
           }
-          if (res.data.profile?.preferences) {
+
+          if (data.profile?.preferences) {
             setPreferences({
-              cuisine: res.data.profile.preferences.cuisine || '',
-              dietary: res.data.profile.preferences.dietaryLabels || '',
-              allergies: res.data.profile.preferences.allergies || '',
+              cuisine: data.profile.preferences.cuisine || '',
+              dietary: data.profile.preferences.dietaryLabels || '',
+              allergies: data.profile.preferences.allergies || '',
             });
           }
+
+          // Badges — populated from backend
+          if (data.badges?.length > 0) {
+            setBadges(
+              data.badges
+                .filter((b: any) => b.badge) // filter out any unresolved refs
+                .map((b: any) => ({
+                  id: b.badge._id || b.badge,
+                  name: b.badge.name || 'Badge',
+                  iconUrl: b.badge.iconUrl || '',
+                  earnedAt: b.earnedAt,
+                }))
+            );
+          } else {
+            setBadges([]);
+          }
+
+          // Reviews
+          setReviews(reviewsRes.data || []);
         } catch (err) {
           console.log("Load profile error:", err);
         }
@@ -87,30 +90,18 @@ export default function ProfileScreen() {
     }, [])
   );
 
-  // keep ALL the rest of your code exactly the same from here...
-  const renderPost = ({ item }: { item: typeof POSTS[0] }) => (
-    <View style={styles.postCard}>
-      <Text style={styles.postPlaceName}>{item.placeName}</Text>
-      <Text style={styles.postDate}>{item.date}</Text>
-      
-      <View style={styles.postContent}>
-        <View style={styles.postIcon}>
-          <Ionicons name="image-outline" size={40} color="#9CA3AF" />
-        </View>
-        <View style={styles.postDetails}>
-          <Text style={styles.postDescription}>{item.description}</Text>
-          <View style={styles.likesContainer}>
-            <Ionicons name="heart-outline" size={16} color="#EF4444" />
-            <Text style={styles.likesText}>{item.likes} likes</Text>
-          </View>
-        </View>
-      </View>
-    </View>
-  );
+  const renderStars = (rating: number) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      const name: any = i <= rating ? 'star' : i - 0.5 === rating ? 'star-half' : 'star-outline';
+      stars.push(<Ionicons key={i} name={name} size={14} color="#FFD700" />);
+    }
+    return stars;
+  };
 
   return (
     <ScreenLayout showBack={true}>
-      <ScrollView 
+      <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
       >
@@ -118,6 +109,7 @@ export default function ProfileScreen() {
         <View style={styles.profileHeader}>
           <Image source={{ uri: avatar }} style={styles.avatar} />
           <Text style={styles.username}>{username}</Text>
+          {bio ? <Text style={styles.bioText}>{bio}</Text> : null}
         </View>
 
         {/* Friends Count */}
@@ -128,61 +120,95 @@ export default function ProfileScreen() {
         {/* Badges Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Badges</Text>
-          <View style={styles.badgesContainer}>
-            {badges.map((badge) => (
-              <View key={badge.id} style={styles.badgeItem}>
-                <Text style={styles.badgeName}>{badge.name}</Text>
-              </View>
-            ))}
-          </View>
+          {badges.length > 0 ? (
+            <View style={styles.badgesContainer}>
+              {badges.map((badge) => (
+                <View key={badge.id} style={styles.badgeItem}>
+                  {badge.iconUrl ? (
+                    <Image source={{ uri: badge.iconUrl }} style={styles.badgeIcon} />
+                  ) : null}
+                  <Text style={styles.badgeName}>{badge.name}</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.emptyText}>No badges earned yet</Text>
+          )}
         </View>
 
-        {/* Preferences Section */}
+        {/* Preferences Section
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Preferences</Text>
-          
+
           <View style={styles.preferenceItem}>
             <Text style={styles.preferenceLabel}>Cuisine</Text>
-            <Text style={styles.preferenceValue}>{preferences.cuisine}</Text>
+            <Text style={styles.preferenceValue}>{preferences.cuisine || '-'}</Text>
           </View>
-          
+
           <View style={styles.preferenceItem}>
             <Text style={styles.preferenceLabel}>Dietary labels</Text>
-            <Text style={styles.preferenceValue}>{preferences.dietary}</Text>
+            <Text style={styles.preferenceValue}>{preferences.dietary || '-'}</Text>
           </View>
-          
+
           <View style={styles.preferenceItem}>
             <Text style={styles.preferenceLabel}>Allergies</Text>
-            <Text style={styles.preferenceValue}>{preferences.allergies}</Text>
+            <Text style={styles.preferenceValue}>{preferences.allergies || '-'}</Text>
           </View>
-        </View>
+        </View> */}
 
         {/* Edit Profile Button */}
         <TouchableOpacity style={styles.editButton} onPress={() => router.push('/editprofile')}>
           <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>
 
-        {/* Posts Section */}
+        {/* Reviews Section */}
         <View style={styles.postsSection}>
-          {POSTS.map((post) => (
-            <View key={post.id} style={styles.postCard}>
-              <Text style={styles.postPlaceName}>{post.placeName}</Text>
-              <Text style={styles.postDate}>{post.date}</Text>
-              
-              <View style={styles.postContent}>
-                <View style={styles.postIcon}>
-                  <Ionicons name="image-outline" size={40} color="#9CA3AF" />
-                </View>
-                <View style={styles.postDetails}>
-                  <Text style={styles.postDescription}>{post.description}</Text>
-                  <View style={styles.likesContainer}>
-                    <Ionicons name="heart-outline" size={16} color="#EF4444" />
-                    <Text style={styles.likesText}>{post.likes} likes</Text>
+          <Text style={styles.sectionTitle}>My Reviews</Text>
+          {reviews.length > 0 ? (
+            reviews.map((review: any) => (
+              <TouchableOpacity
+                key={review._id || review.id}
+                style={styles.postCard}
+                onPress={() => router.push({
+                  pathname: '/locationdetails',
+                  params: { place: JSON.stringify(review.place) }
+                })}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.postPlaceName}>
+                  {review.place?.name || 'Unknown Place'}
+                </Text>
+                <Text style={styles.postDate}>
+                  {new Date(review.date || review.createdAt).toLocaleDateString(undefined, {
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </Text>
+
+                <View style={styles.postContent}>
+                  {review.images?.length > 0 ? (
+                    <Image source={{ uri: review.images[0] }} style={styles.reviewImage} />
+                  ) : (
+                    <View style={styles.postIcon}>
+                      <Ionicons name="chatbubble-outline" size={30} color="#9CA3AF" />
+                    </View>
+                  )}
+                  <View style={styles.postDetails}>
+                    <View style={styles.starsRow}>{renderStars(review.rating)}</View>
+                    <Text style={styles.postDescription} numberOfLines={2}>
+                      {review.reviewText}
+                    </Text>
+                    <View style={styles.likesContainer}>
+                      <Ionicons name="heart" size={14} color="#EF4444" />
+                      <Text style={styles.likesText}>{review.likes || 0} likes</Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-            </View>
-          ))}
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={styles.emptyText}>No reviews yet</Text>
+          )}
         </View>
       </ScrollView>
     </ScreenLayout>
@@ -208,6 +234,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  bioText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 4,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
   friendsContainer: {
     alignItems: 'center',
@@ -240,14 +273,27 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   badgeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#F3F4F6',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
+  badgeIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 6,
+  },
   badgeName: {
     fontSize: 14,
     color: '#374151',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    paddingVertical: 8,
   },
   preferenceItem: {
     flexDirection: 'row',
@@ -308,6 +354,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
+  reviewImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+  },
   postIcon: {
     width: 60,
     height: 60,
@@ -317,6 +368,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E5E7EB',
+  },
+  starsRow: {
+    flexDirection: 'row',
+    marginBottom: 4,
   },
   postDetails: {
     flex: 1,

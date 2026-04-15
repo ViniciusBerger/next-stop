@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,15 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenLayout } from '@/components/screenLayout';
-
-const USER = {
-  avatar: 'https://i.pravatar.cc/150?img=12',
-};
+import { auth } from '@/src/config/firebase';
+import { API_URL } from '@/src/config/api';
+import { getToken } from '@/src/utils/auth';
+import axios from 'axios';
 
 const OPTIONS = ['All', 'Friends', 'None'] as const;
 type PrivacyOption = typeof OPTIONS[number] | '';
@@ -29,6 +31,9 @@ type FieldKey = typeof FIELDS[number]['key'];
 
 export default function EditPrivacyScreen() {
   const router = useRouter();
+  const [avatar, setAvatar] = useState('https://i.pravatar.cc/150?img=12');
+  const [saving, setSaving] = useState(false);
+  const [firebaseUid, setFirebaseUid] = useState('');
 
   const [selected, setSelected] = useState<Record<FieldKey, PrivacyOption>>({
     activityFeed: '',
@@ -38,12 +43,62 @@ export default function EditPrivacyScreen() {
     preferences: '',
   });
 
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+        setFirebaseUid(user.uid);
+
+        const token = await getToken();
+        const res = await axios.get(
+          `${API_URL}/profile?firebaseUid=${user.uid}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (res.data.profile?.profilePicture) {
+          setAvatar(res.data.profile.profilePicture);
+        }
+        if (res.data.profile?.privacy) {
+          const p = res.data.profile.privacy;
+          setSelected({
+            activityFeed: p.activityFeed || '',
+            favorites: p.favorites || '',
+            myEvents: p.myEvents || '',
+            badges: p.badges || '',
+            preferences: p.preferences || '',
+          });
+        }
+      } catch (err) {
+        console.log("Load privacy error:", err);
+      }
+    };
+    loadProfile();
+  }, []);
+
   const handleSelect = (field: FieldKey, option: PrivacyOption) => {
     setSelected(prev => ({ ...prev, [field]: option }));
   };
 
-  const handleSave = () => {
-    router.back();
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const token = await getToken();
+
+      await axios.put(
+        `${API_URL}/profile?firebaseUid=${firebaseUid}`,
+        { privacy: selected },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      Alert.alert('Success', 'Privacy settings updated!');
+      router.back();
+    } catch (err: any) {
+      console.error("Save privacy error:", err?.response?.data || err);
+      Alert.alert('Error', err?.response?.data?.message || 'Failed to save privacy settings');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -58,7 +113,7 @@ export default function EditPrivacyScreen() {
 
           {/* Avatar */}
           <View style={styles.avatarWrapper}>
-            <Image source={{ uri: USER.avatar }} style={styles.avatar} />
+            <Image source={{ uri: avatar }} style={styles.avatar} />
           </View>
 
           {/* Privacy Fields */}
@@ -99,8 +154,16 @@ export default function EditPrivacyScreen() {
           ))}
 
           {/* Save Button */}
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Text style={styles.saveButtonText}>Save changes</Text>
+          <TouchableOpacity
+            style={[styles.saveButton, saving && { opacity: 0.7 }]}
+            onPress={handleSave}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.saveButtonText}>Save changes</Text>
+            )}
           </TouchableOpacity>
 
         </View>
