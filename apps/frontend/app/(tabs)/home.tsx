@@ -163,9 +163,9 @@ useEffect(() => {
     return (
       <View style={{ flex: 1, backgroundColor: '#F8F9FA' }}>
         <View style={styles.headerBackground} />
-        <HomeHeader 
+        <HomeHeader
           username={username}
-          avatarUrl={profilePicture} // 👈 ADDED
+          avatarUrl={profilePicture}
           onMenuPress={() => setIsMenuOpen(true)}
           onNotificationsPress={() => router.push('/notifications')}
           unreadCount={unreadNotifications}
@@ -173,6 +173,10 @@ useEffect(() => {
         <DiscoverCard onPress={() => router.push("/discover")} />
         <SimpleFeedSkeleton count={5} />
         <BottomTabBar />
+        <HomeMenu
+          isVisible={isMenuOpen}
+          onClose={() => setIsMenuOpen(false)}
+        />
       </View>
     );
   }
@@ -198,6 +202,10 @@ useEffect(() => {
           </TouchableOpacity>
         </View>
         <BottomTabBar />
+        <HomeMenu
+          isVisible={isMenuOpen}
+          onClose={() => setIsMenuOpen(false)}
+        />
       </View>
     );
   }
@@ -267,12 +275,11 @@ useEffect(() => {
         )}
       </ScrollView>
       
-      <HomeMenu 
-        isVisible={isMenuOpen} 
-        onClose={() => setIsMenuOpen(false)} 
-      />
-      
       <BottomTabBar />
+      <HomeMenu
+        isVisible={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+      />
     </View>
   );
 }
