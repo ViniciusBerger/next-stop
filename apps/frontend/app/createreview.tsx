@@ -11,9 +11,8 @@ import { API_URL } from "@/src/config/api";
 import { getToken } from "@/src/utils/auth";
 import { showAlert } from '@/src/utils/alert';
 
-//  ADDED
-const SUPABASE_URL = 'https://nooqsabykmeoajdgefhg.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_9tmTWqEKEeEH6Gnk_8UTtQ_TAB6Ynz-';
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+const SUPABASE_KEY = process.env.EXPO_PUBLIC_SUPABASE_KEY!;
 const BUCKET = 'review-images';
 
 export default function CreateReviewScreen() {
