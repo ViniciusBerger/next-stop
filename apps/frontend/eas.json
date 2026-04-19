@@ -11,12 +11,17 @@
       }
     },
     "preview": {
+      "developmentClient": false,
       "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://next-stop-11pg.onrender.com"
       }
     },
     "production": {
+      "developmentClient": false,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://next-stop-11pg.onrender.com"
       }
