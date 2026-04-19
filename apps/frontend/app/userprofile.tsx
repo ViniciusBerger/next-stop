@@ -175,7 +175,7 @@ export default function UserProfileScreen() {
           </View>
         )}
 
-        {/* Preferences */}
+        {/* Preferences
         {showPreferences && prefs && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Preferences</Text>
@@ -208,7 +208,7 @@ export default function UserProfileScreen() {
               </View>
             ) : null}
           </View>
-        )}
+        )} */}
 
         <View style={{ height: 40 }} />
       </ScrollView>
