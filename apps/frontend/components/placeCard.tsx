@@ -38,9 +38,16 @@ export const PlaceCard = React.memo(({ place, onPress }: PlaceCardProps) => {
     }
   };
 
+  const getDistanceIcon = (distance: string) => {
+    if (!distance) return '';
+    if (/\d+(\.\d+)?\s*(mi|km|ft|m)\b/i.test(distance) || /away/i.test(distance)) return '📏';
+    if (/saved/i.test(distance)) return '🔖';
+    return '📅';
+  };
+
   return (
-    <TouchableOpacity 
-      style={styles.placeCard} 
+    <TouchableOpacity
+      style={styles.placeCard}
       onPress={() => onPress?.(place)}
     >
       <View style={styles.placeImage}>
@@ -52,8 +59,12 @@ export const PlaceCard = React.memo(({ place, onPress }: PlaceCardProps) => {
           {place.type ? place.type.charAt(0).toUpperCase() + place.type.slice(1) : 'Place'}
         </Text>
         <View style={styles.placeDetails}>
-          <Text style={styles.placeDistance}>📏 {place.distance}</Text>
-          <Text style={styles.placeRating}>⭐ {place.rating > 0 ? place.rating.toFixed(1) : 'No ratings yet'}</Text>
+          <Text style={styles.placeDistance} numberOfLines={1}>
+            {getDistanceIcon(place.distance)} {place.distance}
+          </Text>
+          <Text style={styles.placeRating} numberOfLines={1}>
+            ⭐ {place.rating > 0 ? place.rating.toFixed(1) : 'No ratings yet'}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -87,7 +98,7 @@ const styles = StyleSheet.create({
   placeInfo: { flex: 1, justifyContent: 'center' },
   placeName: { fontSize: 18, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 4 },
   placeType: { fontSize: 14, color: '#6c757d', marginBottom: 8 },
-  placeDetails: { flexDirection: 'row', justifyContent: 'space-between' },
-  placeDistance: { fontSize: 14, color: '#495057' },
-  placeRating: { fontSize: 14, color: '#ffc107', fontWeight: '600' },
+  placeDetails: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  placeDistance: { fontSize: 14, color: '#495057', flexShrink: 1 },
+  placeRating: { fontSize: 14, color: '#ffc107', fontWeight: '600', flexShrink: 0 },
 });

@@ -133,8 +133,9 @@ export class ReviewService {
   }
 
   async getReviewsByMongoId(mongoId: string): Promise<Review[]> {
+    if (!Types.ObjectId.isValid(mongoId)) return [];
     return await this.reviewModel
-      .find({ author: mongoId })
+      .find({ author: new Types.ObjectId(mongoId) })
       .populate('author')
       .populate('place', 'name address category customImages')
       .populate('event', 'name date')
