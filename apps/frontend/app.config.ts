@@ -44,7 +44,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "expo-notifications",
       {
         icon: "./assets/images/icon.png",
-        color: "#ffffff",
+        color: "#a891f7",
         iosDisplayInForeground: true,
       },
     ],
