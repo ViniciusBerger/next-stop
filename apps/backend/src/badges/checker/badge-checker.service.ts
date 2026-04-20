@@ -58,12 +58,14 @@ export class BadgeCheckerService {
       await this.awardBadge(userId, 'paparazzi');
     }
 
-    // FRESH PERSPECTIVE REVIEWER: First to review a place
-    const placeReviewCount = await this.reviewModel.countDocuments({
-      place: review.place,
-    });
+    // FRESH PERSPECTIVE REVIEWER: User was the earliest reviewer for this place
+    const earliestReview = await this.reviewModel
+      .findOne({ place: review.place })
+      .sort({ createdAt: 1 })
+      .select('author')
+      .lean();
 
-    if (placeReviewCount === 1) {
+    if (earliestReview && earliestReview.author.toString() === userId) {
       await this.awardBadge(userId, 'fresh-perspective-reviewer');
     }
 
