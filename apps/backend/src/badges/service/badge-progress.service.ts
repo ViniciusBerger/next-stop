@@ -101,13 +101,36 @@ export class BadgeProgressService {
     // Inner circle progress
     const innerCircleProgress = await this.getInnerCircleProgress(userId);
 
-    // Fresh perspective explorer
+    // Fresh perspective explorer (distinct places reviewed by user)
     const firstReviewCount = await this.reviewModel.aggregate([
       { $match: { author: new Types.ObjectId(userId) } },
       { $group: { _id: '$place', firstReview: { $min: '$createdAt' } } },
       { $count: 'total' },
     ]);
     const freshExplorerCount = firstReviewCount.length > 0 ? firstReviewCount[0].total : 0;
+
+    // Fresh perspective reviewer (places where the user was the first reviewer)
+    const freshReviewerAgg = await this.reviewModel.aggregate([
+      { $match: { author: new Types.ObjectId(userId) } },
+      {
+        $lookup: {
+          from: 'Review',
+          localField: 'place',
+          foreignField: 'place',
+          as: 'allReviewsForPlace',
+        },
+      },
+      {
+        $match: {
+          $expr: {
+            $eq: ['$createdAt', { $min: '$allReviewsForPlace.createdAt' }],
+          },
+        },
+      },
+      { $group: { _id: '$place' } },
+      { $count: 'total' },
+    ]);
+    const freshReviewerCount = freshReviewerAgg.length > 0 ? freshReviewerAgg[0].total : 0;
 
     // Progress map per badgeId
     const progressMap: Record<string, { current: number; target: number }> = {
@@ -121,7 +144,7 @@ export class BadgeProgressService {
       'the-critic':             { current: Math.min(longReviews, 1), target: 1 },
       'caffeine-addict':        { current: Math.min(cafeCount, 5), target: 5 },
       'fresh-perspective-explorer': { current: Math.min(freshExplorerCount, 5), target: 5 },
-      'fresh-perspective-reviewer': { current: Math.min(freshExplorerCount, 1), target: 1 },
+      'fresh-perspective-reviewer': { current: Math.min(freshReviewerCount, 1), target: 1 },
       'monthly-streak':         { current: monthlyStreakProgress, target: 6 },
       'weekend-warrior':        { current: weekendWarriorProgress, target: 4 },
       'inner-circle':           { current: innerCircleProgress, target: 3 },
