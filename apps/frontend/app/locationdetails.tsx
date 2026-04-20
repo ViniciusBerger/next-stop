@@ -24,9 +24,9 @@ export default function LocationDetailsScreen() {
   const placeId = place?._id ?? place?.id;
   const placeName = place?.name ?? "Unknown Location";
   const placeAddress = place?.address ?? "";
-  const placeRating = place?.googleRating ?? place?.averageUserRating ?? 0;
+  const placeRating = place?.averageUserRating ?? place?.googleRating ?? 0;
   const placeType = place?.category ?? place?.type ?? "Place";
-  const placeReviewCount = place?.googleReviewCount ?? place?.totalUserReviews ?? 0;
+  const placeReviewCount = place?.totalUserReviews ?? place?.googleReviewCount ?? 0;
 
   const openInMaps = () => {
     const destination = encodeURIComponent(`${placeName}, ${placeAddress}`);
