@@ -347,6 +347,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
+    alignSelf: 'center',
   },
   modalCard: {
     backgroundColor: '#FFF',
@@ -407,7 +408,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#AAA',
     marginBottom: 20,
-    marginLeft: 90,
+    alignSelf: 'center',
   },
   modalProgressContainer: {
     width: '100%',
@@ -443,7 +444,8 @@ const styles = StyleSheet.create({
     color: '#AAA',
     fontStyle: 'italic',
     justifyContent: 'center',
-    marginLeft: 15,
+    alignSelf: 'center',
+    textAlign: 'center',
   },
   closeBtn: {
     backgroundColor: '#45d5af',
@@ -456,5 +458,6 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: 'bold',
     fontSize: 16,
+    alignSelf: 'center',
   },
 });

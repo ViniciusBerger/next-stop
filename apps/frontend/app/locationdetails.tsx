@@ -15,7 +15,6 @@ export default function LocationDetailsScreen() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const router = useRouter();
-  // This would come from Firestore user visit history
   const [hasVisited, setHasVisited] = useState(false);
   const params = useLocalSearchParams();
 
@@ -352,6 +351,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 15,
+    textAlign: 'center',
   },
   detailText: {
     flex: 1,
@@ -434,7 +434,9 @@ const styles = StyleSheet.create({
     fontSize: 16, 
     fontWeight: 'bold', 
     color: '#333', 
-    marginRight: 4 
+    marginRight: 4,
+    textAlign: 'center',
+    alignItems: 'center',
 },
   reviewCount: { 
     fontSize: 14, 

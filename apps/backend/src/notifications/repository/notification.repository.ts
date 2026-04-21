@@ -35,22 +35,17 @@ export class NotificationRepository {
   async getUnreadCount(userId: string) {
     return this.model.countDocuments({
       recipient: new Types.ObjectId(userId),
-      read: false,
     });
   }
 
   async markAsRead(notificationId: string) {
-    return this.model.findByIdAndUpdate(
-      notificationId,
-      { read: true },
-      { new: true },
-    );
+    return this.model.findByIdAndDelete(notificationId);
   }
 
-  async markAllAsRead(userId: string) {
-    return this.model.updateMany(
-      { recipient: new Types.ObjectId(userId), read: false },
-      { read: true },
-    );
+  async markAllAsRead(userId: string): Promise<{ deletedCount: number }> {
+    const result = await this.model.deleteMany({
+      recipient: new Types.ObjectId(userId),
+    });
+    return { deletedCount: result.deletedCount ?? 0 };
   }
 }

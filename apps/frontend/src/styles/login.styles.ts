@@ -208,9 +208,11 @@ export const styles = StyleSheet.create({
   },
 
   headerGreeting: {
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: "700",
     color: "#ffffff",
+    textAlignVertical: "bottom",
+    alignItems: "baseline"
   },
 
   headerGreetingWrapper: {

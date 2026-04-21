@@ -61,7 +61,12 @@ export const PlaceFilter = ({ onFilterChange }: PlaceFilterProps) => {
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <View style={styles.dropdown}>
+        <View
+          style={styles.dropdown}
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => true}
+          onResponderTerminationRequest={() => false}
+        >
           <View style={styles.dropdownHeader}>
             <Text style={styles.dropdownTitle}>Filters</Text>
             <TouchableOpacity onPress={clearAll}>
@@ -71,7 +76,14 @@ export const PlaceFilter = ({ onFilterChange }: PlaceFilterProps) => {
 
           {/* Category */}
           <Text style={styles.sectionLabel}>Category</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+            style={styles.chipRow}
+            contentContainerStyle={styles.chipRowContent}
+          >
             {CATEGORIES.map(cat => (
               <TouchableOpacity
                 key={cat}
@@ -210,6 +222,9 @@ const styles = StyleSheet.create({
   },
   chipRow: {
     marginBottom: 12,
+  },
+  chipRowContent: {
+    paddingRight: 8,
   },
   chipRowStatic: {
     flexDirection: 'row',

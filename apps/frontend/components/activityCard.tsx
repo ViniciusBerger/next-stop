@@ -18,6 +18,7 @@ export interface FeedItem {
   eventId: string | null;
   attendeeCount: number | null;
   privacy: string | null;
+  canView?: boolean;
   timestamp: string;
 }
 
@@ -143,7 +144,7 @@ export function ActivityCard({
         </View>
       )}
 
-      {item.type === 'event' && (
+      {item.type === 'event' && item.canView !== false && (
         <View style={styles.eventContent}>
           {item.eventName && (
             <Text style={styles.eventName}>{item.eventName}</Text>
@@ -180,6 +181,15 @@ export function ActivityCard({
         </View>
       )}
 
+      {item.type === 'event' && item.canView === false && (
+        <View >
+          <Ionicons name="lock-closed" size={18} color="#8737e9" />
+          <Text>
+            This event is private.
+          </Text>
+        </View>
+      )}
+
       {item.type === 'visit' && (
         <View style={styles.visitContent}>
           <View style={styles.detailRow}>
@@ -196,23 +206,25 @@ export function ActivityCard({
         </View>
       )}
 
-      {/* Footer: Place name, tappable */}
-      <TouchableOpacity
-        style={styles.footer}
-        onPress={() => onPlacePress?.(item.place)}
-        disabled={!onPlacePress}
-      >
-        <Ionicons name="location-outline" size={14} color="#5962ff" />
-        <Text style={styles.placeName} numberOfLines={1}>
-          {item.place.name}
-        </Text>
-        {item.place.address ? (
-          <Text style={styles.placeAddress} numberOfLines={1}>
-            {' '}
-            · {item.place.address}
+      {/* Footer: Place name, tappable (hidden for private events the viewer can't access) */}
+      {!(item.type === 'event' && item.canView === false) && (
+        <TouchableOpacity
+          style={styles.footer}
+          onPress={() => onPlacePress?.(item.place)}
+          disabled={!onPlacePress}
+        >
+          <Ionicons name="location-outline" size={14} color="#5962ff" />
+          <Text style={styles.placeName} numberOfLines={1}>
+            {item.place.name}
           </Text>
-        ) : null}
-      </TouchableOpacity>
+          {item.place.address ? (
+            <Text style={styles.placeAddress} numberOfLines={1}>
+              {' '}
+              · {item.place.address}
+            </Text>
+          ) : null}
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

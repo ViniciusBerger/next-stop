@@ -60,30 +60,28 @@ export default function NotificationsScreen() {
     load();
   }, []);
 
-  const markAsRead = async (notificationId: string) => {
+  const dismissNotification = async (notificationId: string) => {
+    setNotifications((prev) => prev.filter((n) => n._id !== notificationId));
     try {
       const token = await getToken();
       await axios.patch(`${API_URL}/notifications/${notificationId}/read`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setNotifications((prev) =>
-        prev.map((n) => (n._id === notificationId ? { ...n, read: true } : n)),
-      );
     } catch (err) {
-      console.error('Failed to mark as read:', err);
+      console.error('Failed to dismiss notification:', err);
     }
   };
 
-  const markAllAsRead = async () => {
+  const clearAll = async () => {
     if (!mongoUserId) return;
+    setNotifications([]);
     try {
       const token = await getToken();
       await axios.patch(`${API_URL}/notifications/read-all?userId=${mongoUserId}`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch (err) {
-      console.error('Failed to mark all as read:', err);
+      console.error('Failed to clear notifications:', err);
     }
   };
 
@@ -114,9 +112,7 @@ export default function NotificationsScreen() {
   };
 
   const handlePress = (notification: NotificationItem) => {
-    if (!notification.read) {
-      markAsRead(notification._id);
-    }
+    dismissNotification(notification._id);
     if (notification.type === 'friend_request' || notification.type === 'friend_accepted') {
       router.push('/friends');
     } else if (notification.type === 'event_invite') {
@@ -139,15 +135,13 @@ export default function NotificationsScreen() {
     return date.toLocaleDateString();
   };
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
   const renderNotification = ({ item }: { item: NotificationItem }) => {
     const avatar = item.sender?.profile?.profilePicture
       || `https://i.pravatar.cc/150?u=${item.sender?._id}`;
 
     return (
       <TouchableOpacity
-        style={[styles.notificationCard, !item.read && styles.unreadCard]}
+        style={[styles.notificationCard, styles.unreadCard]}
         onPress={() => handlePress(item)}
         activeOpacity={0.7}
       >
@@ -167,7 +161,7 @@ export default function NotificationsScreen() {
             <Text style={styles.timeText}>{getTimeAgo(item.createdAt)}</Text>
           </View>
 
-          {!item.read && <View style={styles.unreadDot} />}
+          <View style={styles.unreadDot} />
         </View>
       </TouchableOpacity>
     );
@@ -176,11 +170,11 @@ export default function NotificationsScreen() {
   return (
     <ScreenLayout showBack={true} title="Notifications">
       <View style={styles.container}>
-        {unreadCount > 0 && (
+        {notifications.length > 0 && (
           <View style={styles.headerRow}>
-            <Text style={styles.unreadCountText}>{unreadCount} unread</Text>
-            <TouchableOpacity onPress={markAllAsRead}>
-              <Text style={styles.markAllText}>Mark all as read</Text>
+            <Text style={styles.unreadCountText}>{notifications.length} new</Text>
+            <TouchableOpacity onPress={clearAll}>
+              <Text style={styles.markAllText}>Clear all</Text>
             </TouchableOpacity>
           </View>
         )}

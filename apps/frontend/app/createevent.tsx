@@ -399,7 +399,7 @@ const handleCreate = async () => {
               placeholder="Location Name"
               placeholderTextColor="#999"
               value={locationName}
-              onChangeText={setLocationName}
+              editable={false}
             />
           </View>
           {rawPlaceAddress && (
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     zIndex: 1 
 },
   addressHint: { 
-    color: '#ffffffb3', 
+    color: '#000000b3', 
     fontSize: 12, 
     marginTop: 8, 
     marginLeft: 5 
