@@ -151,11 +151,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 25,
     color: "#000",
-    marginTop: 10,
+    marginTop: 25,
   },
 
   input: {
-    height: 50,
+    height: 60,
     borderWidth: 1,
     borderColor: "#7E9AFF",
     backgroundColor: "#DEE4FF",
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   },
 
   registerText: {
-    color: "#ffffff",
+    color: "#000000",
     fontSize: 16,
     marginBottom: 12,
   },

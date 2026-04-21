@@ -41,7 +41,7 @@ export default function EventDetailsScreen() {
 
         // Check if user is attending
         const attending = eventRes.data.attendees?.some(
-          (a: any) => (a._id ?? a) === mongoId
+          (a: any) => String(a?._id ?? a) === String(mongoId)
         );
         setIsAttending(attending);
       } catch (error: any) {
@@ -57,11 +57,15 @@ export default function EventDetailsScreen() {
   const handleToggleAttendance = async () => {
     try {
       const token = await getToken();
-      await axios.post(`${API_URL}/events/${id}/attend`, 
+      const res = await axios.post(`${API_URL}/events/${id}/attend`,
         { userId: mongoUserId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setIsAttending(!isAttending);
+      setEvent(res.data);
+      const attending = res.data.attendees?.some(
+        (a: any) => String(a?._id ?? a) === String(mongoUserId)
+      );
+      setIsAttending(attending);
     } catch (error: any) {
       showAlert("Error", error.response?.data?.message || "Failed to update attendance.");
     }

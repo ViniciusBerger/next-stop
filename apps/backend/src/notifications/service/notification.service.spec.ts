@@ -1,7 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { getModelToken } from '@nestjs/mongoose';
 import { NotificationService } from './notification.service';
 import { NotificationRepository } from '../repository/notification.repository';
 import { NotificationType } from '../schema/notification.schema';
+import { User } from '../../user/schemas/user.schema';
 
 /**
  * NotificationService Unit Tests
@@ -34,6 +36,16 @@ describe('NotificationService - Unit Test', () => {
             getUnreadCount: jest.fn(),
             markAsRead: jest.fn(),
             markAllAsRead: jest.fn(),
+          },
+        },
+        {
+          provide: getModelToken(User.name),
+          useValue: {
+            findById: jest.fn().mockReturnValue({
+              select: jest.fn().mockReturnValue({
+                lean: jest.fn().mockResolvedValue(null),
+              }),
+            }),
           },
         },
       ],

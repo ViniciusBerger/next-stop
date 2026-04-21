@@ -98,17 +98,10 @@ export default function HistoryScreen() {
   load();
 }, [fetchHistory]);
 
-  const Header = () => (
-    <View style={styles.headerBlock} />
-  );
-
   if (loading) {
     return (
       <ScreenLayout showBack={true} title="History">
-        <Header />
-        <View style={styles.stateWrapper}>
-          <LoadingSpinner text="Loading your history..." />
-        </View>
+        <LoadingSpinner text="Loading your history..." />
       </ScreenLayout>
     );
   }
@@ -116,10 +109,19 @@ export default function HistoryScreen() {
   if (error) {
     return (
       <ScreenLayout showBack={true} title="History">
-        <Header />
-        <View style={styles.stateWrapper}>
-          <ErrorState error={error} onRetry={handleRetry} />
-        </View>
+        <ErrorState error={error} onRetry={handleRetry} />
+      </ScreenLayout>
+    );
+  }
+
+  if (reviews.length === 0) {
+    return (
+      <ScreenLayout showBack={true} title="History">
+        <EmptyState
+          icon="time-outline"
+          title="No history yet"
+          message="Places you have visited will appear here."
+        />
       </ScreenLayout>
     );
   }
@@ -140,16 +142,6 @@ export default function HistoryScreen() {
             />
           </View>
         )}
-        ListHeaderComponent={Header}
-        ListEmptyComponent={
-          <View style={styles.stateWrapper}>
-            <EmptyState
-              icon="time-outline"
-              title="No history yet"
-              message="Places you have visited will appear here."
-            />
-          </View>
-        }
         ListFooterComponent={<View style={{ height: 20 }} />}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}

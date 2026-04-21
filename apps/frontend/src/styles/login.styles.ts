@@ -224,7 +224,7 @@ export const styles = StyleSheet.create({
     color: "#ffffff",
     alignSelf: "center",
     paddingTop: 8,
-    marginTop: 15, 
+    marginVertical: 15, 
   },
 
   scrollContent: {
