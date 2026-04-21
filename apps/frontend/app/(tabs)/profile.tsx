@@ -18,7 +18,7 @@ import axios from 'axios'; // ADD
 export default function ProfileScreen() {
   const router = useRouter();
 
-  const [avatar, setAvatar] = useState('https://i.pravatar.cc/150?img=12');
+  const [avatar, setAvatar] = useState();
   const [username, setUsername] = useState('Username');
   const [bio, setBio] = useState('');
   const [friendsCount, setFriendsCount] = useState(0);

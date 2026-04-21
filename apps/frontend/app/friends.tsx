@@ -503,7 +503,7 @@ console.error("Accept failed", error);
   const SuggestionsHeader = () => (
     suggestions.length > 0 ? (
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>People You May Know</Text>
+        <Text style={styles.sectionTitleDark}>People You May Know</Text>
       </View>
     ) : null
   );
@@ -581,6 +581,15 @@ console.error("Accept failed", error);
                     contentContainerStyle={styles.subListContent}
                   />
                 )}
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitleDark}>All Friends</Text>
+                  <Text style={styles.sectionCount}>{friends.length}</Text>
+                </View>
+              </>
+            }
+            ListEmptyComponent={<EmptyState />}
+            ListFooterComponent={
+              <>
                 <SuggestionsHeader />
                 {suggestions.length > 0 && (
                   <FlatList
@@ -591,13 +600,8 @@ console.error("Accept failed", error);
                     contentContainerStyle={styles.subListContent}
                   />
                 )}
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitleDark}>All Friends</Text>
-                  <Text style={styles.sectionCount}>{friends.length}</Text>
-                </View>
               </>
             }
-            ListEmptyComponent={<EmptyState />}
           />
         );
     }
@@ -632,7 +636,12 @@ console.error("Accept failed", error);
             style={[styles.tab, activeTab === 'friends' && styles.activeTab]}
             onPress={() => setActiveTab('friends')}
           >
-            <Text style={[styles.tabText, activeTab === 'friends' && styles.activeTabText]}>
+            <Text
+              style={[styles.tabText, activeTab === 'friends' && styles.activeTabText]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
               Friends
             </Text>
           </TouchableOpacity>
@@ -640,7 +649,12 @@ console.error("Accept failed", error);
             style={[styles.tab, activeTab === 'requests' && styles.activeTab]}
             onPress={() => setActiveTab('requests')}
           >
-            <Text style={[styles.tabText, activeTab === 'requests' && styles.activeTabText]}>
+            <Text
+              style={[styles.tabText, activeTab === 'requests' && styles.activeTabText]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
               Requests
             </Text>
             {(requests.length + outgoingRequests.length) > 0 && (
@@ -653,7 +667,12 @@ console.error("Accept failed", error);
             style={[styles.tab, activeTab === 'suggestions' && styles.activeTab]}
             onPress={() => setActiveTab('suggestions')}
           >
-            <Text style={[styles.tabText, activeTab === 'suggestions' && styles.activeTabText]}>
+            <Text
+              style={[styles.tabText, activeTab === 'suggestions' && styles.activeTabText]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
               Suggestions
             </Text>
           </TouchableOpacity>

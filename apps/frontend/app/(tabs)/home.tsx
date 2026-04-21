@@ -132,7 +132,24 @@ useEffect(() => {
 
   const handleLike = async (reviewId: string) => {
     const firebaseUid = auth.currentUser?.uid;
-    if (!firebaseUid) return;
+    if (!firebaseUid || !mongoId) return;
+
+    const snapshot = feedItems;
+
+    setFeedItems(prev => prev.map(item => {
+      if (item.id !== reviewId) return item;
+      const alreadyLiked = (item.likedBy ?? []).some(
+        (u: any) => String(u?._id ?? u) === String(mongoId)
+      );
+      return {
+        ...item,
+        likes: alreadyLiked ? Math.max(0, (item.likes ?? 0) - 1) : (item.likes ?? 0) + 1,
+        likedBy: alreadyLiked
+          ? (item.likedBy ?? []).filter((u: any) => String(u?._id ?? u) !== String(mongoId))
+          : [...(item.likedBy ?? []), mongoId],
+      };
+    }));
+
     try {
       const token = await getToken();
       const res = await axios.post(
@@ -147,6 +164,7 @@ useEffect(() => {
       ));
     } catch (err: any) {
       console.error("Failed to like review:", err.response?.data || err.message);
+      setFeedItems(snapshot);
     }
   };
 

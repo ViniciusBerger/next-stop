@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/src/config/firebase";
+import { getRole, setToken } from "@/src/utils/auth";
 
 export default function Index() {
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
 
-  const TEST_ADMIN_MODE = false; 
+  const TEST_ADMIN_MODE = false;
 
   useEffect(() => {
-    // Check if router is ready
     const checkReady = setInterval(() => {
       if (router.canGoBack()) {
         setIsReady(true);
@@ -17,7 +19,6 @@ export default function Index() {
       }
     }, 100);
 
-    // Fallback timer
     const timer = setTimeout(() => {
       setIsReady(true);
       clearInterval(checkReady);
@@ -30,18 +31,33 @@ export default function Index() {
   }, []);
 
   useEffect(() => {
-    if (isReady) {
-      // Small delay to ensure navigation is fully mounted
-      setTimeout(() => {
-        if (TEST_ADMIN_MODE) {
-          // Go to admin moderation screen for testing
-          router.replace("/(admin)/moderation" as any);
+    if (!isReady) return;
+
+    if (TEST_ADMIN_MODE) {
+      router.replace("/(admin)/moderation" as any);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      try {
+        if (user && user.emailVerified) {
+          const idToken = await user.getIdToken();
+          await setToken(idToken);
+          const role = await getRole();
+          if (role === "admin") {
+            router.replace("/(admin)/dashboard");
+          } else {
+            router.replace("/home");
+          }
         } else {
-          // Normal flow - go to login
           router.replace("/login");
         }
-      }, 50);
-    }
+      } catch {
+        router.replace("/login");
+      }
+    });
+
+    return unsubscribe;
   }, [isReady]);
 
   return (

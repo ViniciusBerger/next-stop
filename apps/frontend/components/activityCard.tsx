@@ -74,7 +74,9 @@ export function ActivityCard({
   onPlacePress,
 }: ActivityCardProps) {
   const badge = BADGE_CONFIG[item.type];
-  const isLiked = currentUserId ? item.likedBy.includes(currentUserId) : false;
+  const isLiked = currentUserId
+    ? (item.likedBy ?? []).some((u: any) => String(u?._id ?? u) === String(currentUserId))
+    : false;
   const isReviewType = item.type === 'friend_review' || item.type === 'favorite_review';
 
   return (

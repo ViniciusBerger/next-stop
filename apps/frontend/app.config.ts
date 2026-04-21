@@ -2,7 +2,7 @@ import { ExpoConfig, ConfigContext } from "expo/config";
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: "frontend",
+  name: "Next Stop",
   slug: "nextstop",
   owner: "teamnext",
   version: "1.0.0",

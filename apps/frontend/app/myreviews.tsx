@@ -76,7 +76,24 @@ const fetchReviews = async (uid: string) => {
 };
 
   const handleLike = async (reviewId: string) => {
-    if (!firebaseUid) return;
+    if (!firebaseUid || !mongoUserId) return;
+
+    const snapshot = reviews;
+
+    setReviews(prev => prev.map(r => {
+      if (r.id !== reviewId) return r;
+      const alreadyLiked = r.likedBy?.some((u: any) =>
+        String(u?._id ?? u) === String(mongoUserId)
+      );
+      return {
+        ...r,
+        likes: alreadyLiked ? Math.max(0, r.likes - 1) : r.likes + 1,
+        likedBy: alreadyLiked
+          ? r.likedBy.filter((u: any) => String(u?._id ?? u) !== String(mongoUserId))
+          : [...(r.likedBy ?? []), { _id: mongoUserId }],
+      };
+    }));
+
     try {
       const token = await getToken();
       const res = await axios.post(
@@ -89,6 +106,7 @@ const fetchReviews = async (uid: string) => {
       ));
     } catch (err: any) {
       console.error("Failed to like review:", err.response?.data || err.message);
+      setReviews(snapshot);
     }
   };
 
@@ -146,7 +164,7 @@ const fetchReviews = async (uid: string) => {
             <ReviewCard
               {...item}
               isOwnReview={true}
-              isLiked={item.likedBy?.some((u: any) => u._id === mongoUserId || u === mongoUserId)}
+              isLiked={item.likedBy?.some((u: any) => String(u?._id ?? u) === String(mongoUserId))}
               onLike={() => handleLike(item.id)}
               onDelete={() => showAlert(
                 "Delete Review",

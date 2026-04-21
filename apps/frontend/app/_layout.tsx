@@ -1,10 +1,13 @@
 import { Stack } from "expo-router";
 import { useNavigationContainerRef } from "expo-router";
 import { useEffect } from "react";
+import { Platform } from "react-native";
+import * as NavigationBar from "expo-navigation-bar";
 import { ToastManager } from "../components/ui/Toast";
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/src/config/firebase';
 import { setupNotificationHandler, registerPushToken } from '@/src/utils/notifications';
+import { setToken } from '@/src/utils/auth';
 
 setupNotificationHandler();
 
@@ -18,9 +21,17 @@ export default function RootLayout() {
   }, [navigationRef]);
 
   useEffect(() => {
+    if (Platform.OS === 'android') {
+      NavigationBar.setBackgroundColorAsync('#747BFF');
+      NavigationBar.setButtonStyleAsync('light');
+    }
+  }, []);
+
+  useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const idToken = await user.getIdToken();
+        await setToken(idToken);
         registerPushToken(idToken).catch(console.error);
       }
     });

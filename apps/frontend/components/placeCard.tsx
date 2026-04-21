@@ -63,7 +63,7 @@ export const PlaceCard = React.memo(({ place, onPress }: PlaceCardProps) => {
             {getDistanceIcon(place.distance)} {place.distance}
           </Text>
           <Text style={styles.placeRating} numberOfLines={1}>
-            ⭐ {place.rating > 0 ? place.rating.toFixed(1) : 'No ratings yet'}
+            ⭐ {place.rating > 0 ? place.rating.toFixed(1) : 'No ratings'}
           </Text>
         </View>
       </View>
