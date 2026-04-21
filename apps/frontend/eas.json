@@ -20,14 +20,6 @@
         "EXPO_PUBLIC_API_URL": "https://next-stop-11pg.onrender.com"
       }
     },
-    "preview-apk": {
-      "distribution": "internal",
-      "channel": "preview",
-      "android": {
-        "applicationArchivePath": "android/app/build/outputs/apk/release/app-release.apk",
-        "buildType": "apk"
-      }
-    },
     "production": {
       "developmentClient": false,
       "env": {
