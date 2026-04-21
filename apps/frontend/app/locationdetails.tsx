@@ -331,6 +331,7 @@ const styles = StyleSheet.create({
   },
   titleTextContainer: {
     flex: 1,
+    marginRight: 10,
   },
   locationName: {
     fontSize: 20,

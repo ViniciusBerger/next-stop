@@ -310,13 +310,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
-    marginTop: 50,
+    marginTop: 25,
   },
   emptyTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000000',
     marginBottom: 16,
+    textAlign: 'center',
   },
   emptyMessage: {
     fontSize: 18,

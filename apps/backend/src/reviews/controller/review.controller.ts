@@ -181,6 +181,13 @@ async deleteReview(
     if (obj.author && typeof obj.author === 'object') {
       obj.author._id = obj.author._id?.toString();
     }
+    if (Array.isArray(obj.likedBy)) {
+      obj.likedBy = obj.likedBy.map((u: any) =>
+        u && typeof u === 'object' && u._id !== undefined
+          ? { ...u, _id: u._id.toString() }
+          : { _id: u?.toString?.() ?? String(u) },
+      );
+    }
     return plainToInstance(ReviewResponseDTO, obj, {
       excludeExtraneousValues: true,
     });

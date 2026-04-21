@@ -72,13 +72,14 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#000000',
     marginTop: 16,
     marginBottom: 8,
+    textAlign: 'center',
   },
   emptyMessage: {
     fontSize: 16,
-    color: '#666',
+    color: '#000000',
     textAlign: 'center',
     marginBottom: 24,
   },

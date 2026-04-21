@@ -90,6 +90,7 @@ useEffect(() => {
               headers: { Authorization: `Bearer ${token}` }
             });
             setUnreadNotifications(countRes.data);
+            loadFeed(id);
           }
         } catch (err) {
           console.error("Profile reload error:", err);
@@ -110,14 +111,14 @@ useEffect(() => {
     }
   }, [isConnected, isInitialized]);
 
-  const loadFeed = async () => {
-    if (!mongoId) return;
-    setLoading(true);
+  const loadFeed = async (idOverride?: string) => {
+    const id = idOverride ?? mongoId;
+    if (!id) return;
     setError(null);
 
     try {
       const token = await getToken();
-      const response = await axios.get(`${API_URL}/feed?userId=${mongoId}`, {
+      const response = await axios.get(`${API_URL}/feed?userId=${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFeedItems(response.data);

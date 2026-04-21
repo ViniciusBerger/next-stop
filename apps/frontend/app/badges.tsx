@@ -115,7 +115,6 @@ export default function BadgesScreen() {
           )}
         </View>
         <Text style={[styles.badgeName, !item.earned && { color: '#BBBBBB' }]}>{item.name}</Text>
-        <Text style={[styles.badgeDesc, !item.earned && { color: '#CCCCCC' }]}>{item.description}</Text>
 
         {/* Progress bar - show for unearned only */}
         {!item.earned && (
