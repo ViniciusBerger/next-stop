@@ -124,13 +124,13 @@ export default function EditProfileScreen() {
           <Text style={styles.sectionTitle}>Privacy</Text>
           <RowItem label="See activity feed" value={privacy.activityFeed} />
           <View style={styles.divider} />
-          <RowItem label="Favorites" value={privacy.favorites} />
+          {/* <RowItem label="Favorites" value={privacy.favorites} /> */}
           <View style={styles.divider} />
           <RowItem label="My Events" value={privacy.myEvents} />
           <View style={styles.divider} />
           <RowItem label="Badges" value={privacy.badges} />
           <View style={styles.divider} />
-          <RowItem label="Preferences" value={privacy.preferences} />
+          {/* <RowItem label="Preferences" value={privacy.preferences} /> */}
           <ActionButton
             title="Edit Privacy Settings"
             onPress={() => router.push('/editprivacy')}

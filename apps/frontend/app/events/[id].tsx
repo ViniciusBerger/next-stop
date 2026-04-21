@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, FlatList, Image } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenLayout } from "@/components/screenLayout";
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +16,10 @@ export default function EventDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [isAttending, setIsAttending] = useState(false);
   const [mongoUserId, setMongoUserId] = useState<string | null>(null);
+  const [friends, setFriends] = useState<any[]>([]);
+  const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviting, setInviting] = useState(false);
   const isPast = event ? new Date(event.date) < new Date() : false;
 
   useEffect(() => {
@@ -54,7 +58,78 @@ export default function EventDetailsScreen() {
     fetchEvent();
   }, [id]);
 
+  const loadFriends = async () => {
+    if (!mongoUserId) return;
+    try {
+      const token = await getToken();
+      const friendsRes = await axios.get(`${API_URL}/friends?userId=${mongoUserId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const formatted = friendsRes.data.map((f: any) => ({
+        id: f._id,
+        name: f.username || "User",
+        username: f.username ? `@${f.username}` : "",
+        avatar: f.profile?.profilePicture || `https://i.pravatar.cc/150?u=${f._id}`,
+      }));
+      setFriends(formatted);
+    } catch (err: any) {
+      console.error("Failed to load friends:", err.response?.data || err.message);
+    }
+  };
+
+  const openInviteModal = async () => {
+    setSelectedFriends([]);
+    setShowInviteModal(true);
+    if (friends.length === 0) await loadFriends();
+  };
+
+  const toggleFriendSelection = (friendId: string) => {
+    setSelectedFriends((prev) =>
+      prev.includes(friendId) ? prev.filter((f) => f !== friendId) : [...prev, friendId]
+    );
+  };
+
+  const handleSendInvites = async () => {
+    if (selectedFriends.length === 0) {
+      setShowInviteModal(false);
+      return;
+    }
+    setInviting(true);
+    try {
+      const token = await getToken();
+      const res = await axios.post(
+        `${API_URL}/events/${id}/invite`,
+        { friendIds: selectedFriends },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setEvent(res.data);
+      setShowInviteModal(false);
+      setSelectedFriends([]);
+      showAlert(
+        "Invites Sent",
+        `Invited ${selectedFriends.length} friend${selectedFriends.length > 1 ? 's' : ''} to this event.`
+      );
+    } catch (err: any) {
+      showAlert("Error", err.response?.data?.message || "Failed to send invites.");
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const invitableFriends = friends.filter((f) => {
+    const alreadyInvited = (event?.invitedFriends ?? []).some(
+      (inv: any) => String(inv?._id ?? inv) === String(f.id)
+    );
+    const alreadyAttending = (event?.attendees ?? []).some(
+      (a: any) => String(a?._id ?? a) === String(f.id)
+    );
+    return !alreadyInvited && !alreadyAttending;
+  });
+
   const handleToggleAttendance = async () => {
+    if (!mongoUserId) return;
+    const wasAttending = isAttending;
+    setIsAttending(!wasAttending);
     try {
       const token = await getToken();
       const res = await axios.post(`${API_URL}/events/${id}/attend`,
@@ -65,8 +140,9 @@ export default function EventDetailsScreen() {
       const attending = res.data.attendees?.some(
         (a: any) => String(a?._id ?? a) === String(mongoUserId)
       );
-      setIsAttending(attending);
+      setIsAttending(!!attending);
     } catch (error: any) {
+      setIsAttending(wasAttending);
       showAlert("Error", error.response?.data?.message || "Failed to update attendance.");
     }
   };
@@ -186,12 +262,23 @@ export default function EventDetailsScreen() {
           </TouchableOpacity>
         )}
 
+        {/* Host: Invite Friends */}
+        {isHost && !isPast && event.status === 'upcoming' && (
+          <TouchableOpacity
+            style={styles.inviteButton}
+            onPress={openInviteModal}
+          >
+            <Ionicons name="person-add-outline" size={22} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.rsvpButtonText}>Invite Friends</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Host actions */}
         {isHost && !isPast &&event.status === 'upcoming' && (
           <TouchableOpacity
             style={styles.deleteButton}
             onPress={() => showAlert(
-              "Cancel Event", 
+              "Cancel Event",
               "Are you sure you want to cancel this event?",
               [
                 { text: "No", style: "cancel" },
@@ -243,6 +330,74 @@ export default function EventDetailsScreen() {
             <Text style={styles.rsvpButtonText}>Delete Event</Text>
         </TouchableOpacity>
         )}
+
+        {/* Invite Friends Modal */}
+        <Modal
+          visible={showInviteModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowInviteModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Invite Friends</Text>
+                <TouchableOpacity onPress={() => setShowInviteModal(false)}>
+                  <Ionicons name="close" size={24} color="#333" />
+                </TouchableOpacity>
+              </View>
+
+              {invitableFriends.length === 0 ? (
+                <View style={styles.emptyFriends}>
+                  <Ionicons name="people-outline" size={48} color="#ccc" />
+                  <Text style={styles.emptyFriendsText}>No friends to invite</Text>
+                  <Text style={styles.emptyFriendsSubtext}>
+                    {friends.length === 0
+                      ? "Add friends to invite them to events"
+                      : "All your friends are already invited or attending"}
+                  </Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={invitableFriends}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => {
+                    const isSelected = selectedFriends.includes(item.id);
+                    return (
+                      <TouchableOpacity
+                        style={[styles.friendRow, isSelected && styles.friendRowSelected]}
+                        onPress={() => toggleFriendSelection(item.id)}
+                        activeOpacity={0.7}
+                      >
+                        <Image source={{ uri: item.avatar }} style={styles.friendAvatar} />
+                        <View style={styles.friendInfo}>
+                          <Text style={styles.friendName}>{item.name}</Text>
+                          <Text style={styles.friendUsername}>{item.username}</Text>
+                        </View>
+                        <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+                          {isSelected && <Ionicons name="checkmark" size={16} color="#FFF" />}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  }}
+                  contentContainerStyle={styles.friendsList}
+                />
+              )}
+
+              <TouchableOpacity
+                style={[styles.modalDoneButton, (selectedFriends.length === 0 || inviting) && { opacity: 0.5 }]}
+                onPress={handleSendInvites}
+                disabled={selectedFriends.length === 0 || inviting}
+              >
+                <Text style={styles.modalDoneText}>
+                  {inviting
+                    ? "Sending..."
+                    : `Send Invite${selectedFriends.length !== 1 ? 's' : ''}${selectedFriends.length > 0 ? ` (${selectedFriends.length})` : ''}`}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </ScreenLayout>
   );
@@ -363,5 +518,122 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  inviteButton: {
+    backgroundColor: '#5962ff',
+    height: 60,
+    borderRadius: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '75%',
+    paddingBottom: 30,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+  },
+  friendsList: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  friendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  friendRowSelected: {
+    backgroundColor: '#F0F3FF',
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderBottomColor: 'transparent',
+  },
+  friendAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: '#DEE4FF',
+  },
+  friendInfo: {
+    flex: 1,
+  },
+  friendName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+  },
+  friendUsername: {
+    fontSize: 13,
+    color: '#999',
+    marginTop: 2,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#DDD',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: '#5962ff',
+    borderColor: '#5962ff',
+  },
+  modalDoneButton: {
+    backgroundColor: '#5962ff',
+    marginHorizontal: 20,
+    marginTop: 15,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalDoneText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  emptyFriends: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  emptyFriendsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 12,
+  },
+  emptyFriendsSubtext: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 4,
+    textAlign: 'center',
   },
 });

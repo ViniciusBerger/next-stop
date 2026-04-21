@@ -96,8 +96,13 @@ export class EventService {
    * Retrieves events created by or attended by user
    */
   async getUserEvents(userId: string): Promise<{ created: Event[]; attending: Event[] }> {
+    // Match both ObjectId-stored and string-stored values (legacy data).
+    const userMatch = Types.ObjectId.isValid(userId)
+      ? { $in: [new Types.ObjectId(userId), userId] }
+      : userId;
+
     const created = await this.eventModel
-      .find({ host: userId })
+      .find({ host: userMatch })
       .populate('host', 'username profilePicture')
       .populate('place', 'name address _id')
       .populate('attendees', 'username profilePicture')
@@ -106,7 +111,7 @@ export class EventService {
       .exec();
 
     const attending = await this.eventModel
-      .find({ attendees: userId })
+      .find({ attendees: userMatch })
       .populate('host', 'username profilePicture')
       .populate('place', 'name address _id')
       .populate('attendees', 'username profilePicture')

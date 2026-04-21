@@ -45,9 +45,27 @@ export class EventResponseDTO {
   host: any; // Can be populated with User details
 
   @Expose()
+  @Transform(({ value }) =>
+    Array.isArray(value)
+      ? value.map((u: any) =>
+          u && typeof u === 'object'
+            ? { ...u, _id: u._id?.toString() }
+            : { _id: u?.toString?.() ?? String(u) },
+        )
+      : [],
+  )
   attendees: any[]; // Can be populated with User details
 
   @Expose()
+  @Transform(({ value }) =>
+    Array.isArray(value)
+      ? value.map((u: any) =>
+          u && typeof u === 'object'
+            ? { ...u, _id: u._id?.toString() }
+            : { _id: u?.toString?.() ?? String(u) },
+        )
+      : [],
+  )
   invitedFriends: any[]; // Can be populated with User details
 
   @Expose()

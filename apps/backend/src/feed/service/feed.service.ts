@@ -80,6 +80,7 @@ export class FeedService {
           .populate('host', 'username profile')
           .populate('place', 'name address category')
           .populate('attendees', '_id')
+          .populate('invitedFriends', '_id')
           .sort({ date: 1 })
           .limit(10)
           .lean(),
@@ -172,6 +173,20 @@ export class FeedService {
       const myEventsPrivacy = event.host.profile?.privacy?.myEvents;
       if (!this.isVisible(myEventsPrivacy, hostIsFriend)) continue;
 
+      // Determine if viewer can access this event (host, attendee, or invited)
+      const isViewerHost = hostId === userId;
+      const isViewerAttending = (event.attendees || []).some(
+        (a: any) => a?._id?.toString() === userId,
+      );
+      const isViewerInvited = (event.invitedFriends || []).some(
+        (f: any) => f?._id?.toString() === userId,
+      );
+      const canView =
+        event.privacy === 'Public Event' ||
+        isViewerHost ||
+        isViewerAttending ||
+        isViewerInvited;
+
       feedItems.push({
         id: event._id.toString(),
         type: 'event',
@@ -181,24 +196,29 @@ export class FeedService {
           profilePicture: event.host.profile?.profilePicture || null,
         },
         activityText: friendIds.includes(hostId)
-          ? `${event.host.username} is hosting ${event.name}`
+          ? canView
+            ? `${event.host.username} is hosting ${event.name}`
+            : `${event.host.username} is hosting a private event`
           : `Upcoming event: ${event.name}`,
-        place: {
-          _id: event.place._id?.toString(),
-          name: event.place.name,
-          address: event.place.address,
-          category: event.place.category || '',
-        },
+        place: canView
+          ? {
+              _id: event.place._id?.toString(),
+              name: event.place.name,
+              address: event.place.address,
+              category: event.place.category || '',
+            }
+          : { _id: '', name: '', address: '', category: '' },
         rating: null,
         reviewText: null,
         images: [],
         likes: null,
         likedBy: [],
-        eventName: event.name,
-        eventDate: event.date,
+        eventName: canView ? event.name : null,
+        eventDate: canView ? event.date : null,
         eventId: event._id.toString(),
-        attendeeCount: event.attendees?.length || 0,
+        attendeeCount: canView ? event.attendees?.length || 0 : null,
         privacy: event.privacy,
+        canView,
         timestamp: event.createdAt,
       });
     }

@@ -21,10 +21,8 @@ type PrivacyOption = typeof OPTIONS[number] | '';
 
 const FIELDS = [
   { key: 'activityFeed', label: 'See activity feed' },
-  { key: 'favorites',    label: 'Favorites' },
   { key: 'myEvents',     label: 'My events' },
   { key: 'badges',       label: 'Badges' },
-  { key: 'preferences',  label: 'Preferences' },
 ] as const;
 
 type FieldKey = typeof FIELDS[number]['key'];
@@ -37,10 +35,8 @@ export default function EditPrivacyScreen() {
 
   const [selected, setSelected] = useState<Record<FieldKey, PrivacyOption>>({
     activityFeed: '',
-    favorites: '',
     myEvents: '',
     badges: '',
-    preferences: '',
   });
 
   useEffect(() => {
@@ -63,10 +59,8 @@ export default function EditPrivacyScreen() {
           const p = res.data.profile.privacy;
           setSelected({
             activityFeed: p.activityFeed || '',
-            favorites: p.favorites || '',
             myEvents: p.myEvents || '',
             badges: p.badges || '',
-            preferences: p.preferences || '',
           });
         }
       } catch (err) {

@@ -47,7 +47,7 @@ export function HomeHeader({
           <Text style={styles.headerGreeting}>Hello,</Text>
           <Text style={styles.headerGreeting} numberOfLines={1} ellipsizeMode="tail">{username}</Text>
         </View>
-        <Text style={styles.headerSubtitle}>Ready for your next outing?</Text>
+        {/* <Text style={styles.headerSubtitle}>Ready for your next outing?</Text> */}
       </View>
 
       <View style={[styles.avatarWrapper, { top: insets.top + 30 }]}>
