@@ -32,7 +32,16 @@ export function ScreenLayout({ children, showBack = true, title }: ScreenLayoutP
           {/*Back Button and title on the same row */}
           <View style={[styles.topHeader, { paddingTop: insets.top + 30 }]}>
             {showBack && <BackButton color="white" />}
-            {title && <Text style={styles.headerTitle}>{title}</Text>}
+            {title && (
+              <Text
+                style={styles.headerTitle}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
+                {title}
+              </Text>
+            )}
           </View>
 
           {children}

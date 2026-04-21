@@ -31,3 +31,18 @@ export const setRole = async (role: string): Promise<void> => {
     await setItemAsync("userRole", role);
   }
 };
+
+export const getRole = async (): Promise<string | null> => {
+  if (Platform.OS === 'web') {
+    return localStorage.getItem("userRole");
+  }
+  return await getItemAsync("userRole");
+};
+
+export const removeRole = async (): Promise<void> => {
+  if (Platform.OS === 'web') {
+    localStorage.removeItem("userRole");
+  } else {
+    await deleteItemAsync("userRole");
+  }
+};

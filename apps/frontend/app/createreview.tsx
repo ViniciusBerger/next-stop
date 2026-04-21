@@ -206,7 +206,7 @@ export default function CreateReviewScreen() {
               style={styles.input}
               placeholder={placeName || "Where did you go?"}
               value={placeName}
-              onChangeText={setPlaceName}
+              editable={false}
             />
           </View>
 

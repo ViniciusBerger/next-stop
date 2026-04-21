@@ -47,9 +47,26 @@ export default function LocationReviewsScreen() {
   }, [placeId]);
 
   const handleLike = async (reviewId: string) => {
+    const firebaseUid = auth.currentUser?.uid;
+    if (!firebaseUid || !mongoUserId) return;
+
+    const snapshot = reviews;
+
+    setReviews(prev => prev.map(r => {
+      if (r._id !== reviewId) return r;
+      const alreadyLiked = r.likedBy?.some((u: any) =>
+        String(u?._id ?? u) === String(mongoUserId)
+      );
+      return {
+        ...r,
+        likes: alreadyLiked ? Math.max(0, (r.likes ?? 0) - 1) : (r.likes ?? 0) + 1,
+        likedBy: alreadyLiked
+          ? r.likedBy.filter((u: any) => String(u?._id ?? u) !== String(mongoUserId))
+          : [...(r.likedBy ?? []), { _id: mongoUserId }],
+      };
+    }));
+
     try {
-      const firebaseUid = auth.currentUser?.uid;
-      if (!firebaseUid) return;
       const token = await getToken();
       const res = await axios.post(
         `${API_URL}/reviews/like`,
@@ -59,6 +76,7 @@ export default function LocationReviewsScreen() {
       setReviews(prev => prev.map(r => r._id === reviewId ? res.data : r));
     } catch (err: any) {
       console.error("Failed to like review:", err.response?.data || err.message);
+      setReviews(snapshot);
     }
   };
 
@@ -82,7 +100,7 @@ export default function LocationReviewsScreen() {
     placeName: placeName ?? '',
     rating: review.rating,
     likes: review.likes ?? 0,
-    isLiked: review.likedBy?.some((u: any) => u._id === mongoUserId || u === mongoUserId) ?? false,
+    isLiked: review.likedBy?.some((u: any) => String(u?._id ?? u) === String(mongoUserId)) ?? false,
     hasImage: review.images?.length > 0,
     imageUrl: review.images?.[0] ?? null,
     text: review.reviewText,

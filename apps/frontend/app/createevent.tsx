@@ -5,7 +5,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert,
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenLayout } from "@/components/screenLayout";
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { API_URL } from "@/src/config/api";
 import { getToken } from "@/src/utils/auth";
 import { showAlert } from "@/src/utils/alert";
@@ -100,15 +100,41 @@ export default function CreateEventScreen() {
   };
 
   const onChange = (event: any, selectedDate?: Date) => {
-    // Android: selection closes the picker automatically
-    // iOS: the picker usually stays open in a modal/inline
-    if (Platform.OS === 'android') {
-      setShowPicker(false);
-    }
-    
+    // iOS-only path — inline picker stays open, user taps outside to dismiss
     if (selectedDate) {
       setHasPickedDate(true);
       setDate(selectedDate);
+    }
+  };
+
+  const openAndroidPicker = () => {
+    DateTimePickerAndroid.open({
+      value: date,
+      mode: 'date',
+      minimumDate: new Date(),
+      onChange: (dateEvent, pickedDate) => {
+        if (dateEvent.type !== 'set' || !pickedDate) return;
+        DateTimePickerAndroid.open({
+          value: pickedDate,
+          mode: 'time',
+          is24Hour: false,
+          onChange: (timeEvent, pickedTime) => {
+            if (timeEvent.type !== 'set' || !pickedTime) return;
+            const merged = new Date(pickedDate);
+            merged.setHours(pickedTime.getHours(), pickedTime.getMinutes(), 0, 0);
+            setDate(merged);
+            setHasPickedDate(true);
+          },
+        });
+      },
+    });
+  };
+
+  const handleDatePress = () => {
+    if (Platform.OS === 'android') {
+      openAndroidPicker();
+    } else {
+      setShowPicker(true);
     }
   };
 
@@ -208,9 +234,9 @@ const handleCreate = async () => {
         {/* 2. Date & Time Section */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>When</Text>
-          <TouchableOpacity 
-            style={styles.datePickerBar} 
-            onPress={() => setShowPicker(true)}
+          <TouchableOpacity
+            style={styles.datePickerBar}
+            onPress={handleDatePress}
             activeOpacity={0.7}
           >
             <View style={styles.dateInfo}>
@@ -224,7 +250,7 @@ const handleCreate = async () => {
             <Ionicons name="time-outline" size={24} color="#5962ff" />
           </TouchableOpacity>
 
-          {showPicker && (
+          {showPicker && Platform.OS !== 'android' && (
             Platform.OS === 'web' ? (
               <input
                 type="datetime-local"
@@ -236,17 +262,17 @@ const handleCreate = async () => {
                     setShowPicker(false);
                   }
                 }}
-                style={{ 
-                  width: '100%', padding: 12, fontSize: 16, 
+                style={{
+                  width: '100%', padding: 12, fontSize: 16,
                   borderRadius: 12, border: '1px solid #ddd',
-                  marginTop: 8 
+                  marginTop: 8
                 }}
               />
             ) : (
               <DateTimePicker
                 value={date}
                 mode="datetime"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                display="spinner"
                 onChange={onChange}
                 minimumDate={new Date()}
               />
