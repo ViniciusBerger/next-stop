@@ -80,7 +80,6 @@ export const PlaceFilter = ({ onFilterChange }: PlaceFilterProps) => {
             horizontal
             showsHorizontalScrollIndicator={false}
             nestedScrollEnabled
-            onStartShouldSetResponderCapture={() => true}
             keyboardShouldPersistTaps="handled"
             style={styles.chipRow}
             contentContainerStyle={styles.chipRowContent}
